@@ -3,7 +3,7 @@ import type { Worker } from '../../worker.js'
 import envs from '../../../shared/utils/envs.js'
 import dayjs from 'dayjs'
 import { v4 as uid } from 'uuid'
-import { getMemoryUsage, getTime } from '../../shared/functions/utils.js'
+import { getMemoryUsage, getTime } from '../../utils/utils.js'
 import { initProperties } from '../../worker_properties.js'
 import { CoreTrace } from './trace.module.js'
 import { CoreDependencies } from './dependency.module.js'
@@ -219,7 +219,6 @@ export class CoreModule {
 		meta?: object
 	}) {
 		node = node || this.el.nodeModule.nodesInit || undefined
-		console.log({ node })
 		if (!node) return
 		uuid = uuid || uid()
 

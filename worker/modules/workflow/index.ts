@@ -1,22 +1,8 @@
 import type { INode, INodeClass, INodeClassExec } from '@shared/interfaz/node.interfaz.js'
+import type { IWorkerDependencies } from '@shared/interfaz/worker.interfaz.js'
 import type { Worker } from '../../worker.js'
 import { v4 as uuidv4 } from 'uuid'
 import { getNodeClass } from '@shared/maps/nodes.maps.js'
-
-interface IDependencies {
-	secrets: Set<{
-		idNode: string
-		type: string
-		name: string
-		secret: string
-	}>
-	credentials: Set<{
-		idNode: string
-		type: string
-		name: string
-		credentials: string[]
-	}>
-}
 
 export class NodeModule {
 	el: Worker
@@ -33,7 +19,7 @@ export class NodeModule {
 	connectionsInputs: { [key: string]: Set<string> } = {}
 	connectionsOutputs: { [key: string]: Set<string> } = {}
 
-	dependencies: IDependencies = {
+	dependencies: IWorkerDependencies = {
 		secrets: new Set(),
 		credentials: new Set()
 	}

@@ -1,19 +1,19 @@
 import type { IWorkflow, IWorkflowContext } from '@shared/interfaz/workflow.interfaz.js'
 import { v4 as uuidv4 } from 'uuid'
 import { Worker } from './worker.js'
-import { getArgs } from './shared/functions/utils.js'
-import { TransferListItem, workerData } from 'node:worker_threads'
+import { getArgs } from './utils/utils.js'
+import { workerData } from 'node:worker_threads'
+import { sendData, setParentPort } from './modules/communication/index.js'
 import express, { type Express } from 'express'
+import os from 'node:os'
+import fs from 'node:fs'
 import helmet from 'helmet'
 import cors from 'cors'
 import http from 'node:http'
 import envs from '../shared/utils/envs.js'
 import cluster from 'node:cluster'
-import os from 'node:os'
-import fs from 'node:fs'
 import bodyParser from 'body-parser'
 import fileUpload from 'express-fileupload'
-import { parentPort, sendData, setParentPort } from './shared/functions/parentPort.js'
 
 let PATH_FLOW = './data/workflows/'
 const { FLOW, PORT } = workerData || getArgs()
@@ -125,7 +125,7 @@ const workerStart = async ({
 		console.log(`[port: ${tempPort}, flow: ${uidFlow}, isDev: ${IS_DEV}]`)
 		// Indica que el worker se ha iniciado correctamente
 		if (IS_DEV) {
-			parentPort?.postMessage({ type: 'init', value: 'worker init' })
+			sendData({ type: 'init', data: 'worker init', isCallback: false })
 		}
 
 		await initWorker({ app })
@@ -155,7 +155,7 @@ if (numCPUs === 1) {
 					})
 				} else {
 					// Enviando datos al worker
-					const resp = await sendData(msg.type, msg.data)
+					const resp = await sendData({ type: msg.type, data: msg.data, isCallback: true })
 					worker.send({ type: 'RESPONSE', data: resp, uid: msg.uid })
 				}
 			})
@@ -167,7 +167,7 @@ if (numCPUs === 1) {
 		})
 
 		if (IS_DEV) {
-			parentPort?.postMessage({ type: 'init', value: 'worker init' })
+			sendData({ type: 'init', data: 'worker init', isCallback: false })
 		}
 	} else {
 		if (process.send) {

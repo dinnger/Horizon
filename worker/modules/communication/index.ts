@@ -1,15 +1,42 @@
-import type { MessagePort } from 'node:worker_threads'
 import type { Worker } from '../../worker.js'
 import type { ICommunicationTypes } from '@shared/interfaz/connect.interfaz.js'
-import { getMemoryUsage } from '../../shared/functions/utils.js'
-import { MessageChannel } from 'node:worker_threads'
+import { MessageChannel, parentPort, type MessagePort } from 'node:worker_threads'
+import { getMemoryUsage } from '../../utils/utils.js'
 import { getStatusChange } from '../virtual/status.module.js'
-import { parentPort, sendData, tempParentPort } from '../../shared/functions/parentPort.js'
 import winston from 'winston'
 import Transport from 'winston-transport'
 
 let flow = ''
+let tempParentPort: MessagePort | null = null
 const subscribers = new Map<string, ((value: object) => Promise<any>)[]>()
+
+export const setParentPort = (data: any) => {
+	tempParentPort = data
+}
+
+export const sendData = async ({ type, data, isCallback = true }: { type: string; data?: any; isCallback?: boolean }): Promise<any> => {
+	const parent = parentPort || tempParentPort
+
+	if (!isCallback) {
+		return parent?.postMessage({ type, data })
+	}
+
+	const mc = new MessageChannel()
+	const res = new Promise((resolve) => {
+		mc.port1.once('message', (data) => {
+			try {
+				resolve(JSON.parse(data))
+			} catch (error) {
+				resolve(data || null)
+			}
+		})
+	})
+	const ports = [mc.port2]
+	// 'self' refers to the global scope of the worker
+
+	parent?.postMessage({ type, data, ports }, ports)
+	return await res
+}
 
 export class CommunicationModule {
 	el: Worker
@@ -43,7 +70,7 @@ export class CommunicationModule {
 	 * const response = await sendDataToServer('fetchData', { id: 123 });
 	 */
 	async sendDataToServer(type: string, data?: any): Promise<any> {
-		return await sendData(type, data)
+		return await sendData({ type, data, isCallback: true })
 	}
 
 	/**
