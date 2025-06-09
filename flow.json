@@ -1,0 +1,111 @@
+{
+  "info": {
+    "uid": "f9ee58bb-3fc4-4fe8-acbd-a36e6f6cb3a0",
+    "name": "abvc"
+  },
+  "project": {
+    "tcp": {
+      "port": 8080
+    }
+  },
+  "properties": {
+    "basic": {
+      "router": "/",
+      "variables": {}
+    },
+    "deploy": 2
+  },
+  "nodes": {
+    "bd14f300-df62-4fd0-8f36-bdcf283783a8": {
+      "name": "iniciador",
+      "type": "workflow_init",
+      "x": 80,
+      "y": 80,
+      "properties": {
+        "typeExec": {
+          "value": "local"
+        },
+        "schema": {
+          "value": "{\n  \"dato1\": \"string\",\n  \"dato2\": \"number\"\n}"
+        },
+        "valueDefault": {
+          "value": "{\n}"
+        }
+      },
+      "meta": {},
+      "id": "bd14f300-df62-4fd0-8f36-bdcf283783a8",
+      "icon": "󱈎",
+      "color": "#3498DB",
+      "inputs": [],
+      "outputs": [
+        "init"
+      ]
+    },
+    "a5d6116a-ee34-40a3-b2d8-fdbe3a662717": {
+      "name": "delay",
+      "type": "delay",
+      "x": 240,
+      "y": 80,
+      "properties": {
+        "delay": {
+          "value": 3
+        }
+      },
+      "meta": {},
+      "id": "a5d6116a-ee34-40a3-b2d8-fdbe3a662717",
+      "icon": "󱫞",
+      "color": "#95A5A6",
+      "inputs": [
+        "input"
+      ],
+      "outputs": [
+        "response"
+      ]
+    },
+    "0170a608-56ce-469a-9b92-77591341d689": {
+      "name": "console",
+      "type": "console_output",
+      "x": 440,
+      "y": 80,
+      "properties": {
+        "delay": {
+          "value": false
+        }
+      },
+      "meta": {},
+      "id": "0170a608-56ce-469a-9b92-77591341d689",
+      "icon": "󰆍",
+      "color": "#95A5A6",
+      "inputs": [
+        "input"
+      ],
+      "outputs": [
+        "response"
+      ]
+    }
+  },
+  "connections": [
+    {
+      "id": "fefeb7df-49a8-4343-b44b-bb3d22832a34",
+      "id_node_origin": "bd14f300-df62-4fd0-8f36-bdcf283783a8",
+      "output": "init",
+      "id_node_destiny": "a5d6116a-ee34-40a3-b2d8-fdbe3a662717",
+      "input": "input"
+    },
+    {
+      "id": "eb566015-494a-43ff-9af6-2b24e979181a",
+      "id_node_origin": "a5d6116a-ee34-40a3-b2d8-fdbe3a662717",
+      "output": "response",
+      "id_node_destiny": "0170a608-56ce-469a-9b92-77591341d689",
+      "input": "input"
+    },
+    {
+      "id": "32dbe42a-66d2-4188-9c94-11f64d8e7a06",
+      "id_node_origin": "0170a608-56ce-469a-9b92-77591341d689",
+      "output": "response",
+      "id_node_destiny": "a5d6116a-ee34-40a3-b2d8-fdbe3a662717",
+      "input": "input"
+    }
+  ],
+  "secrets": []
+}

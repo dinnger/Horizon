@@ -1,0 +1,86 @@
+@import "./base.css";
+/* @import "../plugins/petrel/css/dark.css"; */
+#app {
+  margin: 0 auto;
+  font-weight: normal;
+  padding: 0;
+}
+
+.background {
+  background-color: var(--color-background-element);
+}
+
+.material-icons {
+  font-family: "material-icons";
+}
+
+.n-card.content > .n-card__content {
+  padding: 0px;
+  height: 100%;
+}
+
+.n-dropdown-option-body__prefix--show-icon {
+  font-family: "material-icons";
+}
+
+
+.content-monaco:not(.expand) .monaco-editor .suggest-widget {
+  overflow: hidden;
+  height: 20px;
+  left: 0 !important;
+  width: 190px !important;
+}
+
+
+
+.custom-active-button {
+  background-color: var(--color-background-active);
+  color: var(--color-text);
+}
+
+.custom-page-button{
+  background-color: rgba(0, 0, 0, 0.1);
+  /* border: 4px solid var(--color-border-element); */
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.custom-page-button:hover {
+  box-shadow: inset 0 0 0 2px var(--color-border-element-hover);
+  /* background-color: rgba(0, 0, 0, 0.2); */
+}
+
+.custom-page-button.active {
+  background-color:  var(--color-border-element-hover);
+  color: var(--color-text-active);
+  /* background-color: rgba(0, 0, 0, 0.2); */
+}
+
+
+.custom-table {
+  background-color: rgba(0, 0, 0, 0.1);
+  /* border: 4px solid var(--color-border-element); */
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.custom-table td {
+  padding: 10px;
+}
+
+.custom-table:hover {
+  background-color: rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 0 0 2px var(--color-border-element-hover);
+  border-radius: 10px;
+}
+
+.custom-table .small{
+  font-size: 12px;
+  opacity: 0.5;
+}
+
