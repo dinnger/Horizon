@@ -1,0 +1,50 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark, corporate;
+}
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  *, *::before, *::after {
+      box-sizing: border-box;
+  }
+
+  * {
+      margin: 0;
+      padding: 0;
+  }
+
+  html {
+      font-family:"Comfortaa Variable", sans-serif;
+  }
+}
+
+:root {
+  --bg:#fff;
+  --active-bg: #e0e0e0;
+  --active-text: #008136;
+}
+
+.dark  {
+  --bg: #1f1f1f;
+  --active-bg: #272727;
+  --active-text: #2ECC71;
+}
+
+@font-face {
+  font-family: "material-icons";
+  src: url("./fonts/materialdesignicons-webfont.woff2");
+}
+
+body {
+  color:white;
+  min-height: 100vh;
+  transition: color 0.2s, background-color 0.2s;
+  line-height: 1.6;
+  font-family: "Comfortaa Variable", system-ui;
+  font-size: 15px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
