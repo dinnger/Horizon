@@ -2,11 +2,26 @@
 
 > **Plataforma de automatización de flujos y gestión de microservicios basada en nodos**
 
-[![License: MIT (Personal Use)](<https://img.shields.io/badge/License-MIT%20(Personal%20Use)-blue.svg>)](LICENSE)
-[![Version](https://img.shields.io/badge/version-3.0.0-green.svg)](package.json)
-[![Node.js](https://img.shields.io/badge/node.js-%3E%3D%2022.0.0-brightgreen.svg)](https://nodejs.org/)
-[![Vue.js](https://img.shields.io/badge/vue.js-3.x-brightgreen.svg)](https://vuejs.org/)
-[![TypeScript](https://img.shields.io/badge/typescript-5.x-blue.svg)](https://www.typescriptlang.org/)
+![License: MIT Personal Use](https://img.shields.io/badge/License-MIT%20Personal%20Use-blue.svg)
+![Version](https://img.shields.io/badge/version-3.0.0-green.svg)
+![Node.js](https://img.shields.io/badge/node.js-%3E%3D%2022.0.0-brightgreen.svg)
+![Vue.js](https://img.shields.io/badge/vue.js-3.x-brightgreen.svg)
+![TypeScript](https://img.shields.io/badge/typescript-5.x-blue.svg)
+
+## 📋 Índice
+
+- [Descripción](#-descripción)
+- [Características Principales](#-características-principales)
+- [Arquitectura del Sistema](#️-arquitectura-del-sistema)
+- [Instalación](#-instalación)
+- [Uso Básico](#-uso-básico)
+- [Estructura del Proyecto](#-estructura-del-proyecto)
+- [Configuración](#-configuración)
+- [API Reference](#-api-reference)
+- [Testing](#-testing)
+- [Deployment](#-deployment)
+- [Contribución](#-contribución)
+- [Licencia](#-licencia)
 
 ## 📋 Descripción
 
@@ -26,7 +41,7 @@
 
 ## 🏗️ Arquitectura del Sistema
 
-```
+```text
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │     Cliente     │    │    Servidor     │    │    Workers      │
 │   (Vue.js 3)    │◄──►│   (Node.js)     │◄──►│   (Threads)     │
@@ -104,7 +119,7 @@ npm run dev
 
 ### 3. Diseñar con Nodos
 
-```
+```text
 ┌─────────┐    ┌─────────┐    ┌─────────┐
 │ Trigger │───►│Process  │───►│ Output  │
 │  HTTP   │    │  Data   │    │  Email  │
@@ -155,7 +170,7 @@ npm run dev
 
 ## 📂 Estructura del Proyecto
 
-```
+```text
 horizon/
 ├── 📁 client/                 # Frontend Vue.js
 │   ├── 📁 src/
@@ -542,24 +557,21 @@ Para reportar bugs o solicitar funcionalidades:
 
 ## 📄 Licencia
 
-```
-MIT License (Uso Personal Únicamente)
+**MIT License (Uso Personal Únicamente)**
 
 Copyright (c) 2025 Horizon Team
 
-Se otorga permiso, de forma gratuita, a cualquier persona que obtenga una copia
-de este software y archivos de documentación asociados (el "Software"), para
-usar el Software únicamente para fines personales y no comerciales.
+Se otorga permiso, de forma gratuita, a cualquier persona que obtenga una copia de este software y archivos de documentación asociados (el "Software"), para usar el Software únicamente para fines personales y no comerciales.
 
-RESTRICCIONES:
-- ❌ Uso comercial prohibido
-- ❌ Redistribución con fines de lucro prohibida
-- ✅ Uso personal permitido
-- ✅ Modificación para uso personal permitida
-- ✅ Contribuciones al proyecto permitidas
+### Restricciones:
 
-Para uso comercial, contactar al equipo de desarrollo.
-```
+- ❌ **Uso comercial prohibido**
+- ❌ **Redistribución con fines de lucro prohibida**
+- ✅ **Uso personal permitido**
+- ✅ **Modificación para uso personal permitida**
+- ✅ **Contribuciones al proyecto permitidas**
+
+> Para uso comercial, contactar al equipo de desarrollo.
 
 ## 👥 Equipo
 
