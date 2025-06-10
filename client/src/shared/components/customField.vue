@@ -9,11 +9,11 @@
         :type="element.type === 'string' ? 'text' : element.type" :placeholder="element.placeholder"
         :class="(element?.class || '') + ('onValidation' in element && element.onValidation ? ' validator' : '')"
         :pattern="'onValidation' in element ? element.onValidation?.pattern || undefined : undefined"
-        :maxlength="element.maxlength" :required="element.required ===true || undefined" @focus="emit('focus')" @keyup="e => emit('keyup', e)"
-        @keydown="e => emit('keydown', e)" @change="handleChange" />
+        :maxlength="element.maxlength" :required="element.required === true || undefined" @focus="emit('focus')"
+        @keyup="e => emit('keyup', e)" @keydown="e => emit('keydown', e)" @change="handleChange" />
       <input ref="fieldInput" v-else :value="element.value" :type="element.type === 'string' ? 'text' : element.type"
         class="w-full input input-sm" :class="element.class" disabled>
-      <p v-if="'onValidation' in element && element.onValidation" class="validator-hints" > 
+      <p v-if="'onValidation' in element && element.onValidation" class="validator-hints">
         {{ element.onValidation.hint.join('\n') }}
       </p>
       <div v-if="element.maxlength" class="absolute right-5 bottom-0 text-[10px] z-20">
@@ -22,7 +22,7 @@
     </div>
     <!-- textarea -->
     <div v-if="element.type === 'textarea'" class="w-full relative ">
-      <textarea ref="fieldInput" v-model="element.value" class="w-full textarea" 
+      <textarea ref="fieldInput" v-model="element.value" class="w-full textarea"
         :class="(element?.class || '') + ('onValidation' in element && element.onValidation ? ' validator' : '')"
         :maxlength="element.maxlength" @input="handleChange"
         :pattern="'onValidation' in element ? element.onValidation?.pattern || '' : undefined"></textarea>
@@ -35,11 +35,13 @@
     </div>
     <!-- switch -->
     <template v-if="element.type === 'switch'">
-      <input ref="fieldInput" type="checkbox" v-model="element.value" class="toggle" :class="element.class" @change="handleChange" />
+      <input ref="fieldInput" type="checkbox" v-model="element.value" class="toggle" :class="element.class"
+        @change="handleChange" />
     </template>
     <!-- options, secret, credential -->
     <div v-if="element.type === 'options' || element.type === 'secret' || element.type === 'credential'">
-      <select ref="fieldInput" class="select select-sm" :class="element.class" v-model="element.value" @change="handleChange">
+      <select ref="fieldInput" class="select select-sm" :class="element.class" v-model="element.value"
+        @change="handleChange">
         <option v-for="option in element.options" :key="option.value" :value="option.value" :disabled="option.disabled">
           {{ option.label }}
         </option>
@@ -81,99 +83,98 @@
 </template>
 
 <script setup lang="ts">
-import type { IClientFieldType } from '@shared/interfaces/workflow.properties.interface.js'
+import type { IPropertyFieldType } from '@shared/interface/node.properties.interface.js'
 import CustomCode from './customCode.vue'
 import { ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 
 const emit = defineEmits(['update:value', 'change', 'blur', 'focus', 'keyup', 'keydown', 'button:click'])
 
-const props = withDefaults(defineProps<IClientFieldType>(), {
-	show: undefined
+const props = withDefaults(defineProps<IPropertyFieldType>(), {
+  show: undefined
 })
-const element = ref<IClientFieldType | null>(null)
+const element = ref<IPropertyFieldType | null>(null)
 const fieldInput = ref<HTMLInputElement | null>(null)
 
-element.value = { ...props } as IClientFieldType
+element.value = { ...props } as IPropertyFieldType
 
 watch(
-	() => (props as IClientFieldType).value,
-	(value) => {
-		if (!element.value) return
-		element.value.value = value
-	}
+  () => (props as IPropertyFieldType).value,
+  (value) => {
+    if (!element.value) return
+    element.value.value = value
+  }
 )
 
 watch(
-	() => (props as IClientFieldType).disabled,
-	(value) => {
-		if (!element.value) return
-		element.value.disabled = value
-	}
+  () => (props as IPropertyFieldType).disabled,
+  (value) => {
+    if (!element.value) return
+    element.value.disabled = value
+  }
 )
 
 watch(element.value, (value) => {
-	emit('update:value', value.value)
+  emit('update:value', value.value)
 })
 
 if (props.type === 'options') {
-	watch(
-		() => props.options,
-		(value) => {
-			if (element.value?.type !== 'options') return
-			element.value.options = value
-		}
-	)
+  watch(
+    () => props.options,
+    (value) => {
+      if (element.value?.type !== 'options') return
+      element.value.options = value
+    }
+  )
 }
 
 const select = () => {
-	if (!fieldInput.value) return
-	if (!Array.isArray(fieldInput.value)) return
-	fieldInput.value[0].select()
+  if (!fieldInput.value) return
+  if (!Array.isArray(fieldInput.value)) return
+  fieldInput.value[0].select()
 }
 
 const focus = () => {
-	if (!fieldInput.value) return
-	if (!Array.isArray(fieldInput.value)) return
-	fieldInput.value[0].focus()
+  if (!fieldInput.value) return
+  if (!Array.isArray(fieldInput.value)) return
+  fieldInput.value[0].focus()
 }
 
 const handleChange = async () => {
-	if (!element.value) return
-	if ('onTransform' in element.value && typeof element.value.onTransform === 'function') {
-		element.value.value = element.value.onTransform(element.value.value)
-	}
-	emit('change')
+  if (!element.value) return
+  if ('onTransform' in element.value && typeof element.value.onTransform === 'function') {
+    element.value.value = element.value.onTransform(element.value.value)
+  }
+  emit('change')
 }
 
 const copyToClipboard = (value: string) => {
-	navigator.clipboard.writeText(value)
-	toast.success('Copiado al portapapeles')
+  navigator.clipboard.writeText(value)
+  toast.success('Copiado al portapapeles')
 }
 
 defineExpose({ select, focus })
 </script>
 
 <style scoped>
-    .validator-hints {
-      visibility: hidden;
-      display: none;
-      color: var(--color-error, #e53e3e);
-      font-size: 12px;
-      margin-top: 2px;
-      white-space: pre-line;
-      line-height: 1.2;
-    }
+.validator-hints {
+  visibility: hidden;
+  display: none;
+  color: var(--color-error, #e53e3e);
+  font-size: 12px;
+  margin-top: 2px;
+  white-space: pre-line;
+  line-height: 1.2;
+}
 
-    input:user-invalid ~ .validator-hints,
-    input:has(:user-invalid) ~ .validator-hints,
-    input[aria-invalid]:not([aria-invalid="false"]) ~ .validator-hints,
-    textarea:user-invalid ~ .validator-hints,
-    textarea:has(:user-invalid) ~ .validator-hints,
-    textarea[aria-invalid]:not([aria-invalid="false"]) ~ .validator-hints {
-      padding: 2px 4px;
-      visibility: visible;
-      display: block;
-    }
-
+input:user-invalid~.validator-hints,
+input:has(:user-invalid)~.validator-hints,
+input[aria-invalid]:not([aria-invalid="false"])~.validator-hints,
+textarea:user-invalid~.validator-hints,
+textarea:has(:user-invalid)~.validator-hints,
+textarea[aria-invalid]:not([aria-invalid="false"])~.validator-hints {
+  padding: 2px 4px;
+  visibility: visible;
+  display: block;
+}
 </style>

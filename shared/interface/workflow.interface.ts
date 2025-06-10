@@ -1,5 +1,5 @@
-import type { INode, INodeClassExec } from './node.interfaz.js'
-import type { IPropertiesType } from './node.properties.interfaz.js'
+import type { INode, INodeClassExec } from './node.interface.js'
+import type { IPropertiesType } from './node.properties.interface.js'
 
 interface IWorkflowInfo {
 	uid: string
@@ -13,11 +13,13 @@ interface IWorkflowInfo {
 type IWorkflowProject =
 	| { type: 'tcp'; tcp: { port: number; host?: string; protocol?: 'http' | 'https'; maxRetries: number } }
 	| { type: 'rabbitMQ'; rabbitMQ: { host: string; port: number; exchange: string; maxRetries: number; username: string; password: string } }
+	| { type: 'kafka'; kafka: { host: string; port: number; exchange: string; maxRetries: number; username: string; password: string } }
 
 interface IWorkflowProperties {
 	basic: {
 		router: string
 	}
+	deploy?: number | null
 }
 
 interface IWorkflowEnv {
@@ -38,7 +40,7 @@ export type IWorkflowPropertyType = IPropertiesType
 
 export interface IWorkflow {
 	info: IWorkflowInfo
-	project: IWorkflowProject
+	project?: IWorkflowProject
 	nodes: Record<string, INode>
 	properties: IWorkflowProperties
 	env: IWorkflowEnv

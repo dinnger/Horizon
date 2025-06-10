@@ -1,4 +1,4 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty, INodeClassPropertyType } from '@shared/interfaz/node.interfaz.js'
+import type { INodeClass, INodeClassOnExecute, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 import querystring from 'node:querystring'
 
 interface IProperties extends INodeClassProperty {

@@ -1,4 +1,4 @@
-import type { INodeClass, INodeClassOnCreate, INodeClassOnExecute, INodeClassProperty } from '@shared/interfaz/node.interfaz.js'
+import type { INodeClass, INodeClassOnCreate, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
 
 export default class implements INodeClass {
 	// ===============================================

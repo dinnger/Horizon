@@ -1,15 +1,15 @@
-import type { IServerDeploy } from '@shared/interfaz/deploy.interfaz.js'
+import type { IDeploy } from '@shared/interface/deploy.interface.js'
 import fs from 'node:fs'
 import zl from 'zip-lib'
 
-export default class implements IServerDeploy {
+export default class implements IDeploy {
 	// ===============================================
 	// Dependencias
 	// ===============================================
 	// ===============================================
 	constructor(
-		public info: IServerDeploy['info'],
-		public properties: IServerDeploy['properties'],
+		public info: IDeploy['info'],
+		public properties: IDeploy['properties'],
 		public meta: {
 			nodesExecuted?: Set<string>
 			executeData?: Map<string, { data: object; meta?: object; time: number }>
@@ -35,7 +35,7 @@ export default class implements IServerDeploy {
 		}
 	}
 
-	async onExecute({ context }: Parameters<IServerDeploy['onExecute']>[0]) {
+	async onExecute({ context }: Parameters<IDeploy['onExecute']>[0]) {
 		// crear archivo zip a partir de carpeta context.path
 		if (this.properties.isZip.value) {
 			await zl.archiveFolder(context.path, `${this.properties.path.value as string}/${context.flow}.zip`)

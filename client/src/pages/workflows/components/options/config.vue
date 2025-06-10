@@ -47,25 +47,23 @@
 </template>
 
 <script setup lang="ts">
-import type { IWorkflowProperties } from '../../../../../../shared/interfaces/workflow.interface.js'
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
-import type { IWorkflowWorkerEntity } from '@shared/interfaces/workflow.interface.js'
 import CustomButton from '../../../../shared/components/customButton.vue'
 import CustomField from '../../../../shared/components/customField.vue'
+import type { IWorkflow } from '@shared/interface/workflow.interface'
 
 const emit = defineEmits(['saveConfig'])
 const props = defineProps<{
-  properties: IWorkflowProperties
+  properties: IWorkflow['properties']
   listDeploy: { label: string; value: number }[]
-  workflow: IWorkflowWorkerEntity
+  workflow: IWorkflow
 }>()
 const show = ref(false)
 
-const propertiesInfo = ref<IWorkflowProperties>({
+const propertiesInfo = ref<IWorkflow['properties']>({
   basic: {
-    router: '/',
-    variables: {}
+    router: '/'
   },
   deploy: null
 })
@@ -75,8 +73,8 @@ const show_config = () => {
   if (props.properties) {
     propertiesInfo.value.basic = props.properties.basic
     propertiesInfo.value.deploy = props.properties.deploy
-    propertiesInfo.value.basic.variables = props.properties.basic.variables
-    envs.value = props.properties.basic.variables && typeof props.properties.basic.variables === 'object' ? JSON.stringify(props.properties.basic.variables, null, 2) : '{\n}'
+    // propertiesInfo.value.basic.variables = props.properties.basic.variables
+    // envs.value = props.properties.basic.variables && typeof props.properties.basic.variables === 'object' ? JSON.stringify(props.properties.basic.variables, null, 2) : '{\n}'
   }
   show.value = true
 }
@@ -90,7 +88,7 @@ const save = () => {
   } catch (error) {
     return toast.error('Las variables deben ser un objeto JSON')
   }
-  propertiesInfo.value.basic.variables = JSON.parse(envs.value as string)
+  // propertiesInfo.value.basic.variables = JSON.parse(envs.value as string)
   emit('saveConfig', {
     data: propertiesInfo.value
   })

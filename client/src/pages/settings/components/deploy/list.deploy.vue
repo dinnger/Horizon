@@ -54,7 +54,7 @@
 
 <script setup lang="ts">
 import type { IClientActionResponse, IClientStepButtons, IClientStepContent } from '@shared/interfaces/client.interface'
-import type { IGlobalDeploymentsEntity } from '@shared/interfaces/entities/global.deployments.interface.js'
+import type { IGlobalDeploymentsEntity } from '@entities/global.deployments.interface.js'
 import { onMounted, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { useSocket } from '../../../../stores/socket'

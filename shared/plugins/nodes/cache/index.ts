@@ -4,7 +4,7 @@ import type {
 	INodeClassOnExecute,
 	INodeClassProperty,
 	INodeClassPropertyType
-} from '@shared/interfaz/node.interfaz.js'
+} from '@shared/interface/node.interface.js'
 
 interface IClassProperties extends INodeClassProperty {
 	key: Extract<INodeClassPropertyType, { type: 'string' }>

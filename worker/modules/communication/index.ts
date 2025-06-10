@@ -1,5 +1,5 @@
 import type { Worker } from '../../worker.js'
-import type { ICommunicationTypes } from '@shared/interfaz/connect.interfaz.js'
+import type { ICommunicationTypes } from '@shared/interface/connect.interface.js'
 import { MessageChannel, parentPort, type MessagePort } from 'node:worker_threads'
 import { getMemoryUsage } from '../../utils/utils.js'
 import { getStatusChange } from '../virtual/status.module.js'

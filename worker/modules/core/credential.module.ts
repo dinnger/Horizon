@@ -1,4 +1,4 @@
-import type { INodeClass } from '@shared/interfaz/node.interfaz.js'
+import type { INodeClass } from '@shared/interface/node.interface.js'
 
 export function CoreCredential(this: INodeClass) {
 	return {

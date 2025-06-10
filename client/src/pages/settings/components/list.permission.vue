@@ -58,7 +58,7 @@ import { onMounted, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import { useSocket } from '../../../stores/socket';
 import NewPermission from './new.permission.vue';
-import type { ISecurityPermissionEntity } from '@shared/interfaces/entities/security.interface.js';
+import type { ISecurityPermissionEntity } from '@entities/security.interface.js';
 
 const socket = useSocket()
 const list = ref<ISecurityPermissionEntity[]>([])

@@ -1,12 +1,14 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interfaz/node.interfaz.js'
+import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
 
 export default class implements INodeClass {
 	constructor(
 		public dependencies: string[],
 		public info: INodeClass['info'],
+		public tags: INodeClass['tags'],
 		public properties: INodeClassProperty
 	) {
 		this.dependencies = ['nodemailer']
+		this.tags = ['tools']
 
 		this.info = {
 			title: 'Gmail',

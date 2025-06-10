@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import type { INodeNew, IWorkflowWorkerEntity } from '@shared/interfaces/workflow.interface.js';
+import type { INodeCanvas } from '@shared/interface/node.interface.js';
 import type { Canvas } from './utils/canvas';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
@@ -47,8 +47,8 @@ import { useSocket } from '../../stores/socket';
 const socket = useSocket()
 const route = useRoute()
 
-const data_workflow = ref<IWorkflowWorkerEntity>()
-const data_nodes = ref<INodeNew[]>([])
+const data_workflow = ref()
+const data_nodes = ref<INodeCanvas[]>([])
 const componentCanvas = ref<InstanceType<typeof component_workflow_canvas>>()
 const canvasInstance = ref<Canvas>()
 
@@ -57,6 +57,7 @@ const uid = route.params.workflow_id as string
 onMounted(() => {
   data_nodes.value = []
   socket.socketEmit('server/workflows/initialize', { uid }, (value) => {
+    console.log(value)
     socket.socketJoin(uid)
     data_workflow.value = value
     toast.success(`Workflow ${data_workflow?.value?.name} cargado exitosamente`)
@@ -65,20 +66,9 @@ onMounted(() => {
 
   socket.socketEmit('server/plugins/nodes/get', {}, (value: { nodes: any } | null) => {
     if (!value) return
-    console.log(value)
     for (const node of value.nodes) {
       data_nodes.value.push({
-        name: node.name,
-        type: node.type,
-        typeDescription: node.typeDescription,
-        color: node.info.color,
-        icon: node.info.icon,
-        inputs: node.info.inputs,
-        outputs: node.info.outputs,
-        callbacks: node.info.callbacks,
-        properties: node.properties,
-        meta: node.meta,
-        connections: []
+        ...node
       })
     }
   })

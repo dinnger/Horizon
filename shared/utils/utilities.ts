@@ -1,4 +1,4 @@
-import type { INode } from '@shared/interfaz/node.interfaz.js'
+import type { INode } from '@shared/interface/node.interface.js'
 
 export function convertJson(json: string | object) {
 	try {

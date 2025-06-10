@@ -12,6 +12,7 @@ logs/**/*.log
 
 *.key
 *.sqlite
+*.sql
 
 # Playwright
 /test-results/

@@ -6,7 +6,7 @@
  * 2020
  */
 
-import type { INode } from './canvas'
+import type { INodeCanvas } from '@shared/interface/node.interface'
 
 type BasicCardinalPoint = 'n' | 'e' | 's' | 'w'
 type Direction = 'v' | 'h'
@@ -70,7 +70,7 @@ interface OrthogonalConnectorByproduct {
  */
 interface OrthogonalConnectorOpts {
 	ctx: CanvasRenderingContext2D
-	nodes: { [key: string]: INode }
+	nodes: { [key: string]: INodeCanvas }
 	pointA: ConnectorPoint
 	pointB: ConnectorPoint
 	shapeMargin: number
@@ -108,12 +108,7 @@ class Rectangle {
 		return new Rectangle(r.left, r.top, r.width, r.height)
 	}
 
-	static fromLTRB(
-		left: number,
-		top: number,
-		right: number,
-		bottom: number
-	): Rectangle {
+	static fromLTRB(left: number, top: number, right: number, bottom: number): Rectangle {
 		return new Rectangle(left, top, right - left, bottom - top)
 	}
 
@@ -125,21 +120,11 @@ class Rectangle {
 	) {}
 
 	contains(p: Point): boolean {
-		return (
-			p.x >= this.left &&
-			p.x <= this.right &&
-			p.y >= this.top &&
-			p.y <= this.bottom
-		)
+		return p.x >= this.left && p.x <= this.right && p.y >= this.top && p.y <= this.bottom
 	}
 
 	inflate(horizontal: number, vertical: number): Rectangle {
-		return Rectangle.fromLTRB(
-			this.left - horizontal,
-			this.top - vertical,
-			this.right + horizontal,
-			this.bottom + vertical
-		)
+		return Rectangle.fromLTRB(this.left - horizontal, this.top - vertical, this.right + horizontal, this.bottom + vertical)
 	}
 
 	intersects(rectangle: Rectangle): boolean {
@@ -151,23 +136,13 @@ class Rectangle {
 		const rectY = rectangle.top
 		const rectW = rectangle.width
 		const rectH = rectangle.height
-		return (
-			rectX < thisX + thisW &&
-			thisX < rectX + rectW &&
-			rectY < thisY + thisH &&
-			thisY < rectY + rectH
-		)
+		return rectX < thisX + thisW && thisX < rectX + rectW && rectY < thisY + thisH && thisY < rectY + rectH
 	}
 
 	union(r: Rectangle): Rectangle {
 		const x = [this.left, this.right, r.left, r.right]
 		const y = [this.top, this.bottom, r.top, r.bottom]
-		return Rectangle.fromLTRB(
-			Math.min(...x),
-			Math.min(...y),
-			Math.max(...x),
-			Math.max(...y)
-		)
+		return Rectangle.fromLTRB(Math.min(...x), Math.min(...y), Math.max(...x), Math.max(...y))
 	}
 
 	get center(): Point {
@@ -274,16 +249,10 @@ class PointGraph {
 			return null
 		}
 
-		return this.directionOfNodes(
-			node.shortestPath[node.shortestPath.length - 1],
-			node
-		)
+		return this.directionOfNodes(node.shortestPath[node.shortestPath.length - 1], node)
 	}
 
-	calculateShortestPathFromSource(
-		graph: PointGraph,
-		source: PointNode
-	): PointGraph {
+	calculateShortestPathFromSource(graph: PointGraph, source: PointNode): PointGraph {
 		source.distance = 0
 
 		const settledNodes: Set<PointNode> = new Set()
@@ -307,16 +276,11 @@ class PointGraph {
 		return graph
 	}
 
-	private calculateMinimumDistance(
-		evaluationNode: PointNode,
-		edgeWeigh: number,
-		sourceNode: PointNode
-	) {
+	private calculateMinimumDistance(evaluationNode: PointNode, edgeWeigh: number, sourceNode: PointNode) {
 		const sourceDistance = sourceNode.distance
 		const comingDirection = this.inferPathDirection(sourceNode)
 		const goingDirection = this.directionOfNodes(sourceNode, evaluationNode)
-		const changingDirection =
-			comingDirection && goingDirection && comingDirection !== goingDirection
+		const changingDirection = comingDirection && goingDirection && comingDirection !== goingDirection
 		const extraWeigh = changingDirection ? (edgeWeigh + 1) ** 2 : 0
 
 		if (sourceDistance + edgeWeigh + extraWeigh < evaluationNode.distance) {
@@ -423,11 +387,7 @@ function isVerticalSide(side: Side): boolean {
  * @param horizontals
  * @param bounds
  */
-function rulersToGrid(
-	verticals: number[],
-	horizontals: number[],
-	bounds: Rectangle
-): Grid {
+function rulersToGrid(verticals: number[], horizontals: number[], bounds: Rectangle): Grid {
 	const result: Grid = new Grid()
 
 	verticals.sort((a, b) => a - b)
@@ -456,20 +416,12 @@ function rulersToGrid(
 
 	// Last fow of cells
 	for (const x of verticals) {
-		result.set(
-			row,
-			column++,
-			Rectangle.fromLTRB(lastX, lastY, x, bounds.bottom)
-		)
+		result.set(row, column++, Rectangle.fromLTRB(lastX, lastY, x, bounds.bottom))
 		lastX = x
 	}
 
 	// Last cell of last row
-	result.set(
-		row,
-		column,
-		Rectangle.fromLTRB(lastX, lastY, bounds.right, bounds.bottom)
-	)
+	result.set(row, column, Rectangle.fromLTRB(lastX, lastY, bounds.right, bounds.bottom))
 
 	return result
 }
@@ -507,8 +459,7 @@ function reducePoints(points: Point[]): Point[] {
  * @param obstacles
  */
 function gridToSpots(grid: Grid, obstacles: Rectangle[]): Point[] {
-	const obstacleCollision = (p: Point) =>
-		obstacles.filter((o) => o.contains(p)).length > 0
+	const obstacleCollision = (p: Point) => obstacles.filter((o) => o.contains(p)).length > 0
 
 	const gridPoints: Point[] = []
 
@@ -538,17 +489,7 @@ function gridToSpots(grid: Grid, obstacles: Rectangle[]): Point[] {
 				// for (let i = -30; i <= 30; i += 20) {
 				// 	gridPoints.push({ x: r.center.x, y: r.center.y + i })
 				// }
-				gridPoints.push(
-					r.northWest,
-					r.north,
-					r.northEast,
-					r.east,
-					r.southEast,
-					r.south,
-					r.southWest,
-					r.west,
-					r.center
-				)
+				gridPoints.push(r.northWest, r.north, r.northEast, r.east, r.southEast, r.south, r.southWest, r.west, r.center)
 			}
 		}
 	}
@@ -576,14 +517,8 @@ function gridToSpots(grid: Grid, obstacles: Rectangle[]): Point[] {
  * @param grid
  * @param obstacles
  */
-function gridToSpots2(
-	shapeA: ConnectorPoint,
-	shapeB: ConnectorPoint,
-	shapeMargin: number,
-	obstacles: Rectangle[]
-) {
-	const obstacleCollision = (p: Point) =>
-		obstacles.filter((o) => o.contains(p)).length > 0
+function gridToSpots2(shapeA: ConnectorPoint, shapeB: ConnectorPoint, shapeMargin: number, obstacles: Rectangle[]) {
+	const obstacleCollision = (p: Point) => obstacles.filter((o) => o.contains(p)).length > 0
 
 	const pointCount = 200
 	const margin = 30
@@ -672,17 +607,10 @@ function gridToSpots2(
 	// shapePoint(pointB)
 
 	// calcular 10 puntos de xorigine a xdestino
-	const x1 =
-		Math.min(pointA.left + pointA.width, pointB.left + pointB.width) + margin
-	const y1 = Math.min(
-		pointA.top + pointA.distance,
-		pointB.top + pointB.distance
-	)
+	const x1 = Math.min(pointA.left + pointA.width, pointB.left + pointB.width) + margin
+	const y1 = Math.min(pointA.top + pointA.distance, pointB.top + pointB.distance)
 	const x2 = Math.max(pointA.left, pointB.left) - margin
-	const y2 = Math.max(
-		pointA.top + pointA.distance,
-		pointB.top + pointB.distance
-	)
+	const y2 = Math.max(pointA.top + pointA.distance, pointB.top + pointB.distance)
 	const width = Math.abs((x2 || 0) - (x1 || 0))
 	const height = Math.abs((y2 || 0) - (y1 || 0))
 
@@ -784,11 +712,7 @@ function createGraph(spots: Point[]): {
  * @param origin
  * @param destination
  */
-function shortestPath(
-	graph: PointGraph,
-	origin: Point,
-	destination: Point
-): Point[] {
+function shortestPath(graph: PointGraph, origin: Point, destination: Point): Point[] {
 	const originNode = graph.get(origin)
 	const destinationNode = graph.get(destination)
 
@@ -826,10 +750,7 @@ function getBend(a: Point, b: Point, c: Point): BendDirection {
 		return 'none'
 	}
 
-	if (
-		!(segment1Vertical || segment1Horizontal) ||
-		!(segment2Vertical || segment2Horizontal)
-	) {
+	if (!(segment1Vertical || segment1Horizontal) || !(segment2Vertical || segment2Horizontal)) {
 		return 'unknown'
 	}
 
@@ -962,9 +883,7 @@ export class OrthogonalConnector {
 			inflatedB = shapeB
 		}
 
-		const inflatedBounds = inflatedA
-			.union(inflatedB)
-			.inflate(globalBoundsMargin, globalBoundsMargin)
+		const inflatedBounds = inflatedA.union(inflatedB).inflate(globalBoundsMargin, globalBoundsMargin)
 
 		// Curated bounds to stick to
 		const bounds = Rectangle.fromLTRB(
@@ -982,18 +901,13 @@ export class OrthogonalConnector {
 			horizontals.push(b.bottom)
 		}
 		// Rulers at origins of shapes
-		;(sideAVertical ? verticals : horizontals).push(
-			sideAVertical ? originA.x : originA.y
-		)
-		;(sideBVertical ? verticals : horizontals).push(
-			sideBVertical ? originB.x : originB.y
-		)
+		;(sideAVertical ? verticals : horizontals).push(sideAVertical ? originA.x : originA.y)
+		;(sideBVertical ? verticals : horizontals).push(sideBVertical ? originB.x : originB.y)
 
 		// Points of shape antennas
 		for (const connectorPt of [pointA, pointB]) {
 			const p = computePt(connectorPt)
-			const add = (dx: number, dy: number) =>
-				spots.push(makePt(p.x + dx, p.y + dy))
+			const add = (dx: number, dy: number) => spots.push(makePt(p.x + dx, p.y + dy))
 
 			switch (connectorPt.side) {
 				case 'top':
@@ -1022,21 +936,17 @@ export class OrthogonalConnector {
 		const inflates: Rectangle[] = []
 		for (const node of Object.values(nodes)) {
 			const shape = Rectangle.fromRect({
-				left: node.x,
-				top: node.y,
-				width: node.width,
-				height: node.height
+				left: node.design.x,
+				top: node.design.y,
+				width: node.design.width,
+				height: node.design.height
 			})
 			const inflate = shape.inflate(shapeMargin, shapeMargin)
 			inflates.push(inflate)
 		}
 
 		// const gridPoints = gridToSpots(grid, [inflatedA, inflatedB, ...inflates])
-		const gridPoints = gridToSpots2(pointA, pointB, shapeMargin, [
-			inflatedA,
-			inflatedB,
-			...inflates
-		])
+		const gridPoints = gridToSpots2(pointA, pointB, shapeMargin, [inflatedA, inflatedB, ...inflates])
 
 		// Add to spots
 		spots.push(...gridPoints)
@@ -1060,11 +970,7 @@ export class OrthogonalConnector {
 		const pathConnector = shortestPath(graph, origin, destination)
 
 		if (pathConnector.length > 0) {
-			return simplifyPath([
-				start,
-				...shortestPath(graph, origin, destination),
-				end
-			])
+			return simplifyPath([start, ...shortestPath(graph, origin, destination), end])
 			// biome-ignore lint/style/noUselessElse: <explanation>
 		} else {
 			return []

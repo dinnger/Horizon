@@ -1,4 +1,4 @@
-import type { IWorkflow, IWorkflowContext } from '@shared/interfaz/workflow.interfaz.js'
+import type { IWorkflow, IWorkflowContext } from '@shared/interface/workflow.interface.js'
 import { v4 as uuidv4 } from 'uuid'
 import { Worker } from './worker.js'
 import { getArgs } from './utils/utils.js'
@@ -72,7 +72,7 @@ const workerStart = async ({
 			const newNode = worker.nodeModule.addNode({
 				id: key,
 				name: node.name,
-				pos: { x: node.x, y: node.y },
+				pos: { x: node.design?.x || 0, y: node.design?.y || 0 },
 				className: node.type,
 				properties: node.properties || {},
 				meta: node.meta

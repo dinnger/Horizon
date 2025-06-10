@@ -1,5 +1,5 @@
 import { validate } from './valid.js'
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interfaz/node.interfaz.js'
+import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
 
 export default class implements INodeClass {
 	constructor(

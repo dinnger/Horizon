@@ -1,17 +1,44 @@
 import type { Express } from 'express'
-import type { IServerEnv } from './server.interfaz.js'
-import type { INodePropertiesType } from './node.properties.interfaz.js'
-import type { IWorkflowContext } from './workflow.interfaz.js'
-import type { IWorkerEnv } from './worker.interfaz.js'
+import type { IServerEnv } from './server.interface.js'
+import type { INodePropertiesType } from './node.properties.interface.js'
+import type { IWorkflowContext } from './workflow.interface.js'
+import type { IWorkerEnv } from './worker.interface.js'
+
+interface Point {
+	x: number
+	y: number
+}
+
+export interface INodePoint extends Point {
+	button?: number
+}
 
 interface IMetaNode {
 	[key: string]: any
 }
 
-interface IConnectors {
+export interface INodeConnectors {
 	inputs: string[]
 	outputs: string[]
 	callbacks?: string[]
+}
+
+export interface INodeConnections {
+	id: string
+	nodeOrigin: INodeCanvasNewClass
+	nodeDestiny: INodeCanvasNewClass
+	idConnectorOrigin: string // connector output
+	idConnectorDestiny: string // connector input
+	isManual?: boolean
+	pointers?: Point[]
+	colorGradient?: any
+	isFocused?: boolean
+	isNew?: boolean
+}
+
+interface INodeDesign extends INodePoint {
+	width: number
+	height: number
 }
 
 export interface INode {
@@ -20,11 +47,37 @@ export interface INode {
 	type: string
 	icon: string
 	color: string
-	x: number
-	y: number
 	properties: INodePropertiesType
 	meta?: IMetaNode
-	connectors: IConnectors
+	design?: INodeDesign
+	connectors: INodeConnectors
+	connections?: INodeConnections[]
+}
+
+// ============================================================================
+// CANVAS
+// ============================================================================
+
+export interface INodeCanvas extends Omit<INode, 'design'> {
+	design: INodeDesign
+	isManual?: boolean
+}
+
+export type INodeCanvasNew = Omit<INodeCanvas, 'isManual'>
+
+export interface INodeCanvasNewClass extends INodeCanvasNew {
+	design: INodeDesign
+	setSelected: ({ pos, relative }: { pos?: { x: number; y: number; x2?: number; y2?: number }; relative: { x: number; y: number } }) => {
+		node: INodeCanvasNewClass
+		type: 'input' | 'output' | 'callback'
+		index: number
+		value: any
+	} | null
+	getSelected: () => boolean
+	move: ({ relative }: { relative: { x: number; y: number } }) => void
+	actionAddConnection: (element: INodeConnections) => void
+	render: ({ ctx }: { ctx: CanvasRenderingContext2D }) => void
+	renderConnections: ({ ctx, nodes }: { ctx: CanvasRenderingContext2D; nodes: { [key: string]: INodeCanvasNew } }) => void
 }
 
 // ============================================================================
@@ -38,7 +91,7 @@ interface INodeInfo {
 	icon: string
 	group: string
 	color: string
-	connectors: IConnectors
+	connectors: INodeConnectors
 	flags?: {
 		isSingleton?: boolean
 		isTrigger?: boolean
@@ -117,12 +170,15 @@ export interface INodeClassOnCredential {
 // ============================================================================
 export interface INodeClass<T extends INodePropertiesType = INodePropertiesType, C extends INodePropertiesType = INodePropertiesType> {
 	info: INodeInfo
+	dependencies?: string[]
 	properties: T
 	credentials?: C
 	meta?: IMetaNode
+	tags?: 'tools'[]
 	onCreate?: (data: INodeClassOnCreate) => void
 	onExecute: (data: INodeClassOnExecute) => void
 	onCredential?: (data: INodeClassOnCredential) => void
+	onDeploy?: () => void
 }
 
 export type INodeClassProperty = INodePropertiesType
@@ -134,7 +190,7 @@ export type INodeClassPropertyType = INodePropertiesType[keyof INodePropertiesTy
 export interface INodeClassExec extends Omit<INode, 'icon' | 'color' | 'connectors'> {
 	icon?: string
 	color?: string
-	connectors?: IConnectors
+	connectors?: INodeConnectors
 	class: any
 	update?: () => void
 }

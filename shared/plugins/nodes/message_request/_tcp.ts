@@ -1,4 +1,4 @@
-import type { INodeClassConnection, INodeClassOnExecute } from '@shared/interfaz/node.interfaz.js'
+import type { INodeClassConnection, INodeClassOnExecute } from '@shared/interface/node.interface.js'
 import { convertJson } from '@shared/utils/utilities.js'
 import net from 'node:net'
 

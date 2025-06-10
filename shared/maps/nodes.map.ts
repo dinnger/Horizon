@@ -1,4 +1,4 @@
-import type { INodeMap } from '@shared/interfaz/node.interfaz.js'
+import type { INodeMap } from '@shared/interface/node.interface.js'
 import path from 'node:path'
 import { glob } from 'glob'
 import { fileURLToPath } from 'node:url'

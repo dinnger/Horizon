@@ -1,8 +1,8 @@
-import type { INode, INodeClass, INodeClassExec } from '@shared/interfaz/node.interfaz.js'
-import type { IWorkerDependencies } from '@shared/interfaz/worker.interfaz.js'
+import type { INode, INodeClass, INodeClassExec } from '@shared/interface/node.interface.js'
+import type { IWorkerDependencies } from '@shared/interface/worker.interface.js'
 import type { Worker } from '../../worker.js'
 import { v4 as uuidv4 } from 'uuid'
-import { getNodeClass } from '@shared/maps/nodes.maps.js'
+import { getNodeClass } from '@shared/maps/nodes.map.js'
 
 export class NodeModule {
 	el: Worker
@@ -107,8 +107,12 @@ export class NodeModule {
 			name,
 			properties: prop,
 			meta,
-			x: pos.x,
-			y: pos.y,
+			design: {
+				x: pos.x,
+				y: pos.y,
+				width: 90,
+				height: 0
+			},
 			type: className,
 			class: this.nodesClass[className]?.class
 		}

@@ -146,3 +146,12 @@ export type IPropertiesType =
 export interface INodePropertiesType {
 	[key: string]: IPropertiesType
 }
+
+interface IPropertiesElementInfo {
+	class?: string
+	maxlength?: number
+	placeholder?: string
+}
+
+export type IPropertyFieldsType = IPropertiesType & IPropertiesElementInfo
+export type IPropertyFieldType = Partial<IPropertiesType & IPropertiesElementInfo>

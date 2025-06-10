@@ -1,6 +1,6 @@
 import type { Worker } from '../../worker.js'
-import type { IWorkflow } from '@shared/interfaz/workflow.interfaz.js'
-import type { IPropertiesType } from '@shared/interfaz/node.properties.interfaz.js'
+import type { IWorkflow } from '@shared/interface/workflow.interface.js'
+import type { IPropertiesType } from '@shared/interface/node.properties.interface.js'
 import { setSecret } from '../../store/secret.store.js'
 import { setVariable } from '../../store/variable.store.js'
 

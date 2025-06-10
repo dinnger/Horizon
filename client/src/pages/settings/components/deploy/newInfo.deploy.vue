@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import type { IGlobalDeploymentsEntityAttributes } from '@shared/interfaces/entities/global.deployments.interface.js';
+import type { IGlobalDeploymentsEntityAttributes } from '@entities/global.deployments.interface.js';
 import { computed, onMounted, ref, watch } from 'vue';
 import CustomField from '../../../../shared/components/customField.vue';
 

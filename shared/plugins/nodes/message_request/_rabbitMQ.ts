@@ -1,4 +1,4 @@
-import type { INodeClassConnection, INodeClassOnExecute } from '@shared/interfaz/node.interfaz.js'
+import type { INodeClassConnection, INodeClassOnExecute } from '@shared/interface/node.interface.js'
 import amqplib from 'amqplib'
 import { v4 as uuid } from 'uuid'
 

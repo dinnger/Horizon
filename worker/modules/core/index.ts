@@ -1,4 +1,4 @@
-import type { INode, INodeClass, INodeClassExec, INodeClassOnExecute } from '@shared/interfaz/node.interfaz.js'
+import type { INode, INodeClass, INodeClassExec, INodeClassOnExecute } from '@shared/interface/node.interface.js'
 import type { Worker } from '../../worker.js'
 import envs from '../../../shared/utils/envs.js'
 import dayjs from 'dayjs'

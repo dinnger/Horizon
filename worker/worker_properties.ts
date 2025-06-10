@@ -1,6 +1,6 @@
-import type { IWorkflowContext, IWorkflowPropertyType } from '@shared/interfaz/workflow.interfaz.js'
+import type { IWorkflowContext, IWorkflowPropertyType } from '@shared/interface/workflow.interface.js'
 import type { Worker } from './worker.js'
-import type { INodeClassExec } from '@shared/interfaz/node.interfaz.js'
+import type { INodeClassExec } from '@shared/interface/node.interface.js'
 import { proprietaryFunctions } from './worker_properties_proprietary.js'
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)

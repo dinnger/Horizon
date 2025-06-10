@@ -4,7 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execSync } from 'node:child_process'
 import { getLlama, LlamaChatSession, defineChatSessionFunction } from 'node-llama-cpp'
-import type { INodeClass } from '@shared/interfaz/node.interfaz.js'
+import type { INodeClass } from '@shared/interface/node.interface.js'
 
 export default class implements INodeClass {
 	constructor(

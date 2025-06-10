@@ -1,11 +1,11 @@
-import type { INode, INodeClass, INodeClassExec } from '@shared/interfaz/node.interfaz.js'
-import type { INodePropertiesType, IPropertiesType } from '@shared/interfaz/node.properties.interfaz.js'
-import type { IWorkflow } from '@shared/interfaz/workflow.interfaz.js'
+import type { INode, INodeClass, INodeClassExec } from '@shared/interface/node.interface.js'
+import type { INodePropertiesType, IPropertiesType } from '@shared/interface/node.properties.interface.js'
+import type { IWorkflow } from '@shared/interface/workflow.interface.js'
 import type { Worker } from '../../worker.js'
 import { CoreDependencies } from './../core/dependency.module.js'
 import { updateChangeStatus } from './status.module.js'
 import { utils_standard_name } from '@shared/utils/utilities.js'
-import { getNodeClass } from '@shared/maps/nodes.maps.js'
+import { getNodeClass } from '@shared/maps/nodes.map.js'
 
 interface IPropertyNode {
 	node: INodeClassExec
@@ -53,8 +53,8 @@ export class VirtualNode implements INodeClassExec {
 		this.id = value.id
 		this.name = utils_standard_name(value.name)
 		this.type = value.type
-		this.x = value.x
-		this.y = value.y
+		this.x = value.design?.x || 0
+		this.y = value.design?.y || 0
 		this.properties = value.properties
 		this.meta = value.meta
 		this.class = value.class
@@ -219,8 +219,7 @@ export class VirtualModule {
 		const vNode = virtualNode.get(idNode)
 		if (!vNode) return
 		if (type === 'position') {
-			vNode.x = value?.x || 0
-			vNode.y = value?.y || 0
+			vNode.design = { ...vNode.design, ...value }
 		}
 		if (type === 'meta') {
 			vNode.meta = { ...(vNode.meta || {}), ...value }

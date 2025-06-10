@@ -1,4 +1,4 @@
-import type { INodeClass } from '@shared/interfaz/node.interfaz.js'
+import type { INodeClass } from '@shared/interface/node.interface.js'
 
 type IProperty = INodeClass['properties']
 

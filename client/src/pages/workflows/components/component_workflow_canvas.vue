@@ -16,7 +16,7 @@
         :connection_properties_context="connection_properties_context">
       </component_workflow_context_connection>
 
-      <component_workflow_properties v-if="property_show" :canvasInstance="canvasInstance">
+      <component_workflow_properties v-if="property_show" :selected="property_show.selected">
       </component_workflow_properties>
     </template>
   </div>
@@ -24,11 +24,8 @@
 
 <script setup lang="ts">
 import type {
-  ICanvasPoint,
   INode,
-  INodeNew,
-  IWorkflowWorkerEntity,
-} from "@shared/interfaces/workflow.interface.js";
+} from "@shared/interface/node.interface.js";
 import type { SubscriberType } from '@shared/interfaces/class.interface'
 import { onMounted, onUnmounted, ref, watch } from "vue";
 import { Canvas } from "../utils/canvas";
@@ -40,12 +37,15 @@ import component_canvas_new from "./component_workflow_new.vue";
 import component_workflow_properties from "./component_workflow_properties.vue";
 import component_workflow_context from "./component_workflow_context.vue";
 import component_workflow_context_connection from "./component_workflow_context_connection.vue";
+import type { INodeCanvasNewClass } from "@shared/interface/node.interface";
+import type { INodeCanvasNew } from "@shared/interface/node.interface";
+import type { INodeCanvas } from "@shared/interface/node.interface";
 const main = useMain();
 const socket = useSocket();
 
 const props = defineProps<{
   data_workflow: IWorkflowWorkerEntity;
-  data_nodes: INodeNew[];
+  data_nodes: INodeCanvas[];
 }>();
 const emit = defineEmits(["canvasInstance"]);
 
@@ -54,7 +54,7 @@ const canvas = ref<HTMLCanvasElement | null>(null);
 const theme = ref<string>(main.theme);
 const canvasInstance = ref<Canvas>();
 const select_type = ref<"cursor" | "move">("cursor");
-const property_show = ref(false);
+const property_show = ref<{ selected: INodeCanvasNewClass[] } | null>(null);
 const context_menu_show = ref(false);
 const connection_properties_context = ref<{
   id: string;
@@ -183,8 +183,8 @@ onMounted(() => {
     }
   };
 
-  canvasInstance.value.events_show_properties = ({ show }) => {
-    property_show.value = show;
+  canvasInstance.value.events_show_properties = (data: { selected: INodeCanvasNewClass[] } | null) => {
+    property_show.value = data;
   };
 
   canvasInstance.value.events_context_menu = ({ show }) => {
@@ -263,12 +263,12 @@ onMounted(() => {
 
   // Nodes
   if (!flow?.nodes || Object.entries(flow.nodes).length === 0) {
-    const node: INodeNew | null =
+    const node: INodeCanvas | null =
       props.data_nodes.find((f) => f.type === "workflow_init") || null;
     if (!node) return;
-    node.x = 60;
-    node.y = 60;
+    node.design = { x: 60, y: 60, width: 90, height: 90 };
     node.isManual = true;
+    console.log({ node })
     if (canvasInstance.value) canvasInstance.value.actionAddNode(node);
   }
 

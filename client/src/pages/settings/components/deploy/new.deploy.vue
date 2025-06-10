@@ -58,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import type { IGlobalDeploymentsEntityAttributes } from '@shared/interfaces/entities/global.deployments.interface.js'
+import type { IGlobalDeploymentsEntityAttributes } from '@entities/global.deployments.interface.js'
 import { ref, watch } from 'vue'
 import { useSocket } from '../../../../stores/socket'
 import { toast } from 'vue-sonner'
