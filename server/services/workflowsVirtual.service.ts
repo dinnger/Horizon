@@ -1,4 +1,4 @@
-import type { INode } from '@shared/interface/node.interface.js'
+import type { INode, INodeConnections } from '@shared/interface/node.interface.js'
 import type { ICommunicationTypes } from '@shared/interface/connect.interface.js'
 import type { IWorkflow } from '@shared/interface/workflow.interface.js'
 import type { IPropertiesType } from '@shared/interface/node.properties.interface.js'
@@ -149,25 +149,17 @@ export function virtualWorkflowService() {
 		// workflows/virtual/connectionAdd
 		connectionAdd: async ({
 			flow,
-			id,
-			id_node_origin,
-			output,
-			id_node_destiny,
-			input
+			data
 		}: {
 			flow: string
-			id: string
-			id_node_origin: string
-			output: string
-			id_node_destiny: string
-			input: string
+			data: INodeConnections
 		}) => {
 			if (!flow) return { error: 'No se especificó el flujo' }
 			const worker = workersList.get(flow.toLocaleLowerCase().trim())
 			if (!worker) return { error: 'No se encontró el worker' }
 			const changes = await worker.worker.getDataWorker({
 				type: 'addConnection',
-				data: { id, id_node_origin, output, id_node_destiny, input }
+				data
 			})
 			return { changes }
 		},

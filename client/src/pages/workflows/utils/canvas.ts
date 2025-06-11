@@ -1,5 +1,6 @@
+import { mime } from './../../../../../shared/plugins/nodes/http_response/mimeTypes'
 import type { ICommunicationTypes } from '@shared/interface/connect.interface.js'
-import type { INode, INodeCanvas, INodeConnections } from '@shared/interface/node.interface.js'
+import type { INodeCanvas, INodeConnections } from '@shared/interface/node.interface.js'
 import { utilsValidateName } from '../../../shared/utils'
 import {
 	drawNodeConnectionPreview,
@@ -151,6 +152,7 @@ export class Canvas {
 	}
 
 	load({ nodes, connections }: { nodes: { [key: string]: INodeCanvas }; connections: INodeConnections[] }) {
+		console.log('load', connections)
 		for (const [key, node] of Object.entries(nodes)) {
 			this.nodes.addNode({ ...node, id: key })
 		}
@@ -302,13 +304,7 @@ export class Canvas {
 		// 	this.isNodeConnectionVisible = false
 		// }
 		// Enviar cambios de posición
-		if (this.selectedNode.size > 0) {
-			for (const node of Array.from(this.selectedNode.values()).filter((f) => f.isMove)) {
-				subscriberHelper().send('changePosition', {
-					node: node.node
-				})
-			}
-		}
+
 		if (all) {
 			this.nodes.clear()
 			this.selectedNode.clear()
@@ -437,12 +433,14 @@ export class Canvas {
 		const nodeDestiny = this.nodes.addNode(data, isManual)
 
 		if (origin) {
+			console.log('origin', origin)
 			this.nodes.getNode({ id: origin.idNode }).addConnection({
 				connectorType: origin.connectorType,
 				connectorName: origin.connectorName,
 				nodeDestiny: nodeDestiny,
 				connectorDestinyType: 'output',
-				connectorDestinyName: nodeDestiny.info.connectors.inputs[0]
+				connectorDestinyName: nodeDestiny.info.connectors.inputs[0],
+				isManual: true
 			})
 		}
 
@@ -466,11 +464,11 @@ export class Canvas {
 	 */
 	actionNode(action: ICommunicationTypes, node: INodeCanvas | INodeCanvas[]) {
 		if (!Array.isArray(node)) {
-			subscriberHelper().send(action, {
-				node: {
-					id: node.id
-				}
-			})
+			// subscriberHelper().send(action, {
+			// 	node: {
+			// 		id: node.id
+			// 	}
+			// })
 		}
 		if (action === 'removeNode' && !Array.isArray(node)) {
 			// this.selectedNode.delete(node.id)
@@ -557,13 +555,6 @@ export class Canvas {
 	// 		})
 	// 	}
 	// }
-
-	actionUpdateNodeMeta({ id, meta }: { id: string; meta: object }) {
-		subscriberHelper().send('changeMeta', {
-			id,
-			meta
-		})
-	}
 
 	actionTrace(data: {
 		[id: string]: {

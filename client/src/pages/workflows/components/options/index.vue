@@ -53,7 +53,7 @@ const deploy = async () => {
 }
 
 const loadProperties = () => {
-  properties.value = props.workflow.flow.properties
+  properties.value = props.workflow.properties
 }
 
 const loadDeploy = () => {

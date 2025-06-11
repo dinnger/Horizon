@@ -274,7 +274,7 @@ export class CommunicationModule {
 			return Promise.resolve(changes)
 		})
 
-		this.subscriberMessage('addConnection', (data: INodeConnections) => {
+		this.subscriberMessage('addConnection', ({ data }: { data: INodeConnections }) => {
 			const changes = this.el.virtualModule.virtualConnectionAdd({
 				...data
 			})

@@ -60,10 +60,7 @@ watch(() => start.value, (value) => {
   if (!props.node.meta.logs) props.node.meta.logs = {}
   if (!props.node.meta.logs.start) props.node.meta.logs.start = {}
   props.node.meta.logs.start = value
-  props.canvasInstance.actionUpdateNodeMeta({
-    id: props.node.id,
-    meta: props.node.meta
-  })
+
 }, { deep: true })
 
 watch(() => exec.value, (value) => {
@@ -71,10 +68,7 @@ watch(() => exec.value, (value) => {
   if (!props.node.meta.logs) props.node.meta.logs = {}
   if (!props.node.meta.logs.exec) props.node.meta.logs.exec = {}
   props.node.meta.logs.exec = value
-  props.canvasInstance.actionUpdateNodeMeta({
-    id: props.node.id,
-    meta: props.node.meta
-  })
+
 }, { deep: true })
 
 watch(() => props.node.meta, () => {

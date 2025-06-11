@@ -136,20 +136,22 @@ export class NodeModule {
 	 */
 	addEdge({ id, nodeOrigin, nodeDestiny, connectorType, connectorName, connectorDestinyType, connectorDestinyName }: INodeConnections) {
 		if (!this.el) return
-		if (!this.connections[nodeOrigin?.id!]) this.connections[nodeOrigin?.id!] = {}
-		if (!this.connections[nodeOrigin?.id!][`${connectorType}:${connectorName}`])
-			this.connections[nodeOrigin?.id!][`${connectorType}:${connectorName}`] = []
-		this.connections[nodeOrigin?.id!][`${connectorType}:${connectorName}`].push({
-			idNodeDestiny: nodeDestiny.id!,
+		const idOrigin = typeof nodeOrigin === 'string' ? nodeOrigin : nodeOrigin?.id!
+		const idDestiny = typeof nodeDestiny === 'string' ? nodeDestiny : nodeDestiny?.id!
+		if (!this.connections[idOrigin]) this.connections[idOrigin] = {}
+		if (!this.connections[idOrigin][`${connectorType}:${connectorName}`])
+			this.connections[idOrigin][`${connectorType}:${connectorName}`] = []
+		this.connections[idOrigin][`${connectorType}:${connectorName}`].push({
+			idNodeDestiny: idDestiny,
 			connectorDestinyType,
 			connectorDestinyName
 		})
 
 		// Guardar los nodos que se conectan a un nodo
-		if (!this.connectionsInputs[nodeDestiny.id!]) this.connectionsInputs[nodeDestiny.id!] = new Set()
-		if (!this.connectionsOutputs[nodeOrigin?.id!]) this.connectionsOutputs[nodeOrigin?.id!] = new Set()
-		this.connectionsInputs[nodeDestiny.id!].add(nodeOrigin?.id!)
-		this.connectionsOutputs[nodeOrigin?.id!].add(nodeDestiny.id!)
+		if (!this.connectionsInputs[idDestiny]) this.connectionsInputs[idDestiny] = new Set()
+		if (!this.connectionsOutputs[idOrigin]) this.connectionsOutputs[idOrigin] = new Set()
+		this.connectionsInputs[idDestiny].add(idOrigin)
+		this.connectionsOutputs[idOrigin].add(idDestiny)
 		// Iniciar propiedades virtuales para manipulación de datos
 		if (this.el.isDev) {
 			this.el.virtualModule.virtualConnectionAdd({

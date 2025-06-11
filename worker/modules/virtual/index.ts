@@ -17,7 +17,6 @@ interface IPropertyInit {
 }
 type IPropertyWatch = IPropertyNode | IPropertyInit
 
-type IConnection = INodeConnections
 type IProperties = IWorkflow['properties']
 
 // ============================================================================
@@ -25,7 +24,7 @@ type IProperties = IWorkflow['properties']
 // ============================================================================
 let virtualProject: any = {}
 const virtualNode: Map<string, INodeCanvas> = new Map()
-const virtualConnections: Map<string, IConnection> = new Map()
+const virtualConnections: Map<string, INodeConnections> = new Map()
 let virtualProperties: IProperties = {
 	basic: {
 		router: '/'
@@ -195,7 +194,7 @@ export class VirtualModule {
 	 *
 	 * @param data - The connection node data to be added.
 	 */
-	async virtualConnectionAdd(data: IConnection) {
+	async virtualConnectionAdd(data: INodeConnections) {
 		virtualConnections.set(data.id!, data)
 		if (data.isNew) updateChangeStatus(true)
 	}

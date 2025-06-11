@@ -42,6 +42,7 @@ const main = useMain();
 const socket = useSocket();
 
 const props = defineProps<{
+  uid: string
   data_workflow: IWorkflow;
   data_nodes: INodeCanvas[];
 }>();
@@ -143,12 +144,12 @@ const context_menu = () => {
 
 onMounted(() => {
   if (!canvas.value) return;
-  console.log('mounted', props.data_workflow)
   const flow = props.data_workflow;
   canvasInstance.value = new Canvas({
     canvas: canvas.value,
     theme: theme.value,
   });
+  console.log('canvasInstance', { flow })
   canvasInstance.value.init({
     nodes: flow?.nodes,
     connections: flow?.connections
@@ -208,7 +209,7 @@ onMounted(() => {
   const virtualServer = ({ event, data }: { event: ICommunicationTypes, data: any }) => {
     socket.socketEmit("server/workflows/virtual/actions", {
       type: event,
-      flow: props.data_workflow.uid,
+      flow: props.uid,
       node: data.node,
     });
   }
@@ -219,7 +220,7 @@ onMounted(() => {
 
   canvasInstance.value.event_subscriber("changePosition", ({ data }) => {
     socket.socketEmit("server/workflows/virtual/nodeUpdate", {
-      flow: props.data_workflow.uid,
+      flow: props.uid,
       type: "position",
       idNode: data.node.id,
       value: { x: data.node.x, y: data.node.y },
@@ -228,7 +229,7 @@ onMounted(() => {
 
   canvasInstance.value.event_subscriber("changeMeta", ({ data }) => {
     socket.socketEmit("server/workflows/virtual/nodeUpdate", {
-      flow: props.data_workflow.uid,
+      flow: props.uid,
       type: "meta",
       idNode: data.id,
       value: data.meta,
@@ -237,18 +238,14 @@ onMounted(() => {
 
   canvasInstance.value.event_subscriber("addConnection", ({ data }) => {
     socket.socketEmit("server/workflows/virtual/connectionAdd", {
-      flow: props.data_workflow.uid,
-      id: data.id,
-      id_node_origin: data.id_node_origin,
-      output: data.output,
-      id_node_destiny: data.id_node_destiny,
-      input: data.input,
+      flow: props.uid,
+      data
     });
   });
 
   canvasInstance.value.event_subscriber("removeConnection", ({ data }) => {
     socket.socketEmit("server/workflows/virtual/connectionRemove", {
-      flow: props.data_workflow.uid,
+      flow: props.uid,
       id: data.id,
     });
   });

@@ -4,6 +4,7 @@ import { utilsStandardName } from '../../../shared/utils'
 import { v4 as uuidv4 } from 'uuid'
 import { render_node, renderConnectionNodes, subscriberHelper } from './canvas_helpers'
 import type { Point } from './canvas_connector'
+import { watch } from 'vue'
 
 const canvasGrid = 20
 
@@ -23,8 +24,17 @@ export class Nodes {
 		return this.nodes[node.id]
 	}
 	addConnection(connection: INodeConnections) {
-		const id = connection.nodeOrigin?.id || -1
+		const id = typeof connection.nodeOrigin === 'string' ? connection.nodeOrigin : connection.nodeOrigin?.id || ''
 		if (!this.nodes[id]) return console.error('No se encontró el nodo', id)
+
+		if (typeof connection.nodeOrigin === 'string') {
+			connection.nodeOrigin = this.nodes[connection.nodeOrigin]
+		}
+
+		if (typeof connection.nodeDestiny === 'string') {
+			connection.nodeDestiny = this.nodes[connection.nodeDestiny]
+		}
+
 		this.nodes[id].addConnection(connection)
 	}
 	removeNode(id: string) {
@@ -99,6 +109,14 @@ class NewNode {
 		this.design.y = value.design.y || 0
 		this.design.width = value.design.width || 90
 		this.design.height = this.calculateNodeHeight() || 90
+
+		watch(this.properties, (value) => {
+			console.log('watch', value)
+			// subscriberHelper().send('changeMeta', {
+			// 	id: this.id,
+			// 	meta: this.meta
+			// })
+		})
 	}
 
 	calculateNodeHeight() {
@@ -107,10 +125,12 @@ class NewNode {
 		return Math.max(widthByInputs, widthByOutputs)
 	}
 
-	addConnection(element: INodeConnections, isDestiny = false) {
-		if (isDestiny) return this.connections.push(element)
+	addConnection(element: INodeConnections & { isManual?: boolean }) {
+		if ((typeof element.nodeDestiny === 'string' ? element.nodeDestiny : element.nodeDestiny.id) === this.id) {
+			return this.connections.push(element)
+		}
 
-		let { id, nodeDestiny, isManual } = element
+		let { id, nodeDestiny } = element
 		id = id || uuidv4()
 		const connection = new NewConnector({
 			...element,
@@ -118,11 +138,17 @@ class NewNode {
 		})
 		if (!connection.nodeOrigin) connection.nodeOrigin = this
 		this.connections.push(connection)
-		if (connection.nodeOrigin.id === this.id) {
-			;(nodeDestiny as any).addConnection(connection, true)
+		if (typeof connection.nodeOrigin === 'string' ? connection.nodeOrigin : connection.nodeOrigin.id === this.id) {
+			;(nodeDestiny as any).addConnection(connection)
 		}
-		if (isManual) {
-			subscriberHelper().send('addConnection', element)
+		if (element.isManual) {
+			const data = {
+				...connection,
+				nodeOrigin: typeof connection.nodeOrigin === 'string' ? connection.nodeOrigin : connection.nodeOrigin?.id,
+				nodeDestiny: typeof connection.nodeDestiny === 'string' ? connection.nodeDestiny : connection.nodeDestiny?.id,
+				isManual: undefined
+			}
+			subscriberHelper().send('addConnection', data)
 		}
 	}
 
@@ -197,6 +223,9 @@ class NewNode {
 		if (this.design.x === x && this.design.y === y) return
 		this.design.x = x
 		this.design.y = y
+		subscriberHelper().send('changePosition', {
+			node: this
+		})
 
 		for (const connection of this.connections) {
 			connection.pointers = undefined
@@ -214,7 +243,8 @@ class NewNode {
 
 	renderConnections({ ctx, nodes }: { ctx: CanvasRenderingContext2D; nodes: { [key: string]: INodeCanvas } }) {
 		for (const connection of this.connections) {
-			if (connection.nodeOrigin?.id !== this.id) continue
+			const nodeOrigin = typeof connection.nodeOrigin === 'string' ? connection.nodeOrigin : connection.nodeOrigin?.id
+			if (nodeOrigin !== this.id) continue
 			renderConnectionNodes({
 				ctx,
 				connection,
@@ -229,8 +259,8 @@ class NewConnector implements INodeConnections {
 	id: string
 	connectorType: 'input' | 'output' | 'callback'
 	connectorName: string
-	nodeOrigin?: INodeCanvas
-	nodeDestiny: INodeCanvas
+	nodeOrigin?: INodeCanvas | string
+	nodeDestiny: INodeCanvas | string
 	connectorDestinyType: 'input' | 'output' | 'callback' // connector output
 	connectorDestinyName: string // connector input
 	isManual?: boolean
@@ -246,7 +276,6 @@ class NewConnector implements INodeConnections {
 		this.nodeDestiny = value.nodeDestiny
 		this.connectorDestinyType = value.connectorDestinyType
 		this.connectorDestinyName = value.connectorDestinyName
-		this.isManual = value.isManual
 		this.pointers = value.pointers
 		this.colorGradient = value.colorGradient
 		this.isFocused = value.isFocused

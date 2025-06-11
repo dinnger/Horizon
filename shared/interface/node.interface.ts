@@ -37,11 +37,10 @@ export interface INodeConnections {
 	id?: string
 	connectorType: 'input' | 'output' | 'callback'
 	connectorName: string
-	nodeOrigin?: INodeCanvas
-	nodeDestiny: INodeCanvas
+	nodeOrigin?: INodeCanvas | string
+	nodeDestiny: INodeCanvas | string
 	connectorDestinyType: 'input' | 'output' | 'callback' // connector output
 	connectorDestinyName: string // connector input
-	isManual?: boolean
 	pointers?: Point[]
 	colorGradient?: any
 	isFocused?: boolean

@@ -19,8 +19,8 @@
         @drag-end="componentCanvas ? componentCanvas.windowListenerResize() : null">
         <template #1>
           <div class="h-full flex flex-col overflow-hidden">
-            <component_workflow_canvas ref="componentCanvas" :data_workflow="data_workflow" :data_nodes="data_nodes"
-              @canvasInstance="canvasInstance = $event" />
+            <component_workflow_canvas ref="componentCanvas" :uid="uid" :data_workflow="data_workflow"
+              :data_nodes="data_nodes" @canvasInstance="canvasInstance = $event" />
           </div>
         </template>
         <template #2>
@@ -57,15 +57,13 @@ const uid = route.params.workflow_id as string
 onMounted(() => {
   data_nodes.value = []
   socket.socketEmit('server/workflows/initialize', { uid }, (value) => {
-    console.log(value)
     socket.socketJoin(uid)
-    data_workflow.value = value
+    data_workflow.value = value.flow
     toast.success(`Workflow ${data_workflow?.value?.name} cargado exitosamente`)
   })
 
 
   socket.socketEmit('server/plugins/nodes/get', {}, (value: { nodes: any } | null) => {
-    console.log(value)
     if (!value) return
     for (const node of value.nodes) {
       data_nodes.value.push({

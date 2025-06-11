@@ -33,7 +33,6 @@ export interface IWorkflowContext extends Omit<IWorkflow, 'connections'> {
 	currentNode?: INodeCanvas
 }
 export interface IWorkflow {
-	uid?: string
 	info: IWorkflowInfo
 	project?: IWorkflowProject
 	env: IWorkflowEnv
