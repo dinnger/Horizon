@@ -1,4 +1,3 @@
-import { mime } from './../../../../../shared/plugins/nodes/http_response/mimeTypes'
 import type { ICommunicationTypes } from '@shared/interface/connect.interface.js'
 import type { INodeCanvas, INodeConnections } from '@shared/interface/node.interface.js'
 import { utilsValidateName } from '../../../shared/utils'
@@ -6,7 +5,8 @@ import {
 	drawNodeConnectionPreview,
 	renderSelected,
 	getTempConnection,
-	subscriberHelper
+	subscriberHelper,
+	setIndexTime
 	// renderAnimation
 } from './canvas_helpers'
 import { pattern_dark, pattern_light } from './canvas_pattern'
@@ -143,8 +143,10 @@ export class Canvas {
 			if (this.backgroundUpdateInterval) {
 				clearInterval(this.backgroundUpdateInterval)
 			}
+
 			this.backgroundUpdateInterval = setInterval(() => {
 				this.indexTime++
+				setIndexTime(this.indexTime)
 				if (this.indexTime > 100) this.indexTime = 0
 				this.background()
 			}, this.canvasFps)
@@ -152,7 +154,6 @@ export class Canvas {
 	}
 
 	load({ nodes, connections }: { nodes: { [key: string]: INodeCanvas }; connections: INodeConnections[] }) {
-		console.log('load', connections)
 		for (const [key, node] of Object.entries(nodes)) {
 			this.nodes.addNode({ ...node, id: key })
 		}
@@ -272,7 +273,6 @@ export class Canvas {
 		if (this.newConnectionNode && !getTempConnection()) {
 			if (!this.isNodeConnectionVisible) {
 				if (this.events_new_node_start) {
-					console.log(12)
 					// this.newConnectionNode.temp_pos = { ...this.canvasRelativePos }
 					this.events_new_node_start({
 						design: this.canvasPosition,
@@ -416,7 +416,6 @@ export class Canvas {
 		isManual?: boolean
 	}) {
 		const id = uuidv4()
-		console.log('actionAddNode', { origin, node })
 		const data: INodeCanvas = {
 			...node,
 			id: node.id || id,
@@ -425,7 +424,6 @@ export class Canvas {
 				y: Math.round((node.design.y || 0) / this.canvasGrid) * this.canvasGrid
 			}
 		}
-		console.log('infoName', data.info.name)
 		data.info.name = utilsValidateName({
 			text: node.info.name,
 			nodes: Object.values(this.nodes.getNodes())

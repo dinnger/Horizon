@@ -149,7 +149,6 @@ onMounted(() => {
     canvas: canvas.value,
     theme: theme.value,
   });
-  console.log('canvasInstance', { flow })
   canvasInstance.value.init({
     nodes: flow?.nodes,
     connections: flow?.connections

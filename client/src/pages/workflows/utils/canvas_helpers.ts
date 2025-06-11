@@ -65,6 +65,12 @@ interface Interface_Bezier {
 // Animation List
 // let animationList: { id: string; outputName: string; time: number }[] = []
 
+let indexTime = 0
+
+export const setIndexTime = (value: number) => {
+	indexTime = value
+}
+
 // Notificaciones
 let newConnection: Interface_Node_Add_Connection | null = null
 let notificationsList: { [key: string]: any } = {}
@@ -220,8 +226,13 @@ function renderConnectors({
 				separator = 4
 			}
 			if (type === 'callbacks') {
-				x = node.design.x + node.design.width! / 2
-				y = node.design.y + (25 + Number.parseInt(key) * 20)
+				// Centramos los conectores de callbacks en la parte inferior del nodo
+				const total = Object.keys(connector).length
+				const spacing = 20 // separación entre conectores
+				const totalWidth = (total - 1) * spacing
+				x = node.design.x + (node.design.width! - 5) / 2 - totalWidth / 2 + Number.parseInt(key) * spacing
+				y = node.design.y + node.design.height! - 5
+				separator = 4
 				textAlign = 'center'
 			}
 
@@ -562,21 +573,18 @@ export function drawNodeConnectionPreview({
 export function renderConnectionNodes({
 	ctx,
 	connection,
-	nodes,
-	indexTime
+	nodes
 }: {
 	ctx: CanvasRenderingContext2D
 	connection: INodeConnections
 	nodes: { [key: string]: INodeCanvas }
-	indexTime: number
 }) {
 	let connector: Point[] = []
 	if (connection.pointers) connector = connection.pointers
 	const nodeOrigin = connection.nodeOrigin || connection.nodeOrigin
 	const nodeDestiny = connection.nodeDestiny || connection.nodeDestiny
-	if (!nodeOrigin || !nodeDestiny) return
+	if (!nodeOrigin || !nodeDestiny || typeof nodeOrigin === 'string' || typeof nodeDestiny === 'string') return
 	if (!connection.pointers) {
-		console.log(12)
 		const shapeA = {
 			left: nodeOrigin.design.x,
 			top: nodeOrigin.design.y,
