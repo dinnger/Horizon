@@ -1,9 +1,9 @@
-import type { INodeClassConnection, INodeClassOnExecute } from '@shared/interface/node.interface.js'
+import type { INodeMicroservice } from '@shared/interface/node.interface.js'
 import { convertJson } from '@shared/utils/utilities.js'
 import net from 'node:net'
 
 const separator = '|$$|'
-export default class implements INodeClassConnection {
+export default class implements INodeMicroservice {
 	flowUid: string
 	flowName: string
 	port = 0
@@ -12,16 +12,18 @@ export default class implements INodeClassConnection {
 	retries = 0
 	client: any
 	// timeoutTimer: any
-	private execute: INodeClassOnExecute['execute']
-	outputData: INodeClassOnExecute['outputData']
+	execute: INodeMicroservice['execute']
+	outputData: INodeMicroservice['outputData']
+	context: INodeMicroservice['context']
 
-	constructor({ context, execute, outputData }: INodeClassOnExecute) {
+	constructor({ context, execute, outputData }: INodeMicroservice) {
 		this.flowUid = context.info.uid
 		this.flowName = context.info.name
 		this.client = null
 		// this.timeoutTimer = null
 		this.execute = execute
 		this.outputData = outputData
+		this.context = context
 
 		if (!context.project || context.project.type !== 'tcp') return
 		const { port, host, maxRetries } = context.project.tcp
@@ -155,7 +157,7 @@ export default class implements INodeClassConnection {
 			: new Map<
 					string,
 					{
-						outputDataCallback: INodeClassOnExecute['outputData']
+						outputDataCallback: INodeMicroservice['outputData']
 						timeoutId: NodeJS.Timeout
 					}
 				>()

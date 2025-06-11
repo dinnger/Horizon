@@ -51,6 +51,7 @@ import { onMounted, ref, watch } from "vue";
 import { computed } from "vue";
 import { toast } from "vue-sonner";
 import { useWorkflow } from "../../../stores/workflow";
+import type { INodeCanvas } from "@shared/interface/node.interface";
 
 const workflow = useWorkflow();
 const props = defineProps<{
@@ -86,7 +87,7 @@ const pos_left = computed(() => {
   return `${canvas_position.value.x || 0}px`;
 });
 
-const node = computed<INode | INode[]>(() => {
+const node = computed<INodeCanvas | INodeCanvas[]>(() => {
   const arr = Array.from(props.canvasInstance.selectedNode.values()).map(
     (value) => value.node
   );

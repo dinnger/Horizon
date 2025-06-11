@@ -1,64 +1,73 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
+
+interface IProperties extends INodeClassProperty {
+	outputPath: Extract<INodeClassPropertyType, { type: 'string' }>
+	filename: Extract<INodeClassPropertyType, { type: 'string' }>
+	sheetName: Extract<INodeClassPropertyType, { type: 'string' }>
+	dataSource: Extract<INodeClassPropertyType, { type: 'options' }>
+	customData: Extract<INodeClassPropertyType, { type: 'code' }>
+	useCustomHeaders: Extract<INodeClassPropertyType, { type: 'switch' }>
+	headers: Extract<INodeClassPropertyType, { type: 'code' }>
+	styling: Extract<INodeClassPropertyType, { type: 'switch' }>
+	headerStyle: Extract<INodeClassPropertyType, { type: 'options' }>
+	autoFitColumns: Extract<INodeClassPropertyType, { type: 'switch' }>
+	createDirectory: Extract<INodeClassPropertyType, { type: 'switch' }>
+	returnType: Extract<INodeClassPropertyType, { type: 'options' }>
+}
 
 export default class implements INodeClass {
-	constructor(
-		public dependencies: string[],
-		public info: INodeClass['info'],
-		public properties: INodeClassProperty
-	) {
-		this.dependencies = ['exceljs']
+	dependencies = ['exceljs']
 
-		this.info = {
-			title: 'Excel Generator',
-			desc: 'Genera archivos Excel a partir de datos JSON',
-			icon: '󰈛',
-			group: 'Utilities',
-			color: '#16A085',
-			connectors: {
-				inputs: ['input'],
-				outputs: ['success', 'error']
-			}
+	info = {
+		name: 'Excel Generator',
+		desc: 'Genera archivos Excel a partir de datos JSON',
+		icon: '󰈛',
+		group: 'Utilities',
+		color: '#16A085',
+		connectors: {
+			inputs: ['input'],
+			outputs: ['success', 'error']
 		}
-
-		this.properties = {
-			outputPath: {
-				name: 'Ruta de salida:',
-				type: 'string',
-				value: './output',
-				placeholder: '/ruta/al/directorio'
-			},
-			filename: {
-				name: 'Nombre del archivo:',
-				type: 'string',
-				value: 'data.xlsx',
-				placeholder: 'archivo.xlsx'
-			},
-			sheetName: {
-				name: 'Nombre de la hoja:',
-				type: 'string',
-				value: 'Hoja1',
-				placeholder: 'Nombre de la hoja'
-			},
-			dataSource: {
-				name: 'Origen de datos:',
-				type: 'options',
-				options: [
-					{
-						label: 'Entrada JSON',
-						value: 'input'
-					},
-					{
-						label: 'Datos personalizados',
-						value: 'custom'
-					}
-				],
-				value: 'input'
-			},
-			customData: {
-				name: 'Datos personalizados:',
-				type: 'code',
-				lang: 'json',
-				value: `[
+	}
+	properties: IProperties = {
+		outputPath: {
+			name: 'Ruta de salida:',
+			type: 'string',
+			value: './output',
+			placeholder: '/ruta/al/directorio'
+		},
+		filename: {
+			name: 'Nombre del archivo:',
+			type: 'string',
+			value: 'data.xlsx',
+			placeholder: 'archivo.xlsx'
+		},
+		sheetName: {
+			name: 'Nombre de la hoja:',
+			type: 'string',
+			value: 'Hoja1',
+			placeholder: 'Nombre de la hoja'
+		},
+		dataSource: {
+			name: 'Origen de datos:',
+			type: 'options',
+			options: [
+				{
+					label: 'Entrada JSON',
+					value: 'input'
+				},
+				{
+					label: 'Datos personalizados',
+					value: 'custom'
+				}
+			],
+			value: 'input'
+		},
+		customData: {
+			name: 'Datos personalizados:',
+			type: 'code',
+			lang: 'json',
+			value: `[
   {
     "id": 1,
     "nombre": "Producto A",
@@ -72,76 +81,75 @@ export default class implements INodeClass {
     "cantidad": 5
   }
 ]`
-			},
-			useCustomHeaders: {
-				name: 'Usar encabezados personalizados:',
-				type: 'switch',
-				value: false
-			},
-			headers: {
-				name: 'Encabezados personalizados:',
-				type: 'code',
-				lang: 'json',
-				value: `[
+		},
+		useCustomHeaders: {
+			name: 'Usar encabezados personalizados:',
+			type: 'switch',
+			value: false
+		},
+		headers: {
+			name: 'Encabezados personalizados:',
+			type: 'code',
+			lang: 'json',
+			value: `[
   {"field": "id", "header": "ID"},
   {"field": "nombre", "header": "Nombre del Producto"},
   {"field": "precio", "header": "Precio ($)"},
   {"field": "cantidad", "header": "Cantidad en Stock"}
 ]`
-			},
-			styling: {
-				name: 'Aplicar estilos:',
-				type: 'switch',
-				value: true
-			},
-			headerStyle: {
-				name: 'Estilo de encabezados:',
-				type: 'options',
-				options: [
-					{
-						label: 'Básico',
-						value: 'basic'
-					},
-					{
-						label: 'Profesional',
-						value: 'professional'
-					},
-					{
-						label: 'Colorido',
-						value: 'colorful'
-					}
-				],
-				value: 'professional'
-			},
-			autoFitColumns: {
-				name: 'Ajustar ancho de columnas automáticamente:',
-				type: 'switch',
-				value: true
-			},
-			createDirectory: {
-				name: 'Crear directorio si no existe:',
-				type: 'switch',
-				value: true
-			},
-			returnType: {
-				name: 'Tipo de retorno:',
-				type: 'options',
-				options: [
-					{
-						label: 'Ruta del archivo',
-						value: 'path'
-					},
-					{
-						label: 'Buffer',
-						value: 'buffer'
-					}
-				],
-				value: 'path'
-			}
+		},
+		styling: {
+			name: 'Aplicar estilos:',
+			type: 'switch',
+			value: true
+		},
+		headerStyle: {
+			name: 'Estilo de encabezados:',
+			type: 'options',
+			options: [
+				{
+					label: 'Básico',
+					value: 'basic'
+				},
+				{
+					label: 'Profesional',
+					value: 'professional'
+				},
+				{
+					label: 'Colorido',
+					value: 'colorful'
+				}
+			],
+			value: 'professional'
+		},
+		autoFitColumns: {
+			name: 'Ajustar ancho de columnas automáticamente:',
+			type: 'switch',
+			value: true
+		},
+		createDirectory: {
+			name: 'Crear directorio si no existe:',
+			type: 'switch',
+			value: true
+		},
+		returnType: {
+			name: 'Tipo de retorno:',
+			type: 'options',
+			options: [
+				{
+					label: 'Ruta del archivo',
+					value: 'path'
+				},
+				{
+					label: 'Buffer',
+					value: 'buffer'
+				}
+			],
+			value: 'path'
 		}
 	}
 
-	async onExecute({ inputData, outputData, dependency }: INodeClassOnExecute) {
+	async onExecute({ inputData, outputData, dependency }: Parameters<INodeClass['onExecute']>[0]) {
 		try {
 			const ExcelJS = await dependency.getRequire('exceljs')
 

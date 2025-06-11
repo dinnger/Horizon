@@ -1,32 +1,30 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
+
+interface IProperties extends INodeClassProperty {
+	delay: Extract<INodeClassPropertyType, { type: 'number' }>
+}
 
 export default class implements INodeClass {
-	constructor(
-		public info: INodeClass['info'],
-		public properties: INodeClassProperty
-	) {
-		this.info = {
-			title: 'Delay',
-			desc: 'Show value inside the console',
-			icon: '󱫞',
-			group: 'Timer',
-			color: '#95A5A6',
-			connectors: {
-				inputs: ['input'],
-				outputs: ['response']
-			}
+	info = {
+		name: 'Delay',
+		desc: 'Show value inside the console',
+		icon: '󱫞',
+		group: 'Timer',
+		color: '#95A5A6',
+		connectors: {
+			inputs: ['input'],
+			outputs: ['response']
 		}
-
-		this.properties = {
-			delay: {
-				name: 'Tiempo de Espera (seg)',
-				type: 'number',
-				value: 3
-			}
+	}
+	properties: IProperties = {
+		delay: {
+			name: 'Tiempo de Espera (seg)',
+			type: 'number',
+			value: 3
 		}
 	}
 
-	async onExecute({ inputData, outputData }: INodeClassOnExecute) {
+	async onExecute({ inputData, outputData }: Parameters<INodeClass['onExecute']>[0]) {
 		setTimeout(
 			() => {
 				outputData('response', inputData.data)

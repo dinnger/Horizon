@@ -1,36 +1,34 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 
+interface IProperties extends INodeClassProperty {
+	valor: Extract<INodeClassPropertyType, { type: 'code' }>
+}
 export default class implements INodeClass {
-	constructor(
-		public info: INodeClass['info'],
-		public properties: INodeClassProperty,
-		public meta: { [key: string]: any } = {}
-	) {
-		this.info = {
-			title: 'Iteration',
-			desc: 'Iterates over a list of items and processes each one.',
-			icon: '󱖈',
-			group: 'Procesamiento',
-			color: '#F39C12',
-			connectors: {
-				inputs: ['init', 'add', 'next', 'finish'],
-				outputs: ['response', 'finish', 'error']
-			},
-			flags: {
-				isSingleton: true
-			}
+	public meta: { [key: string]: any } = {}
+	info = {
+		name: 'Iteration',
+		desc: 'Iterates over a list of items and processes each one.',
+		icon: '󱖈',
+		group: 'Procesamiento',
+		color: '#F39C12',
+		connectors: {
+			inputs: ['init', 'add', 'next', 'finish'],
+			outputs: ['response', 'finish', 'error']
+		},
+		flags: {
+			isSingleton: true
 		}
-		this.properties = {
-			valor: {
-				name: 'Valor de la iteración:',
-				type: 'code',
-				lang: 'json',
-				value: '{{input.data}}'
-			}
+	}
+	properties: IProperties = {
+		valor: {
+			name: 'Valor de la iteración:',
+			type: 'code',
+			lang: 'json',
+			value: '{{input.data}}'
 		}
 	}
 
-	async onExecute({ inputData, context, outputData }: INodeClassOnExecute) {
+	async onExecute({ inputData, context, outputData }: Parameters<INodeClass['onExecute']>[0]) {
 		try {
 			this.meta.id = this.meta.id || new Date().getTime()
 
@@ -41,7 +39,7 @@ export default class implements INodeClass {
 				})
 			}
 
-			if (inputData.inputName === 'init') {
+			if (inputData.connectorName === 'init') {
 				this.meta.data = valorInput as object[] | []
 				this.meta.index = 0
 				if (this.meta.index === valorInput.length - 1) {
@@ -53,7 +51,7 @@ export default class implements INodeClass {
 				return outputData('response', { index: 0, value: valorInput[0] })
 			}
 
-			if (inputData.inputName === 'next') {
+			if (inputData.connectorName === 'next') {
 				this.meta.index++
 				if (this.meta.index > valorInput.length - 1) {
 					return outputData('error', { error: 'No hay mas datos' })

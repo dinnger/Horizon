@@ -1,4 +1,4 @@
-import type { INodeMap } from '@shared/interface/node.interface.js'
+import type { INodeClass } from '@shared/interface/node.interface.js'
 import path from 'node:path'
 import { glob } from 'glob'
 import { fileURLToPath } from 'node:url'
@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const dirPath = path.join(__dirname, '../plugins/nodes/')
 const files = glob.sync('**/index.js', { cwd: dirPath })
 
-const nodesClass: { [key: string]: INodeMap } = {}
+const nodesClass: { [key: string]: INodeClass & { class: any } } = {}
 const nodesDependencies: { [key: string]: string[] } = {}
 
 for (const file of files) {
@@ -25,14 +25,7 @@ for (const file of files) {
 	try {
 		const data = new model()
 		nodesClass[type] = {
-			name: data.info.title,
-			type,
-			info: data.info,
-			group: data.info.group,
-			dependencies: data.dependencies,
-			properties: data.properties,
-			credentials: data.credentials,
-			credentialsActions: data.credentialsActions,
+			...data,
 			class: model
 		}
 	} catch (error) {
@@ -40,13 +33,8 @@ for (const file of files) {
 	}
 }
 
-export function getNodeClass() {
-	return Object.fromEntries(
-		Object.entries(nodesClass).map(([key, value]) => [
-			key,
-			{ ...value, typeDescription: Array.isArray(value.group) ? value.group.join('/') : value.group }
-		])
-	)
+export function getNodeClass(): { [key: string]: INodeClass & { class: any } } {
+	return Object.fromEntries(Object.entries(nodesClass).map(([key, value]) => [key, { ...value }]))
 }
 
 // Dependencias por nodo independiente de su clase

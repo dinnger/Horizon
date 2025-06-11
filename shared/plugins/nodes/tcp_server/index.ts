@@ -1,47 +1,42 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 import type { Socket } from 'node:net'
 import { convertJson } from '@shared/utils/utilities.js'
 
 const separator = '|$$|'
 export default class implements INodeClass {
 	protected server: any
-
-	constructor(
-		public info: INodeClass['info'],
-		public properties: INodeClassProperty,
-		public meta: { [key: string]: any } = {},
-		public subscriber: {
-			[key: string]: {
-				index: 0
-				data: {
-					flow: string
-					name: string
-					schema: { [key: string]: any }
-					socket: any
-				}[]
-			}
-		} = {},
-		public subscriberRequest = new Map<string, Socket>()
-	) {
-		this.info = {
-			title: 'TCP Server',
-			desc: 'Recibe datos a través de una conexión TCP',
-			icon: '󰥿',
-			group: 'TCP',
-			color: '#27AE60',
-			connectors: {
-				inputs: ['init', 'stop'],
-				outputs: ['connection', 'data', 'closed', 'error']
-			},
-			flags: {
-				isSingleton: true
-			}
+	public meta: { [key: string]: any } = {}
+	public subscriber: {
+		[key: string]: {
+			index: 0
+			data: {
+				flow: string
+				name: string
+				schema: { [key: string]: any }
+				socket: any
+			}[]
 		}
+	} = {}
+	public subscriberRequest = new Map<string, Socket>()
 
-		this.properties = {}
+	info = {
+		name: 'TCP Server',
+		desc: 'Recibe datos a través de una conexión TCP',
+		icon: '󰥿',
+		group: 'TCP',
+		color: '#27AE60',
+		connectors: {
+			inputs: ['init', 'stop'],
+			outputs: ['connection', 'data', 'closed', 'error']
+		},
+		flags: {
+			isSingleton: true
+		}
 	}
 
-	async onExecute({ inputData, outputData, dependency, context }: INodeClassOnExecute): Promise<void> {
+	properties = {}
+
+	async onExecute({ inputData, outputData, dependency, context }: Parameters<INodeClass['onExecute']>[0]): Promise<void> {
 		try {
 			if (!context.project || context.project.type !== 'tcp') return
 
@@ -49,7 +44,7 @@ export default class implements INodeClass {
 			const { host, port } = context.project.tcp
 
 			// Detener servidor si se recibe la señal de stop
-			if (inputData.inputName === 'stop') {
+			if (inputData.connectorName === 'stop') {
 				this.onDestroy()
 				outputData('closed', { message: 'Servidor TCP detenido' })
 				return

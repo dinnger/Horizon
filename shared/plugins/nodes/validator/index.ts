@@ -1,50 +1,42 @@
-import type {
-	INodeClass,
-	INodeClassOnCreate,
-	INodeClassOnExecute,
-	INodeClassProperty,
-	INodeClassPropertyType
-} from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
+
+interface IProperties extends INodeClassProperty {
+	inputPath: Extract<INodeClassPropertyType, { type: 'string' }>
+	validationSchema: Extract<INodeClassPropertyType, { type: 'code' }>
+	customKeywords: Extract<INodeClassPropertyType, { type: 'code' }>
+	advancedOptions: Extract<INodeClassPropertyType, { type: 'switch' }>
+	customErrorMessages: Extract<INodeClassPropertyType, { type: 'switch' }>
+	globalErrorMessages: Extract<INodeClassPropertyType, { type: 'code' }>
+	errorDetails: Extract<INodeClassPropertyType, { type: 'switch' }>
+}
 
 export default class implements INodeClass {
-	// ===============================================
-	// Dependencias
-	// ===============================================
-	// #pk ajv
-	// #pk ajv-errors
-	// #pk ajv-formats
-	// ===============================================
-	constructor(
-		public dependencies: string[],
-		public info: INodeClass['info'],
-		public properties: INodeClassProperty
-	) {
-		this.dependencies = ['ajv', 'ajv-errors', 'ajv-formats', 'ajv-i18n']
+	dependencies = ['ajv', 'ajv-errors', 'ajv-formats', 'ajv-i18n']
 
-		this.info = {
-			title: 'Validación',
-			desc: 'Valida datos usando esquema JSON (AJV)',
-			icon: '󰒉',
-			group: 'Utilities',
-			color: '#E67E22',
-			connectors: {
-				inputs: ['input'],
-				outputs: ['valid', 'invalid', 'error']
-			}
+	info = {
+		name: 'Validación',
+		desc: 'Valida datos usando esquema JSON (AJV)',
+		icon: '󰒉',
+		group: 'Utilities',
+		color: '#E67E22',
+		connectors: {
+			inputs: ['input'],
+			outputs: ['valid', 'invalid', 'error']
 		}
+	}
 
-		this.properties = {
-			inputPath: {
-				name: 'Ruta de datos de entrada:',
-				type: 'string',
-				value: '',
-				placeholder: 'Ej: data (vacío para usar todo)'
-			},
-			validationSchema: {
-				name: 'Esquema de validación (AJV):',
-				type: 'code',
-				lang: 'json',
-				value: `{
+	properties: IProperties = {
+		inputPath: {
+			name: 'Ruta de datos de entrada:',
+			type: 'string',
+			value: '',
+			placeholder: 'Ej: data (vacío para usar todo)'
+		},
+		validationSchema: {
+			name: 'Esquema de validación (AJV):',
+			type: 'code',
+			lang: 'json',
+			value: `{
   "type": "object",
   "properties": {
     "nombre": { "type": "string" },
@@ -54,18 +46,18 @@ export default class implements INodeClass {
   "required": ["nombre", "edad", "email"],
   "additionalProperties": false
 }`,
-				size: 6
-			},
-			errorDetails: {
-				name: 'Incluir detalles completos del error:',
-				type: 'switch',
-				value: true
-			},
-			customKeywords: {
-				name: 'Keywords personalizados:',
-				type: 'code',
-				lang: 'js',
-				value: `// Ejemplo - validación de rango de fechas
+			size: 6
+		},
+		errorDetails: {
+			name: 'Incluir detalles completos del error:',
+			type: 'switch',
+			value: true
+		},
+		customKeywords: {
+			name: 'Keywords personalizados:',
+			type: 'code',
+			lang: 'js',
+			value: `// Ejemplo - validación de rango de fechas
 // ajv.addKeyword({
 //   keyword: "dateRangeWithinYear",
 //   type: "array",
@@ -77,41 +69,40 @@ export default class implements INodeClass {
 //   },
 //   errors: false
 // });`,
-				size: 5
-			},
-			advancedOptions: {
-				name: 'Opciones avanzadas:',
-				type: 'switch',
-				value: false
-			},
-			customErrorMessages: {
-				name: 'Mensajes de error personalizados:',
-				type: 'switch',
-				value: true,
-				show: false
-			},
-			globalErrorMessages: {
-				name: 'Mensajes de error globales:',
-				type: 'code',
-				lang: 'json',
-				value: `{
+			size: 5
+		},
+		advancedOptions: {
+			name: 'Opciones avanzadas:',
+			type: 'switch',
+			value: false
+		},
+		customErrorMessages: {
+			name: 'Mensajes de error personalizados:',
+			type: 'switch',
+			value: true,
+			show: false
+		},
+		globalErrorMessages: {
+			name: 'Mensajes de error globales:',
+			type: 'code',
+			lang: 'json',
+			value: `{
   "type": "El tipo del campo $$ no corresponde",
   "required": "El campo $$ es requerido",
   "additionalProperties": "La propiedad $$ no está definida"
 }`,
-				show: false
-			}
+			show: false
 		}
 	}
 
-	async onCreate({ context }: INodeClassOnCreate): Promise<void> {
+	async onCreate({ context }: Parameters<NonNullable<INodeClass['onCreate']>>[0]): Promise<void> {
 		// Mostrar u ocultar opciones avanzadas
 		const showAdvanced = this.properties.advancedOptions.value === true
 		this.properties.customErrorMessages.show = showAdvanced
 		this.properties.globalErrorMessages.show = showAdvanced && this.properties.customErrorMessages.value === true
 	}
 
-	async onExecute({ inputData, outputData, dependency }: INodeClassOnExecute): Promise<void> {
+	async onExecute({ inputData, outputData, dependency }: Parameters<INodeClass['onExecute']>[0]): Promise<void> {
 		try {
 			if (!inputData || !inputData.data) {
 				throw new Error('No se encontraron datos en la entrada')

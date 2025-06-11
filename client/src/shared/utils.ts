@@ -1,4 +1,4 @@
-import type { INode } from '@shared/interfaces/workflow.interface.js'
+import type { INodeCanvas } from '@shared/interface/node.interface'
 
 export function utilsStandardName(text: string) {
 	let lower = text.replace(/[A-Z]/g, (val: string) => {
@@ -16,10 +16,10 @@ export function utilsValidateName({
 }: {
 	id?: number
 	text: string
-	nodes: INode[]
+	nodes: INodeCanvas[]
 }): string {
 	const node_name = id ? `${text.toLowerCase()}_${id}` : text.toLowerCase()
-	const exist = nodes.find((f) => f.name.toLowerCase() === node_name)
+	const exist = nodes.find((f) => f.info.name.toLowerCase() === node_name)
 	const id_new = id ? id + 1 : 1
 	if (exist) return utilsValidateName({ id: id_new, text, nodes })
 	if (!id) return text

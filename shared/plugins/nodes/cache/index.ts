@@ -1,10 +1,4 @@
-import type {
-	INodeClass,
-	INodeClassOnCreate,
-	INodeClassOnExecute,
-	INodeClassProperty,
-	INodeClassPropertyType
-} from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 
 interface IClassProperties extends INodeClassProperty {
 	key: Extract<INodeClassPropertyType, { type: 'string' }>
@@ -12,58 +6,50 @@ interface IClassProperties extends INodeClassProperty {
 	checkperiod: Extract<INodeClassPropertyType, { type: 'number' }>
 }
 
-export default class implements INodeClass<IClassProperties> {
+export default class implements INodeClass {
 	private cacheInstance: any = null
-
-	constructor(
-		public dependencies: string[],
-		public info: INodeClass['info'],
-		public properties: IClassProperties
-	) {
-		this.dependencies = ['node-cache']
-		this.info = {
-			title: 'Cache',
-			desc: 'Almacena y recupera datos en memoria usando node-cache',
-			icon: '󰍉',
-			group: 'Utilities',
-			color: '#27AE60',
-			connectors: {
-				inputs: ['get', 'set'],
-				outputs: ['response', 'noExist']
-			},
-			flags: {
-				isSingleton: true
-			}
+	dependencies = ['node-cache']
+	info = {
+		name: 'Cache',
+		desc: 'Almacena y recupera datos en memoria usando node-cache',
+		icon: '󰍉',
+		group: 'Utilities',
+		color: '#27AE60',
+		connectors: {
+			inputs: ['get', 'set'],
+			outputs: ['response', 'noExist']
+		},
+		flags: {
+			isSingleton: true
 		}
-
-		this.properties = {
-			key: {
-				name: 'Clave',
-				type: 'string',
-				value: '',
-				description: 'La clave para almacenar/recuperar datos del cache'
-			},
-			stdTTL: {
-				name: 'TTL por defecto (segundos)',
-				type: 'number',
-				value: 600,
-				description: 'Tiempo de vida por defecto para las claves en segundos (0 = sin expiración)'
-			},
-			checkperiod: {
-				name: 'Período de verificación (segundos)',
-				type: 'number',
-				value: 120,
-				description: 'Período en segundos para verificar claves expiradas (0 = deshabilitar)'
-			}
+	}
+	properties: IClassProperties = {
+		key: {
+			name: 'Clave',
+			type: 'string',
+			value: '',
+			description: 'La clave para almacenar/recuperar datos del cache'
+		},
+		stdTTL: {
+			name: 'TTL por defecto (segundos)',
+			type: 'number',
+			value: 600,
+			description: 'Tiempo de vida por defecto para las claves en segundos (0 = sin expiración)'
+		},
+		checkperiod: {
+			name: 'Período de verificación (segundos)',
+			type: 'number',
+			value: 120,
+			description: 'Período en segundos para verificar claves expiradas (0 = deshabilitar)'
 		}
 	}
 
-	async onCreate({ context, environment }: INodeClassOnCreate) {
+	async onCreate({ context, environment }: Parameters<NonNullable<INodeClass['onCreate']>>[0]) {
 		// No hay configuraciones dinámicas por el momento
 	}
 
-	async onExecute({ execute, inputData, outputData, dependency }: INodeClassOnExecute) {
-		const inputName = inputData.inputName
+	async onExecute({ execute, inputData, outputData, dependency }: Parameters<INodeClass['onExecute']>[0]) {
+		const inputName = inputData.connectorName
 		try {
 			const NodeCache = await dependency.getRequire('node-cache')
 			const key = typeof this.properties.key.value === 'string' ? this.properties.key.value : JSON.stringify(this.properties.key.value)

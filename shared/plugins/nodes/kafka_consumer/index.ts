@@ -1,93 +1,91 @@
-import type { INodeClass, INodeClassOnCreate, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
+
+interface IProperties extends INodeClassProperty {
+	topic: Extract<INodeClassPropertyType, { type: 'string' }>
+	groupId: Extract<INodeClassPropertyType, { type: 'string' }>
+	autoCommit: Extract<INodeClassPropertyType, { type: 'switch' }>
+	brokers: Extract<INodeClassPropertyType, { type: 'list' }>
+	config: Extract<INodeClassPropertyType, { type: 'code' }>
+}
 
 export default class implements INodeClass {
-	// ===============================================
-	// Dependencias
-	// ===============================================
-	// #pk kafkajs
-	// ===============================================
-	constructor(
-		public info: INodeClass['info'],
-		public properties: INodeClassProperty
-	) {
-		this.info = {
-			title: 'Kafka Consumer',
-			desc: 'Consume mensajes de un tópico de Kafka',
-			icon: '󱀏',
-			group: 'Kafka',
-			color: '#3498DB',
-			connectors: {
-				inputs: ['init', 'add', 'next', 'finish'],
-				outputs: ['response', 'finish', 'error']
-			},
-			flags: {
-				isTrigger: true
-			}
+	dependencies = ['kafkajs']
+	info = {
+		name: 'Kafka Consumer',
+		desc: 'Consume mensajes de un tópico de Kafka',
+		icon: '󱀏',
+		group: 'Kafka',
+		color: '#3498DB',
+		connectors: {
+			inputs: ['init', 'add', 'next', 'finish'],
+			outputs: ['response', 'finish', 'error']
+		},
+		flags: {
+			isTrigger: true
 		}
-
-		this.properties = {
-			topic: {
-				name: 'Tópico:',
-				value: '',
-				type: 'string',
-				size: 2
+	}
+	properties: IProperties = {
+		topic: {
+			name: 'Tópico:',
+			value: '',
+			type: 'string',
+			size: 2
+		},
+		groupId: {
+			name: 'Id Grupo:',
+			value: '',
+			type: 'string',
+			size: 1
+		},
+		autoCommit: {
+			name: 'Auto Commit:',
+			value: true,
+			description: 'Habilitar commit automático, si es falso se debe hacer manualmente mediante la entrada "next"',
+			type: 'switch',
+			size: 1
+		},
+		brokers: {
+			name: 'Brokers:',
+			description: 'Urls de conexión',
+			type: 'list',
+			object: {
+				broker: {
+					name: 'Broker:',
+					type: 'string',
+					value: ''
+				}
 			},
-			groupId: {
-				name: 'Id Grupo:',
-				value: '',
-				type: 'string',
-				size: 1
-			},
-			autoCommit: {
-				name: 'Auto Commit:',
-				value: true,
-				description: 'Habilitar commit automático, si es falso se debe hacer manualmente mediante la entrada "next"',
-				type: 'switch',
-				size: 1
-			},
-			brokers: {
-				name: 'Brokers:',
-				description: 'Urls de conexión',
-				type: 'list',
-				object: {
-					broker: {
-						name: 'Broker:',
-						type: 'string',
-						value: ''
+			value: []
+		},
+		config: {
+			name: 'Configuración:',
+			type: 'code',
+			lang: 'json',
+			value: JSON.stringify(
+				{
+					clientId: 'my-app',
+					sasl: {
+						username: '',
+						password: '',
+						mechanism: 'scram-sha-512'
+					},
+					ssl: {
+						rejectUnauthorized: false
 					}
 				},
-				value: []
-			},
-			config: {
-				name: 'Configuración:',
-				type: 'code',
-				lang: 'json',
-				value: JSON.stringify(
-					{
-						clientId: 'my-app',
-						sasl: {
-							username: '',
-							password: '',
-							mechanism: 'scram-sha-512'
-						},
-						ssl: {
-							rejectUnauthorized: false
-						}
-					},
-					null,
-					' '
-				)
-			}
+				null,
+				' '
+			)
 		}
 	}
 
-	async onCreate({ context }: INodeClassOnCreate) {
+	async onCreate({ context }: Parameters<NonNullable<INodeClass['onCreate']>>[0]) {
 		this.info.connectors.inputs = []
 		this.info.connectors.inputs.push('init')
 		if (this.properties.autoCommit.value) this.info.connectors.inputs.push('next')
 	}
 
-	async onExecute({ inputData, outputData, context, dependency }: INodeClassOnExecute) {
+	async onExecute({ inputData, outputData, context, dependency }: Parameters<INodeClass['onExecute']>[0]) {
 		const convertJson = (value: string) => {
 			try {
 				return JSON.parse(value)
@@ -97,7 +95,7 @@ export default class implements INodeClass {
 		}
 		try {
 			// Si se llama a next se debe hacer commit manual
-			if (inputData.inputName === 'next') {
+			if (inputData.connectorName === 'next') {
 				// const next = context.getValue({ obj: 'next' })
 				// if (!next)
 				// 	return outputData('error', {
@@ -109,7 +107,7 @@ export default class implements INodeClass {
 			const { Kafka } = await dependency.getRequire('kafkajs')
 			const config = {
 				...(this.properties.config.value as object),
-				brokers: (this.properties.brokers.value as { broker: { value: string } }[]).map((m) => m.broker.value)
+				brokers: this.properties.brokers.value.map((m) => m.broker.value)
 			}
 			const kafka = new Kafka(config)
 			const consumer = kafka.consumer({

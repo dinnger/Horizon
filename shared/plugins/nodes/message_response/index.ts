@@ -1,42 +1,40 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
+
+interface IProperties extends INodeClassProperty {
+	response: Extract<INodeClassPropertyType, { type: 'code' }>
+}
 
 export default class implements INodeClass {
 	private server: any
 	private connections: any[] = []
+	public meta: { [key: string]: any } = {}
 
-	constructor(
-		public info: INodeClass['info'],
-		public properties: INodeClassProperty,
-		public meta: { [key: string]: any } = {}
-	) {
-		this.info = {
-			title: 'Message Response',
-			desc: 'Response to messages',
-			icon: '󱧍',
-			group: 'Project',
-			color: '#3498DB',
-			connectors: {
-				inputs: ['response', 'rollback'],
-				outputs: []
-			},
-			flags: {
-				isSingleton: true
-			}
+	info = {
+		name: 'Message Response',
+		desc: 'Response to messages',
+		icon: '󱧍',
+		group: 'Project',
+		color: '#3498DB',
+		connectors: {
+			inputs: ['response', 'rollback'],
+			outputs: []
+		},
+		flags: {
+			isSingleton: true
 		}
-
-		this.properties = {
-			response: {
-				name: 'Respuesta:',
-				value: JSON.stringify({ status: 'OK' }, null, ' '),
-				type: 'code',
-				lang: 'json',
-				description: 'Datos a enviar como respuesta al cliente (opcional)',
-				size: 4
-			}
+	}
+	properties: IProperties = {
+		response: {
+			name: 'Respuesta:',
+			value: JSON.stringify({ status: 'OK' }, null, ' '),
+			type: 'code',
+			lang: 'json',
+			description: 'Datos a enviar como respuesta al cliente (opcional)',
+			size: 4
 		}
 	}
 
-	async onExecute({ execute, outputData }: INodeClassOnExecute): Promise<void> {
+	async onExecute({ execute, outputData }: Parameters<INodeClass['onExecute']>[0]) {
 		try {
 			const node = execute.getNodeByType('project/connection/message')
 			if (!node || !node.meta) {

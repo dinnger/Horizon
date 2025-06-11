@@ -1,4 +1,4 @@
-import type { INodeClass, INodeClassOnCreate, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 import type { FileArray } from 'express-fileupload'
 import type { Request as ExpressRequest, Response, NextFunction } from 'express'
 
@@ -6,264 +6,273 @@ interface Request extends ExpressRequest {
 	files?: FileArray | null
 }
 
-export default class implements INodeClass {
-	// ===============================================
-	// Dependencias
-	// ===============================================
-	// #pk jsonwebtoken
-	// #pk axios
-	// ===============================================
-	constructor(
-		public dependencies: string[],
-		public info: INodeClass['info'],
-		public properties: INodeClassProperty
-	) {
-		this.dependencies = ['jsonwebtoken', 'axios']
-		this.info = {
-			title: 'Webhook',
-			desc: 'Call webhook',
-			icon: '󰘯',
-			group: 'Triggers',
-			color: '#3498DB',
-			connectors: {
-				inputs: ['input'],
-				outputs: ['response', 'error']
-			},
-			flags: {
-				isTrigger: true
-			}
-		}
+interface IProperties extends INodeClassProperty {
+	url: Extract<INodeClassPropertyType, { type: 'box' }>
+	endpoint: Extract<INodeClassPropertyType, { type: 'string' }>
+	type: Extract<INodeClassPropertyType, { type: 'options' }>
+	timeout: Extract<INodeClassPropertyType, { type: 'number' }>
+	security: Extract<INodeClassPropertyType, { type: 'options' }>
+	securityBasicUser: Extract<INodeClassPropertyType, { type: 'string' }>
+	securityBasicPass: Extract<INodeClassPropertyType, { type: 'string' }>
+	securityBearerToken: Extract<INodeClassPropertyType, { type: 'string' }>
+	securityJWTSecret: Extract<INodeClassPropertyType, { type: 'string' }>
+	// Opciones avanzadas
+	advancedOptions: Extract<INodeClassPropertyType, { type: 'switch' }>
+	// Opciones de redirección
+	enableRedirect: Extract<INodeClassPropertyType, { type: 'switch' }>
+	redirectUrl: Extract<INodeClassPropertyType, { type: 'string' }>
+	redirectStatusCode: Extract<INodeClassPropertyType, { type: 'options' }>
+	// Opciones de proxy
+	enableProxy: Extract<INodeClassPropertyType, { type: 'switch' }>
+	proxyUrl: Extract<INodeClassPropertyType, { type: 'string' }>
+	proxyPreserveHeaders: Extract<INodeClassPropertyType, { type: 'switch' }>
+}
 
-		this.properties = {
-			url: {
-				name: 'URL asignada:',
-				type: 'box'
-			},
-			endpoint: {
-				name: 'Endpoint:',
-				type: 'string',
-				value: '/'
-			},
-			type: {
-				name: 'Tipo de llamada:',
-				type: 'options',
-				options: [
-					{
-						label: 'GET',
-						value: 'get'
-					},
-					{
-						label: 'POST',
-						value: 'post'
-					},
-					{
-						label: 'PATCH',
-						value: 'patch'
-					},
-					{
-						label: 'PUT',
-						value: 'put'
-					},
-					{
-						label: 'DELETE',
-						value: 'delete'
-					}
-				],
-				value: 'get'
-			},
-			timeout: {
-				name: 'Tiempo de espera (seg):',
-				type: 'number',
-				value: 50
-			},
-			security: {
-				name: 'Seguridad:',
-				type: 'options',
-				options: [
-					{
-						label: 'Ninguna',
-						value: 'null'
-					},
-					{
-						label: 'Básico',
-						value: 'basic'
-					},
-					{
-						label: 'JWT Bearer',
-						value: 'jwt'
-					},
-					{
-						label: 'Bearer Token',
-						value: 'bearer'
-					}
-				],
-				value: 'null'
-			},
-			securityBasicUser: {
-				name: 'Usuario',
-				type: 'string',
-				value: '',
-				show: false
-			},
-			securityBasicPass: {
-				name: 'Contraseña',
-				type: 'string',
-				value: '',
-				show: false
-			},
-			securityBearerToken: {
-				name: 'Token',
-				type: 'string',
-				value: '',
-				show: false
-			},
-			securityJWTSecret: {
-				name: 'Secreto',
-				type: 'string',
-				value: '',
-				show: false
-			},
-			// Opciones avanzadas
-			advancedOptions: {
-				name: 'Opciones avanzadas',
-				type: 'switch',
-				value: false
-			},
-			// Opciones de redirección
-			enableRedirect: {
-				name: 'Habilitar redirección',
-				type: 'switch',
-				value: false,
-				show: false
-			},
-			redirectUrl: {
-				name: 'URL de redirección',
-				type: 'string',
-				value: '',
-				description: 'URL a la que se redireccionará',
-				show: false
-			},
-			redirectStatusCode: {
-				name: 'Código de estado',
-				type: 'options',
-				options: [
-					{
-						label: '301 - Movido permanentemente',
-						value: 301
-					},
-					{
-						label: '302 - Encontrado (redirección temporal)',
-						value: 302
-					},
-					{
-						label: '303 - Ver otro',
-						value: 303
-					},
-					{
-						label: '307 - Redirección temporal',
-						value: 307
-					},
-					{
-						label: '308 - Redirección permanente',
-						value: 308
-					}
-				],
-				value: 302,
-				show: false
-			},
-			// Opciones de proxy
-			enableProxy: {
-				name: 'Habilitar proxy',
-				type: 'switch',
-				value: false,
-				show: false
-			},
-			proxyUrl: {
-				name: 'URL de destino del proxy',
-				type: 'string',
-				value: '',
-				description: 'URL a la que se reenviarán las peticiones',
-				show: false
-			},
-			proxyPreserveHeaders: {
-				name: 'Preservar cabeceras',
-				type: 'switch',
-				value: true,
-				show: false
-			},
-			// Opciones CORS
-			enableCors: {
-				name: 'Habilitar CORS',
-				type: 'switch',
-				value: false,
-				show: false
-			},
-			corsOrigin: {
-				name: 'Access-Control-Allow-Origin',
-				type: 'string',
-				value: '*',
-				show: false
-			},
-			corsMethods: {
-				name: 'Access-Control-Allow-Methods',
-				type: 'string',
-				value: 'GET,POST,PUT,DELETE,OPTIONS',
-				show: false
-			},
-			corsHeaders: {
-				name: 'Access-Control-Allow-Headers',
-				type: 'string',
-				value: 'Content-Type,Authorization',
-				show: false
-			},
-			// Respuesta personalizada
-			customResponse: {
-				name: 'Habilitar respuesta personalizada',
-				type: 'switch',
-				value: false,
-				show: false
-			},
-			responseStatusCode: {
-				name: 'Código de estado',
-				type: 'number',
-				value: 200,
-				show: false
-			},
-			responseContentType: {
-				name: 'Content-Type',
-				type: 'options',
-				options: [
-					{
-						label: 'application/json',
-						value: 'application/json'
-					},
-					{
-						label: 'text/html',
-						value: 'text/html'
-					},
-					{
-						label: 'text/plain',
-						value: 'text/plain'
-					},
-					{
-						label: 'application/xml',
-						value: 'application/xml'
-					}
-				],
-				value: 'application/json',
-				show: false
-			},
-			responseBody: {
-				name: 'Cuerpo de respuesta',
-				type: 'code',
-				lang: 'json',
-				value: '{\n  "success": true\n}',
-				show: false
-			}
+export default class implements INodeClass {
+	dependencies = ['jsonwebtoken', 'axios']
+	info = {
+		name: 'Webhook',
+		desc: 'Call webhook',
+		icon: '󰘯',
+		group: 'Triggers',
+		color: '#3498DB',
+		connectors: {
+			inputs: ['input'],
+			outputs: ['response', 'error']
+		},
+		flags: {
+			isTrigger: true
+		}
+	}
+	properties: IProperties = {
+		url: {
+			name: 'URL asignada:',
+			type: 'box'
+		},
+		endpoint: {
+			name: 'Endpoint:',
+			type: 'string',
+			value: '/'
+		},
+		type: {
+			name: 'Tipo de llamada:',
+			type: 'options',
+			options: [
+				{
+					label: 'GET',
+					value: 'get'
+				},
+				{
+					label: 'POST',
+					value: 'post'
+				},
+				{
+					label: 'PATCH',
+					value: 'patch'
+				},
+				{
+					label: 'PUT',
+					value: 'put'
+				},
+				{
+					label: 'DELETE',
+					value: 'delete'
+				}
+			],
+			value: 'get'
+		},
+		timeout: {
+			name: 'Tiempo de espera (seg):',
+			type: 'number',
+			value: 50
+		},
+		security: {
+			name: 'Seguridad:',
+			type: 'options',
+			options: [
+				{
+					label: 'Ninguna',
+					value: 'null'
+				},
+				{
+					label: 'Básico',
+					value: 'basic'
+				},
+				{
+					label: 'JWT Bearer',
+					value: 'jwt'
+				},
+				{
+					label: 'Bearer Token',
+					value: 'bearer'
+				}
+			],
+			value: 'null'
+		},
+		securityBasicUser: {
+			name: 'Usuario',
+			type: 'string',
+			value: '',
+			show: false
+		},
+		securityBasicPass: {
+			name: 'Contraseña',
+			type: 'string',
+			value: '',
+			show: false
+		},
+		securityBearerToken: {
+			name: 'Token',
+			type: 'string',
+			value: '',
+			show: false
+		},
+		securityJWTSecret: {
+			name: 'Secreto',
+			type: 'string',
+			value: '',
+			show: false
+		},
+		// Opciones avanzadas
+		advancedOptions: {
+			name: 'Opciones avanzadas',
+			type: 'switch',
+			value: false
+		},
+		// Opciones de redirección
+		enableRedirect: {
+			name: 'Habilitar redirección',
+			type: 'switch',
+			value: false,
+			show: false
+		},
+		redirectUrl: {
+			name: 'URL de redirección',
+			type: 'string',
+			value: '',
+			description: 'URL a la que se redireccionará',
+			show: false
+		},
+		redirectStatusCode: {
+			name: 'Código de estado',
+			type: 'options',
+			options: [
+				{
+					label: '301 - Movido permanentemente',
+					value: 301
+				},
+				{
+					label: '302 - Encontrado (redirección temporal)',
+					value: 302
+				},
+				{
+					label: '303 - Ver otro',
+					value: 303
+				},
+				{
+					label: '307 - Redirección temporal',
+					value: 307
+				},
+				{
+					label: '308 - Redirección permanente',
+					value: 308
+				}
+			],
+			value: 302,
+			show: false
+		},
+		// Opciones de proxy
+		enableProxy: {
+			name: 'Habilitar proxy',
+			type: 'switch',
+			value: false,
+			show: false
+		},
+		proxyUrl: {
+			name: 'URL de destino del proxy',
+			type: 'string',
+			value: '',
+			description: 'URL a la que se reenviarán las peticiones',
+			show: false
+		},
+		proxyPreserveHeaders: {
+			name: 'Preservar cabeceras',
+			type: 'switch',
+			value: true,
+			show: false
+		},
+		// Opciones CORS
+		enableCors: {
+			name: 'Habilitar CORS',
+			type: 'switch',
+			value: false,
+			show: false
+		},
+		corsOrigin: {
+			name: 'Access-Control-Allow-Origin',
+			type: 'string',
+			value: '*',
+			show: false
+		},
+		corsMethods: {
+			name: 'Access-Control-Allow-Methods',
+			type: 'string',
+			value: 'GET,POST,PUT,DELETE,OPTIONS',
+			show: false
+		},
+		corsHeaders: {
+			name: 'Access-Control-Allow-Headers',
+			type: 'string',
+			value: 'Content-Type,Authorization',
+			show: false
+		},
+		// Respuesta personalizada
+		customResponse: {
+			name: 'Habilitar respuesta personalizada',
+			type: 'switch',
+			value: false,
+			show: false
+		},
+		responseStatusCode: {
+			name: 'Código de estado',
+			type: 'number',
+			value: 200,
+			show: false
+		},
+		responseContentType: {
+			name: 'Content-Type',
+			type: 'options',
+			options: [
+				{
+					label: 'application/json',
+					value: 'application/json'
+				},
+				{
+					label: 'text/html',
+					value: 'text/html'
+				},
+				{
+					label: 'text/plain',
+					value: 'text/plain'
+				},
+				{
+					label: 'application/xml',
+					value: 'application/xml'
+				}
+			],
+			value: 'application/json',
+			show: false
+		},
+		responseBody: {
+			name: 'Cuerpo de respuesta',
+			type: 'code',
+			lang: 'json',
+			value: '{\n  "success": true\n}',
+			show: false
 		}
 	}
 
-	async onCreate({ context, environment }: INodeClassOnCreate) {
+	async onCreate({ context, environment }: Parameters<NonNullable<INodeClass['onCreate']>>[0]) {
 		// Configuración de seguridad
 		this.properties.securityBasicUser.show = false
 		this.properties.securityBasicPass.show = false
@@ -332,7 +341,7 @@ export default class implements INodeClass {
 		]
 	}
 
-	async onExecute({ app, context, execute, logger, environment, dependency, outputData }: INodeClassOnExecute) {
+	async onExecute({ app, context, execute, logger, environment, dependency, outputData }: Parameters<INodeClass['onExecute']>[0]) {
 		const jwt = await dependency.getRequire('jsonwebtoken')
 		const axios = await dependency.getRequire('axios')
 
@@ -347,7 +356,7 @@ export default class implements INodeClass {
 				base = context.properties?.basic?.router || ''
 				prefix = `/f_${context.info.uid}/api`
 			}
-			const timeout = Number.parseInt(this.properties.timeout.value as string) || 50
+			const timeout = this.properties.timeout.value || 50
 			const serverBase = environment.SERVER_BASE || ''
 			const baseUrl = serverBase.slice(-1) !== '/' ? `${serverBase}/` : serverBase.slice(0, -1)
 			const endpointValue: string = (this.properties.endpoint.value as string) || ''

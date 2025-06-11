@@ -1,4 +1,4 @@
-import type { INode, INodeClass, INodeClassExec } from '@shared/interface/node.interface.js'
+import type { INode, INodeClass } from '@shared/interface/node.interface.js'
 import type { IWorkflow } from '@shared/interface/workflow.interface.js'
 import fs from 'node:fs'
 import { queueService } from './queue.service.js'
@@ -100,17 +100,17 @@ function queueExtract({
 	const listNodes: { id: string; type: string; properties: any }[] = []
 	for (const node of Object.values(nodes)) {
 		listNodes.push({
-			id: node.id,
-			type: node.type,
+			id: node.id || '',
+			type: node.info.group,
 			properties: node.properties
 		})
-		const pathOrigin = node.type.split('/').slice(0, -1).join('/')
-		const pathNode = `${originPathShared}plugins/nodes/${node.type}`
+		const pathOrigin = node.info.group.split('/').slice(0, -1).join('/')
+		const pathNode = `${originPathShared}plugins/nodes/${node.info.group}`
 		if (!fs.existsSync(pathNode)) {
-			throw new Error(`No existe el nodo ${node.type}`)
+			throw new Error(`No existe el nodo ${node.info.group}`)
 		}
 		fs.mkdirSync(`${destinyPluginsNode}/${pathOrigin}`, { recursive: true })
-		fs.cpSync(pathNode, `${destinyPluginsNode}/${node.type}`, { recursive: true })
+		fs.cpSync(pathNode, `${destinyPluginsNode}/${node.info.group}`, { recursive: true })
 	}
 
 	// Copiar package

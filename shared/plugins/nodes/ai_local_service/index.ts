@@ -12,7 +12,7 @@ export default class implements INodeClass {
 		public properties: INodeClass['properties']
 	) {
 		this.info = {
-			title: 'IA',
+			name: 'IA',
 			desc: 'Processa el flujo con IA',
 			icon: '󱫞',
 			group: 'Timer',

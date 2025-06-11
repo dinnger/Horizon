@@ -1,11 +1,5 @@
 //  https://node-oracledb.readthedocs.io/en/v6.7.2/user_guide/aq.html
-import type {
-	INodeClass,
-	INodeClassOnCreate,
-	INodeClassOnExecute,
-	INodeClassProperty,
-	INodeClassPropertyType
-} from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 
 interface IProperties extends INodeClassProperty {
 	connection: Extract<INodeClassPropertyType, { type: 'options' }>
@@ -24,53 +18,46 @@ interface ICredentials extends INodeClassProperty {
 	config: Extract<INodeClassPropertyType, { type: 'code' }>
 }
 
-export default class OracleAQNode implements INodeClass<IProperties, ICredentials> {
-	constructor(
-		public dependencies: string[],
-		public info: INodeClass['info'],
-		public properties: IProperties,
-		public credentials: ICredentials,
-		private connections: Map<string, { connection: any; queue: any }> = new Map()
-	) {
-		this.dependencies = ['oracledb']
-		this.info = {
-			title: 'Oracle AQ',
-			desc: 'Consumir o producir mensajes en Oracle Advanced Queuing',
-			icon: '󰘙',
-			group: 'Base de Datos',
-			color: '#F80000',
+export default class OracleAQNode implements INodeClass {
+	private connections: Map<string, { connection: any; queue: any }> = new Map()
+	dependencies = ['oracledb']
+	info = {
+		name: 'Oracle AQ',
+		desc: 'Consumir o producir mensajes en Oracle Advanced Queuing',
+		icon: '󰘙',
+		group: 'Base de Datos',
+		color: '#F80000',
 
-			connectors: {
-				inputs: ['input'],
-				outputs: ['response', 'error']
-			},
-			flags: {
-				isSingleton: true,
-				isAccessSecrets: true
-			}
+		connectors: {
+			inputs: ['input'],
+			outputs: ['response', 'error']
+		},
+		flags: {
+			isSingleton: true,
+			isAccessSecrets: true
 		}
-
-		this.properties = {
-			connection: {
-				name: 'Tipo de conexión',
-				type: 'options',
-				options: [
-					{
-						label: 'Manual',
-						value: 'manual'
-					},
-					{
-						label: 'Secreto',
-						value: 'secret'
-					}
-				],
-				value: 'manual'
-			},
-			config: {
-				name: 'Configuración',
-				type: 'code',
-				lang: 'json',
-				value: `{
+	}
+	properties: IProperties = {
+		connection: {
+			name: 'Tipo de conexión',
+			type: 'options',
+			options: [
+				{
+					label: 'Manual',
+					value: 'manual'
+				},
+				{
+					label: 'Secreto',
+					value: 'secret'
+				}
+			],
+			value: 'manual'
+		},
+		config: {
+			name: 'Configuración',
+			type: 'code',
+			lang: 'json',
+			value: `{
   "host": "localhost",
   "username": "user",
   "password": "password",
@@ -78,95 +65,94 @@ export default class OracleAQNode implements INodeClass<IProperties, ICredential
   "port": 5432,
   "logging": false
 }`
-			},
-			configSecret: {
-				name: 'Configuración',
-				type: 'secret',
-				secretType: 'DATABASE',
-				options: [],
-				value: '',
-				show: false
-			},
-			operation: {
-				name: 'Operación',
-				type: 'options',
-				options: [
-					{
-						label: 'Enqueue (Producir mensaje)',
-						value: 'enqueue'
-					},
-					{
-						label: 'Dequeue (Consumir mensaje)',
-						value: 'dequeue'
-					}
-				],
-				value: 'enqueue'
-			},
-			instantClientPath: {
-				name: 'Directorio de instantclient',
-				type: 'string',
-				value: 'C:/instantclient_19_8',
-				description: 'Directorio donde se encuentra instantclient'
-			},
-			queueName: {
-				name: 'Nombre de la cola',
-				type: 'string',
-				value: 'MY_QUEUE',
-				description: 'Nombre de la cola AQ'
-			},
-			message: {
-				name: 'Mensaje',
-				type: 'code',
-				lang: 'json',
-				value:
-					'{\n  "P_TABLE_NAME": "EXAMPLE_TABLE",\n  "P_PROCEDURE_NAME": "EXAMPLE_PROCEDURE",\n  "P_INSTRUCTION": "SELECT * FROM DUAL"\n}',
-				description: 'Contenido del mensaje a enviar (solo para enqueue)'
-			},
-			keepAlive: {
-				name: 'Mantener conexión',
-				type: 'switch',
-				value: true
-			},
-			advancedOptions: {
-				name: 'Opciones avanzadas',
-				type: 'switch',
-				value: false
-			},
-			deliveryMode: {
-				name: 'Modo de entrega',
-				type: 'options',
-				options: [
-					{
-						label: 'Persistent (Persistente)',
-						value: 'PERSISTENT'
-					},
-					{
-						label: 'Buffered (En buffer)',
-						value: 'BUFFERED'
-					}
-				],
-				value: 'PERSISTENT',
-				show: false
-			}
+		},
+		configSecret: {
+			name: 'Configuración',
+			type: 'secret',
+			secretType: 'DATABASE',
+			options: [],
+			value: '',
+			show: false
+		},
+		operation: {
+			name: 'Operación',
+			type: 'options',
+			options: [
+				{
+					label: 'Enqueue (Producir mensaje)',
+					value: 'enqueue'
+				},
+				{
+					label: 'Dequeue (Consumir mensaje)',
+					value: 'dequeue'
+				}
+			],
+			value: 'enqueue'
+		},
+		instantClientPath: {
+			name: 'Directorio de instantclient',
+			type: 'string',
+			value: 'C:/instantclient_19_8',
+			description: 'Directorio donde se encuentra instantclient'
+		},
+		queueName: {
+			name: 'Nombre de la cola',
+			type: 'string',
+			value: 'MY_QUEUE',
+			description: 'Nombre de la cola AQ'
+		},
+		message: {
+			name: 'Mensaje',
+			type: 'code',
+			lang: 'json',
+			value:
+				'{\n  "P_TABLE_NAME": "EXAMPLE_TABLE",\n  "P_PROCEDURE_NAME": "EXAMPLE_PROCEDURE",\n  "P_INSTRUCTION": "SELECT * FROM DUAL"\n}',
+			description: 'Contenido del mensaje a enviar (solo para enqueue)'
+		},
+		keepAlive: {
+			name: 'Mantener conexión',
+			type: 'switch',
+			value: true
+		},
+		advancedOptions: {
+			name: 'Opciones avanzadas',
+			type: 'switch',
+			value: false
+		},
+		deliveryMode: {
+			name: 'Modo de entrega',
+			type: 'options',
+			options: [
+				{
+					label: 'Persistent (Persistente)',
+					value: 'PERSISTENT'
+				},
+				{
+					label: 'Buffered (En buffer)',
+					value: 'BUFFERED'
+				}
+			],
+			value: 'PERSISTENT',
+			show: false
 		}
+	}
 
-		this.credentials = {
-			config: {
-				name: 'Configuración de conexión',
-				type: 'code',
-				lang: 'json',
-				value: `{ 
+	credentials: ICredentials = {
+		config: {
+			name: 'Configuración de conexión',
+			type: 'code',
+			lang: 'json',
+			value: `{ 
     "database": "mydb",
     "user": "myuser",
     "password": "mypass",
     "host": "localhost"
 }
 `
-			}
 		}
 	}
 
-	async onCreate({ dependency }: INodeClassOnCreate): Promise<void> {
+	async onCreate({ dependency }: Parameters<NonNullable<INodeClass['onCreate']>>[0]): Promise<void> {
 		if (this.properties.connection.value === 'secret') {
 			this.properties.configSecret.show = true
 			this.properties.config.show = false
@@ -184,7 +170,7 @@ export default class OracleAQNode implements INodeClass<IProperties, ICredential
 		}
 	}
 
-	async onExecute({ outputData, dependency, credential }: INodeClassOnExecute) {
+	async onExecute({ outputData, dependency, credential }: Parameters<INodeClass['onExecute']>[0]) {
 		const oracledb = await dependency.getRequire('oracledb')
 		let connection: any = null
 		let queue: any = null

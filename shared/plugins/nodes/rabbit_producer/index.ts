@@ -1,106 +1,107 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 
+interface IProperties extends INodeClassProperty {
+	url: Extract<INodeClassPropertyType, { type: 'string' }>
+	queue: Extract<INodeClassPropertyType, { type: 'string' }>
+	exchange: Extract<INodeClassPropertyType, { type: 'string' }>
+	exchangeType: Extract<INodeClassPropertyType, { type: 'options' }>
+	routingKey: Extract<INodeClassPropertyType, { type: 'string' }>
+	retry: Extract<INodeClassPropertyType, { type: 'number' }>
+	durable: Extract<INodeClassPropertyType, { type: 'switch' }>
+	persistent: Extract<INodeClassPropertyType, { type: 'switch' }>
+	value: Extract<INodeClassPropertyType, { type: 'code' }>
+}
 export default class implements INodeClass {
-	// ===============================================
-	// Dependencias
-	// ===============================================
-	// #pk amqplib
-	// ===============================================
-	constructor(
-		public info: INodeClass['info'],
-		public properties: INodeClassProperty
-	) {
-		this.info = {
-			title: 'RabbitMQ Producer',
-			desc: 'Produce mensajes de un tópico de RabbitMQ',
-			icon: '󰤇',
-			group: 'RabbitMQ',
-			color: '#3498DB',
-			connectors: {
-				inputs: ['init'],
-				outputs: ['response', 'error']
-			}
+	dependencies = ['amqplib']
+	info = {
+		name: 'RabbitMQ Producer',
+		desc: 'Produce mensajes de un tópico de RabbitMQ',
+		icon: '󰤇',
+		group: 'RabbitMQ',
+		color: '#3498DB',
+		connectors: {
+			inputs: ['init'],
+			outputs: ['response', 'error']
 		}
-
-		this.properties = {
-			url: {
-				name: 'URL:',
-				value: 'amqp://localhost:5672',
-				type: 'string',
-				size: 4
-			},
-			queue: {
-				name: 'Cola (Queue):',
-				value: '',
-				type: 'string',
-				size: 4
-			},
-			exchange: {
-				name: 'Exchange:',
-				value: '',
-				type: 'string',
-				description: 'Nombre del Exchange, si no se define se usa el nombre de la cola',
-				size: 2
-			},
-			exchangeType: {
-				name: 'Tipo de Exchange:',
-				value: 'topic',
-				type: 'options',
-				options: [
-					{
-						label: 'Direct',
-						value: 'direct'
-					},
-					{
-						label: 'Fanout',
-						value: 'fanout'
-					},
-					{
-						label: 'Topic',
-						value: 'topic'
-					}
-				],
-				size: 1
-			},
-			routingKey: {
-				name: 'Routing Key:',
-				value: '',
-				type: 'string',
-				description: 'Nombre del routing key, si no se define se usa el nombre de la cola',
-				size: 1
-			},
-			retry: {
-				name: 'Reintento (seg):',
-				value: 10,
-				description: 'Tiempo máximo de espera para reintentar una conexión (Cada reintento se tomara el doble de tiempo de la anterior)',
-				type: 'number',
-				size: 1
-			},
-			durable: {
-				name: 'Durable:',
-				value: true,
-				type: 'switch',
-				description: 'Habilita la durabilidad de la cola',
-				size: 1
-			},
-			persistent: {
-				name: 'Persistent:',
-				value: true,
-				type: 'switch',
-				description: 'Habilita la persistencia del mensaje',
-				size: 1
-			},
-			value: {
-				name: 'Value:',
-				value: JSON.stringify({ data: 'Hello World' }, null, ' '),
-				type: 'code',
-				lang: 'json',
-				size: 4
-			}
+	}
+	properties: IProperties = {
+		url: {
+			name: 'URL:',
+			value: 'amqp://localhost:5672',
+			type: 'string',
+			size: 4
+		},
+		queue: {
+			name: 'Cola (Queue):',
+			value: '',
+			type: 'string',
+			size: 4
+		},
+		exchange: {
+			name: 'Exchange:',
+			value: '',
+			type: 'string',
+			description: 'Nombre del Exchange, si no se define se usa el nombre de la cola',
+			size: 2
+		},
+		exchangeType: {
+			name: 'Tipo de Exchange:',
+			value: 'topic',
+			type: 'options',
+			options: [
+				{
+					label: 'Direct',
+					value: 'direct'
+				},
+				{
+					label: 'Fanout',
+					value: 'fanout'
+				},
+				{
+					label: 'Topic',
+					value: 'topic'
+				}
+			],
+			size: 1
+		},
+		routingKey: {
+			name: 'Routing Key:',
+			value: '',
+			type: 'string',
+			description: 'Nombre del routing key, si no se define se usa el nombre de la cola',
+			size: 1
+		},
+		retry: {
+			name: 'Reintento (seg):',
+			value: 10,
+			description: 'Tiempo máximo de espera para reintentar una conexión (Cada reintento se tomara el doble de tiempo de la anterior)',
+			type: 'number',
+			size: 1
+		},
+		durable: {
+			name: 'Durable:',
+			value: true,
+			type: 'switch',
+			description: 'Habilita la durabilidad de la cola',
+			size: 1
+		},
+		persistent: {
+			name: 'Persistent:',
+			value: true,
+			type: 'switch',
+			description: 'Habilita la persistencia del mensaje',
+			size: 1
+		},
+		value: {
+			name: 'Value:',
+			value: JSON.stringify({ data: 'Hello World' }, null, ' '),
+			type: 'code',
+			lang: 'json',
+			size: 4
 		}
 	}
 
-	async onExecute({ inputData, outputData, context, dependency }: INodeClassOnExecute) {
+	async onExecute({ inputData, outputData, context, dependency }: Parameters<INodeClass['onExecute']>[0]) {
 		try {
 			const amqp = await dependency.getRequire('amqplib')
 			const queue = this.properties.queue.value

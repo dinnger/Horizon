@@ -1,68 +1,71 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 import { mime } from './mimeTypes.js'
 import { statusCode } from './statusCodeTypes.js'
 
-export default class implements INodeClass {
-	constructor(
-		public info: INodeClass['info'],
-		public properties: INodeClassProperty
-	) {
-		this.info = {
-			title: 'Response',
-			desc: 'Devuelve la respuesta de una llamada webhook',
-			icon: '󰌑',
-			group: 'Input/Output',
-			color: '#F39C12',
-			connectors: {
-				inputs: ['input'],
-				outputs: ['response', 'error']
-			}
-		}
+interface IProperties extends INodeClassProperty {
+	contentType: Extract<INodeClassPropertyType, { type: 'options' }>
+	status: Extract<INodeClassPropertyType, { type: 'options' }>
+	isFile: Extract<INodeClassPropertyType, { type: 'switch' }>
+	nameFile: Extract<INodeClassPropertyType, { type: 'string' }>
+	response: Extract<INodeClassPropertyType, { type: 'code' }>
+	header: Extract<INodeClassPropertyType, { type: 'code' }>
+}
 
-		this.properties = {
-			// propiedadad content type
-			contentType: {
-				name: 'Content Type',
-				type: 'options',
-				description: 'Tipo de contenido de la respuesta',
-				value: 'application/json',
-				options: mime,
-				size: 2,
-				disabled: false
-			},
-			status: {
-				name: 'Código:',
-				type: 'options',
-				value: 200,
-				options: statusCode,
-				size: 1
-			},
-			isFile: {
-				name: 'Es Archivo:',
-				type: 'switch',
-				value: false,
-				size: 1
-			},
-			nameFile: {
-				name: 'Nombre Archivo (con extensión):',
-				type: 'string',
-				value: '',
-				size: 4,
-				show: false
-			},
-			response: {
-				name: 'Respuesta',
-				type: 'code',
-				lang: 'json',
-				value: '{\n}'
-			},
-			header: {
-				name: 'Headers',
-				type: 'code',
-				lang: 'json',
-				value: '{\n}',
-				show: true
-			}
+export default class implements INodeClass {
+	info = {
+		name: 'Response',
+		desc: 'Devuelve la respuesta de una llamada webhook',
+		icon: '󰌑',
+		group: 'Input/Output',
+		color: '#F39C12',
+		connectors: {
+			inputs: ['input'],
+			outputs: ['response', 'error']
+		}
+	}
+	properties: IProperties = {
+		// propiedadad content type
+		contentType: {
+			name: 'Content Type',
+			type: 'options',
+			description: 'Tipo de contenido de la respuesta',
+			value: 'application/json',
+			options: mime,
+			size: 2,
+			disabled: false
+		},
+		status: {
+			name: 'Código:',
+			type: 'options',
+			value: 200,
+			options: statusCode,
+			size: 1
+		},
+		isFile: {
+			name: 'Es Archivo:',
+			type: 'switch',
+			value: false,
+			size: 1
+		},
+		nameFile: {
+			name: 'Nombre Archivo (con extensión):',
+			type: 'string',
+			value: '',
+			size: 4,
+			show: false
+		},
+		response: {
+			name: 'Respuesta',
+			type: 'code',
+			lang: 'json',
+			value: '{\n}'
+		},
+		header: {
+			name: 'Headers',
+			type: 'code',
+			lang: 'json',
+			value: '{\n}',
+			show: true
 		}
 	}
 
@@ -79,7 +82,7 @@ export default class implements INodeClass {
 		}
 	}
 
-	async onExecute({ execute, outputData }: INodeClassOnExecute) {
+	async onExecute({ execute, outputData }: Parameters<INodeClass['onExecute']>[0]) {
 		let node = execute.getNodeByType('integration/webhook')
 		if (!node) node = execute.getNodeByType('integration/crud')
 		if (!node) node = execute.getNodeByType('integration/soap')

@@ -1,23 +1,31 @@
-import type { INode, INodeCanvasNew, INodeCanvasNewClass, INodeClass, INodeConnections } from '@shared/interface/node.interface'
+import type { INodeCanvas, INodeConnections } from '@shared/interface/node.interface'
 import type { INodePropertiesType } from '@shared/interface/node.properties.interface'
 import { utilsStandardName } from '../../../shared/utils'
 import { v4 as uuidv4 } from 'uuid'
 import { render_node, renderConnectionNodes, subscriberHelper } from './canvas_helpers'
+import type { Point } from './canvas_connector'
 
 const canvasGrid = 20
 
 export class Nodes {
-	private nodes: { [key: string]: INodeCanvasNewClass } = {}
-
-	addNode(node: INodeCanvasNew, isManual?: boolean) {
+	private nodes: { [key: string]: NewNode } = {}
+	getNode(data: { id: string }) {
+		const node = this.nodes[data.id]
+		if (!node) throw new Error('No se encontró el nodo')
+		return this.nodes[data.id]
+	}
+	addNode(node: INodeCanvas, isManual?: boolean) {
+		node.id = node.id || uuidv4()
 		if (isManual) {
 			subscriberHelper().send('addNode', { node, isManual })
 		}
-		console.log({ node })
 		this.nodes[node.id] = new NewNode(node)
+		return this.nodes[node.id]
 	}
 	addConnection(connection: INodeConnections) {
-		this.nodes[connection.nodeOrigin.id].actionAddConnection(connection)
+		const id = connection.nodeOrigin?.id || -1
+		if (!this.nodes[id]) return console.error('No se encontró el nodo', id)
+		this.nodes[id].addConnection(connection)
 	}
 	removeNode(id: string) {
 		delete this.nodes[id]
@@ -56,7 +64,7 @@ export class Nodes {
 	}
 	move({ relative }: { relative: { x: number; y: number } }) {
 		for (const node of this.getSelected()) {
-			this.nodes[node.id].move({ relative })
+			this.nodes[node.id || -1].move({ relative })
 		}
 	}
 	clear() {
@@ -66,31 +74,26 @@ export class Nodes {
 	}
 }
 
-class NewNode implements INodeCanvasNewClass {
+class NewNode {
 	id: string
-	name: string
 	type: string
-	icon: string
-	color: string
+	info: INodeCanvas['info']
 	properties: INodePropertiesType
-	meta?: INode['meta'] | undefined
-	design: INodeCanvasNew['design']
-	connectors: INode['connectors']
+	meta?: INodeCanvas['meta'] | undefined
+	design: INodeCanvas['design']
 	connections: INodeConnections[]
 	relativePos = { x: 0, y: 0 }
 	isSelected = false
 	isMove = false
 
-	constructor(value: INodeCanvasNew) {
-		this.id = value.id
-		this.name = utilsStandardName(value.name)
+	constructor(value: INodeCanvas) {
+		this.id = value.id || uuidv4()
+		this.info = value.info
+		this.info.name = utilsStandardName(value.info.name)
 		this.type = value.type
-		this.icon = value.icon
-		this.color = value.color
 		this.properties = value.properties
 		this.meta = value.meta
 		this.design = value.design
-		this.connectors = value.connectors
 		this.connections = value.connections || []
 		this.design.x = value.design.x || 0
 		this.design.y = value.design.y || 0
@@ -99,21 +102,25 @@ class NewNode implements INodeCanvasNewClass {
 	}
 
 	calculateNodeHeight() {
-		const widthByInputs = Math.max(35 + (this.connectors?.inputs?.length || 0) * 20, 85)
-		const widthByOutputs = Math.max(35 + (this.connectors?.outputs?.length || 0) * 20, 85)
+		const widthByInputs = Math.max(35 + (this.info.connectors?.inputs?.length || 0) * 20, 85)
+		const widthByOutputs = Math.max(35 + (this.info.connectors?.outputs?.length || 0) * 20, 85)
 		return Math.max(widthByInputs, widthByOutputs)
 	}
 
-	actionAddConnection(element: INodeConnections) {
-		let { id, nodeOrigin, nodeDestiny, isManual } = element
+	addConnection(element: INodeConnections, isDestiny = false) {
+		if (isDestiny) return this.connections.push(element)
+
+		let { id, nodeDestiny, isManual } = element
 		id = id || uuidv4()
-		const connection = {
+		const connection = new NewConnector({
 			...element,
-			id,
-			pos_property: {}
-		}
+			id
+		})
+		if (!connection.nodeOrigin) connection.nodeOrigin = this
 		this.connections.push(connection)
-		if (nodeOrigin.id === this.id) nodeDestiny.actionAddConnection(element)
+		if (connection.nodeOrigin.id === this.id) {
+			;(nodeDestiny as any).addConnection(connection, true)
+		}
 		if (isManual) {
 			subscriberHelper().send('addConnection', element)
 		}
@@ -129,15 +136,15 @@ class NewNode implements INodeCanvasNewClass {
 		if (
 			(!pos.x2 &&
 				pos.x >= this.design.x + marginX &&
-				pos.x <= this.design.x + this.design.width - marginX &&
+				pos.x <= this.design.x + this.design.width! - marginX &&
 				pos.y >= this.design.y &&
-				pos.y <= this.design.y + this.design.height) ||
+				pos.y <= this.design.y + this.design.height!) ||
 			(pos.x2 &&
 				pos.y2 &&
 				pos.x <= this.design.x &&
 				pos.y <= this.design.y &&
-				pos.x2 >= this.design.x + this.design.width &&
-				pos.y2 >= this.design.y + this.design.height)
+				pos.x2 >= this.design.x + this.design.width! &&
+				pos.y2 >= this.design.y + this.design.height!)
 		) {
 			this.relativePos = {
 				x: relative.x - this.design.x,
@@ -151,23 +158,23 @@ class NewNode implements INodeCanvasNewClass {
 	}
 
 	getSelectedConnectors({ x, y }: { x: number; y: number }): {
-		node: INodeCanvasNewClass
+		node: INodeCanvas
 		type: 'output' | 'input' | 'callback'
 		index: number
 		value: any
 	} | null {
 		const marginX = 8
 
-		for (const output of Object.keys(this.connectors.outputs)) {
+		for (const output of Object.keys(this.info.connectors.outputs)) {
 			if (
-				x <= this.design.x + this.design.width + marginX &&
-				x >= this.design.x + this.design.width &&
+				x <= this.design.x + this.design.width! + marginX &&
+				x >= this.design.x + this.design.width! &&
 				y >= this.design.y + 25 + Number.parseInt(output) * 20 - 5 &&
 				y <= this.design.y + 25 + Number.parseInt(output) * 20 + 15
 			) {
 				this.isMove = false
 				this.isSelected = true
-				return { node: this, type: 'output', index: Number(output), value: this.connectors.outputs[Number(output)] }
+				return { node: this, type: 'output', index: Number(output), value: this.info.connectors.outputs[Number(output)] }
 			}
 		}
 
@@ -186,9 +193,14 @@ class NewNode implements INodeCanvasNewClass {
 		x = Math.round(x / canvasGrid) * canvasGrid
 		y = Math.round(y / canvasGrid) * canvasGrid
 		if (x === this.design.x && y === this.design.y) return
+
+		if (this.design.x === x && this.design.y === y) return
 		this.design.x = x
 		this.design.y = y
-		this.isMove = true
+
+		for (const connection of this.connections) {
+			connection.pointers = undefined
+		}
 	}
 
 	render({ ctx }: { ctx: CanvasRenderingContext2D }) {
@@ -200,18 +212,44 @@ class NewNode implements INodeCanvasNewClass {
 		})
 	}
 
-	renderConnections({ ctx, nodes }: { ctx: CanvasRenderingContext2D; nodes: { [key: string]: INodeCanvasNew } }) {
+	renderConnections({ ctx, nodes }: { ctx: CanvasRenderingContext2D; nodes: { [key: string]: INodeCanvas } }) {
 		for (const connection of this.connections) {
+			if (connection.nodeOrigin?.id !== this.id) continue
 			renderConnectionNodes({
 				ctx,
-				nodeOrigin: connection.nodeOrigin,
-				nodeDestiny: connection.nodeDestiny,
-				idConnectorOrigin: connection.idConnectorOrigin,
-				idConnectorDestiny: connection.idConnectorDestiny,
-				indexTime: 0,
 				connection,
-				nodes
+				nodes,
+				indexTime: 0
 			})
 		}
+	}
+}
+
+class NewConnector implements INodeConnections {
+	id: string
+	connectorType: 'input' | 'output' | 'callback'
+	connectorName: string
+	nodeOrigin?: INodeCanvas
+	nodeDestiny: INodeCanvas
+	connectorDestinyType: 'input' | 'output' | 'callback' // connector output
+	connectorDestinyName: string // connector input
+	isManual?: boolean
+	pointers?: Point[]
+	colorGradient?: any
+	isFocused?: boolean
+	isNew?: boolean
+	constructor(value: INodeConnections) {
+		this.id = value.id || uuidv4()
+		this.connectorType = value.connectorType
+		this.connectorName = value.connectorName
+		this.nodeOrigin = value.nodeOrigin
+		this.nodeDestiny = value.nodeDestiny
+		this.connectorDestinyType = value.connectorDestinyType
+		this.connectorDestinyName = value.connectorDestinyName
+		this.isManual = value.isManual
+		this.pointers = value.pointers
+		this.colorGradient = value.colorGradient
+		this.isFocused = value.isFocused
+		this.isNew = value.isNew
 	}
 }

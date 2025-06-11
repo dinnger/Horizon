@@ -1,4 +1,4 @@
-import type { INode, INodeClass, INodeClassExec, INodeClassOnExecute } from '@shared/interface/node.interface.js'
+import type { INode, INodeCanvas, INodeClass } from '@shared/interface/node.interface.js'
 import type { Worker } from '../../worker.js'
 import envs from '../../../shared/utils/envs.js'
 import dayjs from 'dayjs'
@@ -11,6 +11,7 @@ import { CoreCredential } from './credential.module.js'
 import { CoreDebug } from './debug.module.js'
 import { CoreGlobalStore } from './store.module.js'
 import { convertJson } from '../../../shared/utils/utilities.js'
+import { getNodeClass } from '@shared/maps/nodes.map.js'
 // -----------------------------------------------------------------------------
 // Base
 // -----------------------------------------------------------------------------
@@ -75,10 +76,10 @@ export class CoreModule {
 		node,
 		executeData
 	}: {
-		node: INodeClassExec
+		node: INodeClass
 		executeData: Map<string, { data: object; meta?: object; time: number }>
 	}) => {
-		const data: INodeClassOnExecute['execute'] = {
+		const data: Parameters<INodeClass['onExecute']>[0]['execute'] = {
 			isTest: false,
 			getNodeById: (id: string) => {
 				return this.el.nodeModule.nodes[id]
@@ -125,6 +126,7 @@ export class CoreModule {
 				this.globalStore.delete(`${type}_${key}`)
 			},
 			ifExecute: (): boolean => {
+				if (!node.id) return false
 				return !!executeData.has(node.id)
 			},
 			stop: (): void => {
@@ -156,7 +158,7 @@ export class CoreModule {
 		data
 	}: {
 		uuid: string
-		node: INodeClassExec
+		node: INodeCanvas
 		destiny: string[]
 		executeTime: number
 		executeMeta: { accumulativeTime: number }
@@ -170,7 +172,7 @@ export class CoreModule {
 			const executeTimeString = executeTime
 			if (envs.WORKER_TRACE) {
 				const timeString = `[Duration: ${`${executeTimeString}ms`.toString().padEnd(10, ' ')} Accumulative: ${`${executeMeta.accumulativeTime}ms`.padEnd(10, ' ')} Memory: ${memory}mb]`
-				const consoleExecute = `\x1b[42m Execute \x1b[0m ${node.name.padEnd(13, ' ')} --> `
+				const consoleExecute = `\x1b[42m Execute \x1b[0m ${node.info.name.padEnd(13, ' ')} --> `
 				for (const o of destiny) {
 					console.log(`${consoleExecute} ${o.padEnd(13, ' ')} \x1b[34m ${timeString.padEnd(40, ' ')} \x1b[0m`)
 				}
@@ -211,8 +213,8 @@ export class CoreModule {
 		meta
 	}: {
 		uuid?: string
-		node?: INodeClassExec
-		inputData: { idNode: string; inputName: string; data: object }
+		node?: INodeCanvas
+		inputData: { idNode: string; connectorType: 'input' | 'output' | 'callback'; connectorName: string; data: object }
 		executeData: Map<string, { data: object; meta?: object; time: number }>
 		executeMeta: { accumulativeTime: number }
 		executeClass?: Map<string, INodeClass>
@@ -225,8 +227,9 @@ export class CoreModule {
 		// Class
 		// if (isNewExecution) executeClass.clear()
 		let classExecute: INodeClass | undefined = undefined
+		if (!node.id || !node.type) return
 		if (!executeClass.has(node.id)) {
-			const defineClass = node.class
+			const defineClass = getNodeClass()[node.type].class
 			classExecute = new (defineClass as any)()
 			if (classExecute?.info?.flags?.isSingleton) executeClass.set(node.id, classExecute)
 		} else {
@@ -259,7 +262,7 @@ export class CoreModule {
 			// Analizar propiedades si es necesario hacer un replace
 			const matchReg = JSON.stringify(classExecute.properties[key]).match(/\{\{((?:(?!\{\{|\}\}).)+)\}\}/g)
 			if (matchReg) {
-				classExecute.properties[key] = fnProperties.analizarProperties(node.name, classExecute.properties[key])
+				classExecute.properties[key] = fnProperties.analizarProperties(node.info.name, classExecute.properties[key])
 			} else {
 				if (typeof classExecute.properties[key] === 'string') {
 					classExecute.properties[key] = convertJson(classExecute.properties[key])
@@ -291,8 +294,8 @@ export class CoreModule {
 			| undefined = node?.meta?.logs?.exec
 
 		if (logStart && logStart.type !== 'none') {
-			this.el.communicationModule.logger[logStart.type](fnProperties.analizarString(node.name, logStart.value), {
-				node: node.name
+			this.el.communicationModule.logger[logStart.type](fnProperties.analizarString(node.info.name, logStart.value), {
+				node: node.info.name
 			})
 		}
 
@@ -301,7 +304,7 @@ export class CoreModule {
 			...node
 		}
 
-		const execute = this.execute({ node: node, executeData })
+		const execute = this.execute({ node: classExecute, executeData })
 
 		// Ejecución del nodo
 		classExecute.onExecute({
@@ -326,19 +329,21 @@ export class CoreModule {
 
 				// Observer
 				if (this.el.isDev) {
+					if (!node.id) return
 					if (this.trace.dataNode.has(node.id)) this.trace.dataNode.set(node.id, classExecute)
 					this.trace.traceExecute({ id: node.id, type: 'outputs', connectName: output_name, executeTime })
 				}
 
 				// Registrando logs
 				if (logExec && logExec.type !== 'none') {
-					const value = fnProperties.setInput(data).analizarString(node.name, logExec.value)
+					const value = fnProperties.setInput(data).analizarString(node.info.name, logExec.value)
 					this.el.communicationModule.logger[logExec.type](value, {
-						node: node.name
+						node: node.info.name
 					})
 				}
 
 				const executeDateNode = execute.getExecuteData()
+				if (!node.id) return
 				executeDateNode.set(node.id, { data, meta, time: getTime() })
 				executeMeta.accumulativeTime = Number.parseFloat((executeMeta.accumulativeTime + executeTime).toFixed(3))
 
@@ -348,7 +353,9 @@ export class CoreModule {
 					this.consoleExecute({
 						uuid,
 						node,
-						destiny: this.el.nodeModule.connections[node.id][output_name].map((o: any) => this.el.nodeModule.nodes[o.id_node_destiny].name),
+						destiny: this.el.nodeModule.connections[node.id][output_name].map(
+							(o: any) => this.el.nodeModule.nodes[o.id_node_destiny].info.name
+						),
 						executeTime,
 						executeMeta,
 						startTime: startTime || 0,
@@ -370,10 +377,11 @@ export class CoreModule {
 
 						this.startExecution({
 							uuid,
-							node: this.el.nodeModule.nodes[output.id_node_destiny],
+							node: this.el.nodeModule.nodes[output.idNodeDestiny],
 							inputData: {
 								idNode: node.id,
-								inputName: output.input,
+								connectorType: output.connectorDestinyType,
+								connectorName: output.connectorDestinyName,
 								data
 							},
 							meta: nextMeta,

@@ -1,4 +1,16 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
+
+interface IProperties extends INodeClassProperty {
+	url: Extract<INodeClassPropertyType, { type: 'string' }>
+	exchange: Extract<INodeClassPropertyType, { type: 'string' }>
+	exchangeType: Extract<INodeClassPropertyType, { type: 'options' }>
+	routingKey: Extract<INodeClassPropertyType, { type: 'string' }>
+	queue: Extract<INodeClassPropertyType, { type: 'string' }>
+	retry: Extract<INodeClassPropertyType, { type: 'number' }>
+	durable: Extract<INodeClassPropertyType, { type: 'switch' }>
+	persistent: Extract<INodeClassPropertyType, { type: 'switch' }>
+	autoAck: Extract<INodeClassPropertyType, { type: 'switch' }>
+}
 
 export default class implements INodeClass {
 	// ===============================================
@@ -6,115 +18,110 @@ export default class implements INodeClass {
 	// ===============================================
 	// #pk amqplib
 	// ===============================================
-	constructor(
-		public info: INodeClass['info'],
-		public properties: INodeClassProperty
-	) {
-		this.info = {
-			title: 'RabbitMQ Consumer',
-			desc: 'Consume mensajes de un tópico de RabbitMQ',
-			icon: '󰤇',
-			group: 'RabbitMQ',
-			color: '#3498DB',
-			connectors: {
-				inputs: ['init'],
-				outputs: ['response', 'error', 'error:connection']
-			},
-			flags: {
-				isTrigger: true
-			}
+	info = {
+		name: 'RabbitMQ Consumer',
+		desc: 'Consume mensajes de un tópico de RabbitMQ',
+		icon: '󰤇',
+		group: 'RabbitMQ',
+		color: '#3498DB',
+		connectors: {
+			inputs: ['init'],
+			outputs: ['response', 'error', 'error:connection']
+		},
+		flags: {
+			isTrigger: true
 		}
-		this.properties = {
-			url: {
-				name: 'URL:',
-				value: 'amqp://localhost:5672',
-				type: 'string',
-				size: 4
-			},
-			// divider1: {
-			// 	name: 'Configuración de Exchange',
-			// 	type: 'divider'
-			// },
-			exchange: {
-				name: 'Exchange:',
-				value: '',
-				type: 'string',
-				description: 'Nombre del Exchange, si no se define se usa el nombre de la cola',
-				size: 2
-			},
-			exchangeType: {
-				name: 'Tipo de Exchange:',
-				value: 'topic',
-				type: 'options',
-				options: [
-					{
-						label: 'Direct',
-						value: 'direct'
-					},
-					{
-						label: 'Fanout',
-						value: 'fanout'
-					},
-					{
-						label: 'Topic',
-						value: 'topic'
-					}
-				],
-				size: 1
-			},
-			routingKey: {
-				name: 'Routing Key:',
-				value: '',
-				type: 'string',
-				description: 'Nombre del routing key, si no se define se usa el nombre de la cola',
-				size: 1
-			},
-			// divider2: {
-			// 	name: 'Configuración de Colas',
-			// 	type: 'divider'
-			// },
-			queue: {
-				name: 'Cola (Queue):',
-				value: '',
-				type: 'string',
-				description: 'Nombre de la cola'
-			},
-			// divider3: {
-			// 	name: 'Opciones',
-			// 	type: 'divider'
-			// },
-			retry: {
-				name: 'Reintento (seg):',
-				value: 10,
-				description: 'Tiempo máximo de espera para reintentar una conexión (Cada reintento se tomara el doble de tiempo de la anterior)',
-				type: 'number',
-				size: 1
-			},
-			durable: {
-				name: 'Durable:',
-				value: true,
-				type: 'switch',
-				description: 'Habilita la durabilidad de la cola',
-				size: 1
-			},
-			persistent: {
-				name: 'Persistent:',
-				value: true,
-				type: 'switch',
-				description: 'Habilita la persistencia del mensaje',
-				size: 1
-			},
-			autoAck: {
-				name: 'Auto Ack:',
-				value: true,
-				description: 'Habilitar commit automático, si es falso se debe hacer manualmente mediante la entrada "next"',
-				type: 'switch',
-				size: 1
-			}
+	}
+	properties: IProperties = {
+		url: {
+			name: 'URL:',
+			value: 'amqp://localhost:5672',
+			type: 'string',
+			size: 4
+		},
+		// divider1: {
+		// 	name: 'Configuración de Exchange',
+		// 	type: 'divider'
+		// },
+		exchange: {
+			name: 'Exchange:',
+			value: '',
+			type: 'string',
+			description: 'Nombre del Exchange, si no se define se usa el nombre de la cola',
+			size: 2
+		},
+		exchangeType: {
+			name: 'Tipo de Exchange:',
+			value: 'topic',
+			type: 'options',
+			options: [
+				{
+					label: 'Direct',
+					value: 'direct'
+				},
+				{
+					label: 'Fanout',
+					value: 'fanout'
+				},
+				{
+					label: 'Topic',
+					value: 'topic'
+				}
+			],
+			size: 1
+		},
+		routingKey: {
+			name: 'Routing Key:',
+			value: '',
+			type: 'string',
+			description: 'Nombre del routing key, si no se define se usa el nombre de la cola',
+			size: 1
+		},
+		// divider2: {
+		// 	name: 'Configuración de Colas',
+		// 	type: 'divider'
+		// },
+		queue: {
+			name: 'Cola (Queue):',
+			value: '',
+			type: 'string',
+			description: 'Nombre de la cola'
+		},
+		// divider3: {
+		// 	name: 'Opciones',
+		// 	type: 'divider'
+		// },
+		retry: {
+			name: 'Reintento (seg):',
+			value: 10,
+			description: 'Tiempo máximo de espera para reintentar una conexión (Cada reintento se tomara el doble de tiempo de la anterior)',
+			type: 'number',
+			size: 1
+		},
+		durable: {
+			name: 'Durable:',
+			value: true,
+			type: 'switch',
+			description: 'Habilita la durabilidad de la cola',
+			size: 1
+		},
+		persistent: {
+			name: 'Persistent:',
+			value: true,
+			type: 'switch',
+			description: 'Habilita la persistencia del mensaje',
+			size: 1
+		},
+		autoAck: {
+			name: 'Auto Ack:',
+			value: true,
+			description: 'Habilitar commit automático, si es falso se debe hacer manualmente mediante la entrada "next"',
+			type: 'switch',
+			size: 1
 		}
 	}
 
-	async onExecute({ inputData, outputData, context, dependency }: INodeClassOnExecute) {
+	async onExecute({ inputData, outputData, context, dependency }: Parameters<INodeClass['onExecute']>[0]) {
 		const convertJson = (value: string) => {
 			try {
 				return JSON.parse(value)

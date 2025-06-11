@@ -1,19 +1,19 @@
-import type { INodeClassConnection, INodeClassOnExecute } from '@shared/interface/node.interface.js'
+import type { INodeMicroservice } from '@shared/interface/node.interface.js'
 import amqplib from 'amqplib'
 import { v4 as uuid } from 'uuid'
 
-export default class implements INodeClassConnection {
+export default class implements INodeMicroservice {
 	private amqpConnection: any = null
 	private channel: any = null
 	private exchange = ''
 	private retries = 0
 	private attempts = 0
 	private host = ''
-	private execute: INodeClassOnExecute['execute']
-	private outputData: INodeClassOnExecute['outputData']
-	private context: INodeClassOnExecute['context']
+	public execute: INodeMicroservice['execute']
+	public outputData: INodeMicroservice['outputData']
+	public context: INodeMicroservice['context']
 
-	constructor({ context, execute, outputData }: INodeClassOnExecute) {
+	constructor({ context, execute, outputData }: INodeMicroservice) {
 		this.outputData = outputData
 		this.execute = execute
 		this.context = context

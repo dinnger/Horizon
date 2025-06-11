@@ -1,219 +1,201 @@
-import type { INodeClass } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 
-type IProperty = INodeClass['properties']
-
-interface IProperties extends IProperty {
-	serviceName: Extract<IProperty[keyof IProperty], { type: 'string' }>
-	authMethod: Extract<IProperty[keyof IProperty], { type: 'options' }>
-
-	// OAuth2
-	authUrl: Extract<IProperty[keyof IProperty], { type: 'string' }>
-	tokenUrl: Extract<IProperty[keyof IProperty], { type: 'string' }>
-	clientId: Extract<IProperty[keyof IProperty], { type: 'string' }>
-	clientSecret: Extract<IProperty[keyof IProperty], { type: 'string' }>
-	redirectUri: Extract<IProperty[keyof IProperty], { type: 'string' }>
-	scopes: Extract<IProperty[keyof IProperty], { type: 'string' }>
-
-	// API Keys & Tokens
-	apiKey: Extract<IProperty[keyof IProperty], { type: 'string' }>
-	apiKeyHeaderName: Extract<IProperty[keyof IProperty], { type: 'string' }>
-	apiSecret: Extract<IProperty[keyof IProperty], { type: 'string' }>
-	apiSecretHeaderName: Extract<IProperty[keyof IProperty], { type: 'string' }>
-
-	// Bearer & Basic Auth
-	token: Extract<IProperty[keyof IProperty], { type: 'string' }>
-	username: Extract<IProperty[keyof IProperty], { type: 'string' }>
-	password: Extract<IProperty[keyof IProperty], { type: 'string' }>
-
-	// Secret Management
-	useSecret: Extract<IProperty[keyof IProperty], { type: 'switch' }>
-	authSecret: Extract<IProperty[keyof IProperty], { type: 'secret' }>
-	extraParams: Extract<IProperty[keyof IProperty], { type: 'code' }>
-	extraHeaders: Extract<IProperty[keyof IProperty], { type: 'code' }>
-	storeToken: Extract<IProperty[keyof IProperty], { type: 'switch' }>
-	tokenName: Extract<IProperty[keyof IProperty], { type: 'string' }>
+interface IProperties extends INodeClassProperty {
+	serviceName: Extract<INodeClassPropertyType, { type: 'string' }>
+	authMethod: Extract<INodeClassPropertyType, { type: 'options' }>
+	authUrl: Extract<INodeClassPropertyType, { type: 'string' }>
+	tokenUrl: Extract<INodeClassPropertyType, { type: 'string' }>
+	clientId: Extract<INodeClassPropertyType, { type: 'string' }>
+	clientSecret: Extract<INodeClassPropertyType, { type: 'string' }>
+	redirectUri: Extract<INodeClassPropertyType, { type: 'string' }>
+	scopes: Extract<INodeClassPropertyType, { type: 'string' }>
+	apiKey: Extract<INodeClassPropertyType, { type: 'string' }>
+	apiKeyHeaderName: Extract<INodeClassPropertyType, { type: 'string' }>
+	apiSecret: Extract<INodeClassPropertyType, { type: 'string' }>
+	apiSecretHeaderName: Extract<INodeClassPropertyType, { type: 'string' }>
+	token: Extract<INodeClassPropertyType, { type: 'string' }>
+	username: Extract<INodeClassPropertyType, { type: 'string' }>
+	password: Extract<INodeClassPropertyType, { type: 'string' }>
+	useSecret: Extract<INodeClassPropertyType, { type: 'switch' }>
+	authSecret: Extract<INodeClassPropertyType, { type: 'secret' }>
+	extraParams: Extract<INodeClassPropertyType, { type: 'code' }>
+	extraHeaders: Extract<INodeClassPropertyType, { type: 'code' }>
+	storeToken: Extract<INodeClassPropertyType, { type: 'switch' }>
+	tokenName: Extract<INodeClassPropertyType, { type: 'string' }>
 }
 
-export default class AuthServiceNode implements INodeClass<IProperties> {
-	constructor(
-		public accessSecrets: boolean,
-		public dependencies: string[],
-		public info: INodeClass['info'],
-		public properties: IProperties
-	) {
-		this.accessSecrets = true
-		this.dependencies = ['axios', 'crypto', 'querystring']
-		this.info = {
-			title: 'Autenticación',
-			desc: 'Gestiona la autenticación con cualquier servicio que requiera autenticación',
-			icon: '󰌆',
-			group: 'Autenticación',
-			color: '#4CAF50',
-			connectors: {
-				inputs: ['input'],
-				outputs: ['credentials', 'error']
-			}
+export default class AuthServiceNode implements INodeClass {
+	accessSecrets = true
+	dependencies = ['axios', 'crypto', 'querystring']
+	info = {
+		name: 'Autenticación',
+		desc: 'Gestiona la autenticación con cualquier servicio que requiera autenticación',
+		icon: '󰌆',
+		group: 'Autenticación',
+		color: '#4CAF50',
+		connectors: {
+			inputs: ['input'],
+			outputs: ['credentials', 'error']
 		}
-
-		this.properties = {
-			serviceName: {
-				name: 'Nombre del servicio',
-				type: 'string',
-				value: '',
-				description: 'Un nombre descriptivo para este servicio (ej. Spotify, Google Drive, etc.)'
-			},
-			authMethod: {
-				name: 'Método de autenticación',
-				type: 'options',
-				options: [
-					{
-						label: 'OAuth 2.0',
-						value: 'oauth2'
-					},
-					{
-						label: 'API Key',
-						value: 'apikey'
-					},
-					{
-						label: 'Token Bearer',
-						value: 'bearer'
-					},
-					{
-						label: 'Basic Auth',
-						value: 'basic'
-					},
-					{
-						label: 'Custom Headers',
-						value: 'custom'
-					}
-				],
-				value: 'oauth2'
-			},
-			// OAuth2 properties
-			authUrl: {
-				name: 'URL de autorización',
-				type: 'string',
-				value: '',
-				show: true,
-				description: 'URL para solicitar autorización (ej. https://accounts.google.com/o/oauth2/v2/auth)'
-			},
-			tokenUrl: {
-				name: 'URL de token',
-				type: 'string',
-				value: '',
-				show: true,
-				description: 'URL para obtener token (ej. https://oauth2.googleapis.com/token)'
-			},
-			clientId: {
-				name: 'Client ID',
-				type: 'string',
-				value: '',
-				show: true
-			},
-			clientSecret: {
-				name: 'Client Secret',
-				type: 'string',
-				value: '',
-				show: true
-			},
-			redirectUri: {
-				name: 'URI de redirección',
-				type: 'string',
-				value: '',
-				show: true
-			},
-			scopes: {
-				name: 'Permisos (scopes)',
-				type: 'string',
-				value: '',
-				description: 'Separados por espacios',
-				show: true
-			},
-			// API Key properties
-			apiKey: {
-				name: 'API Key',
-				type: 'string',
-				value: '',
-				show: false
-			},
-			apiKeyHeaderName: {
-				name: 'Nombre del header para API Key',
-				type: 'string',
-				value: 'X-Api-Key',
-				show: false
-			},
-			apiSecret: {
-				name: 'API Secret',
-				type: 'string',
-				value: '',
-				show: false
-			},
-			apiSecretHeaderName: {
-				name: 'Nombre del header para API Secret',
-				type: 'string',
-				value: 'X-Api-Secret',
-				show: false
-			},
-			// Bearer & Basic properties
-			token: {
-				name: 'Token',
-				type: 'string',
-				value: '',
-				show: false
-			},
-			username: {
-				name: 'Usuario',
-				type: 'string',
-				value: '',
-				show: false
-			},
-			password: {
-				name: 'Contraseña',
-				type: 'string',
-				value: '',
-				show: false
-			},
-			// Secret Management
-			useSecret: {
-				name: 'Usar secretos almacenados',
-				type: 'switch',
-				value: false
-			},
-			authSecret: {
-				name: 'Secreto de autenticación',
-				type: 'secret',
-				secretType: 'VARIABLES',
-				options: [],
-				value: '',
-				show: false
-			},
-			// Configuración adicional
-			extraParams: {
-				name: 'Parámetros adicionales',
-				type: 'code',
-				lang: 'json',
-				value: '{}',
-				show: true
-			},
-			extraHeaders: {
-				name: 'Headers adicionales',
-				type: 'code',
-				lang: 'json',
-				value: '{}',
-				show: true
-			},
-			storeToken: {
-				name: 'Almacenar token/credenciales',
-				type: 'switch',
-				value: true
-			},
-			tokenName: {
-				name: 'Nombre para almacenar',
-				type: 'string',
-				value: '',
-				description: 'Nombre para identificar estas credenciales',
-				show: true
-			}
+	}
+	properties: IProperties = {
+		serviceName: {
+			name: 'Nombre del servicio',
+			type: 'string',
+			value: '',
+			description: 'Un nombre descriptivo para este servicio (ej. Spotify, Google Drive, etc.)'
+		},
+		authMethod: {
+			name: 'Método de autenticación',
+			type: 'options',
+			options: [
+				{
+					label: 'OAuth 2.0',
+					value: 'oauth2'
+				},
+				{
+					label: 'API Key',
+					value: 'apikey'
+				},
+				{
+					label: 'Token Bearer',
+					value: 'bearer'
+				},
+				{
+					label: 'Basic Auth',
+					value: 'basic'
+				},
+				{
+					label: 'Custom Headers',
+					value: 'custom'
+				}
+			],
+			value: 'oauth2'
+		},
+		// OAuth2 properties
+		authUrl: {
+			name: 'URL de autorización',
+			type: 'string',
+			value: '',
+			show: true,
+			description: 'URL para solicitar autorización (ej. https://accounts.google.com/o/oauth2/v2/auth)'
+		},
+		tokenUrl: {
+			name: 'URL de token',
+			type: 'string',
+			value: '',
+			show: true,
+			description: 'URL para obtener token (ej. https://oauth2.googleapis.com/token)'
+		},
+		clientId: {
+			name: 'Client ID',
+			type: 'string',
+			value: '',
+			show: true
+		},
+		clientSecret: {
+			name: 'Client Secret',
+			type: 'string',
+			value: '',
+			show: true
+		},
+		redirectUri: {
+			name: 'URI de redirección',
+			type: 'string',
+			value: '',
+			show: true
+		},
+		scopes: {
+			name: 'Permisos (scopes)',
+			type: 'string',
+			value: '',
+			description: 'Separados por espacios',
+			show: true
+		},
+		// API Key properties
+		apiKey: {
+			name: 'API Key',
+			type: 'string',
+			value: '',
+			show: false
+		},
+		apiKeyHeaderName: {
+			name: 'Nombre del header para API Key',
+			type: 'string',
+			value: 'X-Api-Key',
+			show: false
+		},
+		apiSecret: {
+			name: 'API Secret',
+			type: 'string',
+			value: '',
+			show: false
+		},
+		apiSecretHeaderName: {
+			name: 'Nombre del header para API Secret',
+			type: 'string',
+			value: 'X-Api-Secret',
+			show: false
+		},
+		// Bearer & Basic properties
+		token: {
+			name: 'Token',
+			type: 'string',
+			value: '',
+			show: false
+		},
+		username: {
+			name: 'Usuario',
+			type: 'string',
+			value: '',
+			show: false
+		},
+		password: {
+			name: 'Contraseña',
+			type: 'string',
+			value: '',
+			show: false
+		},
+		// Secret Management
+		useSecret: {
+			name: 'Usar secretos almacenados',
+			type: 'switch',
+			value: false
+		},
+		authSecret: {
+			name: 'Secreto de autenticación',
+			type: 'secret',
+			secretType: 'VARIABLES',
+			options: [],
+			value: '',
+			show: false
+		},
+		// Configuración adicional
+		extraParams: {
+			name: 'Parámetros adicionales',
+			type: 'code',
+			lang: 'json',
+			value: '{}',
+			show: true
+		},
+		extraHeaders: {
+			name: 'Headers adicionales',
+			type: 'code',
+			lang: 'json',
+			value: '{}',
+			show: true
+		},
+		storeToken: {
+			name: 'Almacenar token/credenciales',
+			type: 'switch',
+			value: true
+		},
+		tokenName: {
+			name: 'Nombre para almacenar',
+			type: 'string',
+			value: '',
+			description: 'Nombre para identificar estas credenciales',
+			show: true
 		}
 	}
 

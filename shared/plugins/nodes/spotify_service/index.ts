@@ -1,4 +1,4 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 import querystring from 'node:querystring'
 
 interface IProperties extends INodeClassProperty {
@@ -18,155 +18,145 @@ interface ICredentials extends INodeClassProperty {
 	scope: Extract<INodeClassPropertyType, { type: 'string' }>
 }
 
-export default class implements INodeClass<IProperties, ICredentials> {
-	constructor(
-		public accessSecrets: boolean,
-		public dependencies: string[],
-		public info: INodeClass['info'],
-		public properties: IProperties,
-		public credentials: ICredentials
-	) {
-		this.accessSecrets = true
-		this.dependencies = ['axios']
-		this.info = {
-			title: 'Spotify',
-			desc: 'Conecta con Spotify para acceder a información de canciones y playlists',
-			icon: '󰓇',
-			group: 'Servicios',
-			color: '#1DB954',
-			connectors: {
-				inputs: ['input'],
-				outputs: ['response', 'error']
-			},
-			flags: {
-				isSingleton: true
-			}
+export default class implements INodeClass {
+	accessSecrets = true
+	dependencies = ['axios']
+	info = {
+		name: 'Spotify',
+		desc: 'Conecta con Spotify para acceder a información de canciones y playlists',
+		icon: '󰓇',
+		group: 'Servicios',
+		color: '#1DB954',
+		connectors: {
+			inputs: ['input'],
+			outputs: ['response', 'error']
+		},
+		flags: {
+			isSingleton: true
 		}
-
-		this.properties = {
-			authSecret: {
-				name: 'Credencial',
-				type: 'credential',
-				options: [],
-				value: ''
-			},
-			operation: {
-				name: 'Operación',
-				type: 'options',
-				options: [
-					{
-						label: 'Buscar (tracks, artistas, albums)',
-						value: 'search'
-					},
-					{
-						label: 'Mis canciones guardadas',
-						value: 'saved_tracks'
-					},
-					{
-						label: 'Obtener playlist',
-						value: 'get_playlist'
-					},
-					{
-						label: 'Top tracks del artista',
-						value: 'artist_top_tracks'
-					},
-					{
-						label: 'Recomendaciones',
-						value: 'recommendations'
-					},
-					{
-						label: 'Nuevos lanzamientos',
-						value: 'new_releases'
-					},
-					{
-						label: 'Reproducir siguiente canción',
-						value: 'next_track'
-					},
-					{
-						label: 'Reproducir canción anterior',
-						value: 'previous_track'
-					},
-					{
-						label: 'Pausar reproducción',
-						value: 'pause'
-					},
-					{
-						label: 'Reanudar reproducción',
-						value: 'play'
-					},
-					{
-						label: 'Ajustar volumen',
-						value: 'volume'
-					},
-					{
-						label: 'Estado de reproducción actual',
-						value: 'current_playback'
-					}
-				],
-				value: 'search'
-			},
-			query: {
-				name: 'Query/ID',
-				type: 'string',
-				value: '',
-				description: 'Término de búsqueda o ID según la operación'
-			},
-			limit: {
-				name: 'Límite',
-				type: 'string',
-				value: '20',
-				description: 'Número máximo de resultados (máx. 50)'
-			},
-			offset: {
-				name: 'Offset',
-				type: 'string',
-				value: '0',
-				description: 'Índice de inicio para paginación'
-			},
-			volume: {
-				name: 'Volumen',
-				type: 'number',
-				value: 100,
-				description: 'Volumen de reproducción (0-100)'
-			},
-			parameters: {
-				name: 'Parámetros adicionales',
-				type: 'code',
-				lang: 'json',
-				value: '{\n  "market": "ES"\n}'
-			}
+	}
+	properties: IProperties = {
+		authSecret: {
+			name: 'Credencial',
+			type: 'credential',
+			options: [],
+			value: ''
+		},
+		operation: {
+			name: 'Operación',
+			type: 'options',
+			options: [
+				{
+					label: 'Buscar (tracks, artistas, albums)',
+					value: 'search'
+				},
+				{
+					label: 'Mis canciones guardadas',
+					value: 'saved_tracks'
+				},
+				{
+					label: 'Obtener playlist',
+					value: 'get_playlist'
+				},
+				{
+					label: 'Top tracks del artista',
+					value: 'artist_top_tracks'
+				},
+				{
+					label: 'Recomendaciones',
+					value: 'recommendations'
+				},
+				{
+					label: 'Nuevos lanzamientos',
+					value: 'new_releases'
+				},
+				{
+					label: 'Reproducir siguiente canción',
+					value: 'next_track'
+				},
+				{
+					label: 'Reproducir canción anterior',
+					value: 'previous_track'
+				},
+				{
+					label: 'Pausar reproducción',
+					value: 'pause'
+				},
+				{
+					label: 'Reanudar reproducción',
+					value: 'play'
+				},
+				{
+					label: 'Ajustar volumen',
+					value: 'volume'
+				},
+				{
+					label: 'Estado de reproducción actual',
+					value: 'current_playback'
+				}
+			],
+			value: 'search'
+		},
+		query: {
+			name: 'Query/ID',
+			type: 'string',
+			value: '',
+			description: 'Término de búsqueda o ID según la operación'
+		},
+		limit: {
+			name: 'Límite',
+			type: 'string',
+			value: '20',
+			description: 'Número máximo de resultados (máx. 50)'
+		},
+		offset: {
+			name: 'Offset',
+			type: 'string',
+			value: '0',
+			description: 'Índice de inicio para paginación'
+		},
+		volume: {
+			name: 'Volumen',
+			type: 'number',
+			value: 100,
+			description: 'Volumen de reproducción (0-100)'
+		},
+		parameters: {
+			name: 'Parámetros adicionales',
+			type: 'code',
+			lang: 'json',
+			value: '{\n  "market": "ES"\n}'
 		}
-
-		this.credentials = {
-			clientId: {
-				name: 'Client ID',
-				type: 'string',
-				value: '',
-				required: true
-			},
-			clientSecret: {
-				name: 'Client Secret',
-				type: 'string',
-				value: '',
-				required: true
-			},
-			scope: {
-				name: 'Scope',
-				type: 'string',
-				value:
-					'playlist-read-private playlist-read-collaborative user-read-playback-state user-modify-playback-state user-read-currently-playing'
-			},
-			redirectUri: {
-				name: 'Redirect URI',
-				type: 'string',
-				value: 'http://localhost:3000/api/credential/callback',
-				disabled: true,
-				required: true
-			}
+	}
+	credentials: ICredentials = {
+		clientId: {
+			name: 'Client ID',
+			type: 'string',
+			value: '',
+			required: true
+		},
+		clientSecret: {
+			name: 'Client Secret',
+			type: 'string',
+			value: '',
+			required: true
+		},
+		scope: {
+			name: 'Scope',
+			type: 'string',
+			value:
+				'playlist-read-private playlist-read-collaborative user-read-playback-state user-modify-playback-state user-read-currently-playing'
+		},
+		redirectUri: {
+			name: 'Redirect URI',
+			type: 'string',
+			value: 'http://localhost:3000/api/credential/callback',
+			disabled: true,
+			required: true
 		}
 	}
 
-	async onExecute({ outputData, dependency, credential }: INodeClassOnExecute) {
+	async onExecute({ outputData, dependency, credential }: Parameters<INodeClass['onExecute']>[0]) {
 		const axios = await dependency.getRequire('axios')
 
 		try {

@@ -1,19 +1,10 @@
 import type { ICommunicationTypes } from '@shared/interface/connect.interface.js'
-import type {
-	INodePoint,
-	INode,
-	INodeCanvas,
-	INodeConnections,
-	INodeCanvasNew,
-	INodeCanvasNewClass,
-	INodeClass
-} from '@shared/interface/node.interface.js'
+import type { INode, INodeCanvas, INodeConnections } from '@shared/interface/node.interface.js'
 import { utilsValidateName } from '../../../shared/utils'
 import {
 	drawNodeConnectionPreview,
 	renderSelected,
 	getTempConnection,
-	verifyNodeFocus,
 	subscriberHelper
 	// renderAnimation
 } from './canvas_helpers'
@@ -37,8 +28,8 @@ export class Canvas {
 	canvasHeight: number
 	canvasFactor: number
 	canvasPattern: CanvasPattern | undefined
-	canvasRelativePos: INodePoint
-	canvasPosition: INodePoint
+	canvasRelativePos: INodeCanvas['design']
+	canvasPosition: INodeCanvas['design']
 	canvasGrid: number
 	canvasSelect: {
 		x1: number
@@ -59,12 +50,12 @@ export class Canvas {
 		string,
 		{
 			node: INodeCanvas
-			relative_pos: INodePoint
+			relative_pos: INodeCanvas['design']
 			isMove: boolean
 		}
 	>
 	newConnectionNode: {
-		node: INodeCanvasNewClass
+		node: INodeCanvas
 		type: 'input' | 'output' | 'callback'
 		index: number
 		value: any
@@ -80,13 +71,13 @@ export class Canvas {
 		| (({
 				node,
 				output_index,
-				pos,
+				design,
 				relative_pos
 		  }: {
-				node?: INode
+				node?: INodeCanvas
 				output_index?: number
-				pos?: INodePoint
-				relative_pos?: INodePoint
+				design?: INodeCanvas['design']
+				relative_pos?: INodeCanvas['design']
 		  }) => void)
 	// Muestra la ventana de propiedades
 	events_show_properties: null | ((data: any) => void)
@@ -98,8 +89,8 @@ export class Canvas {
 		| ((
 				data: {
 					id: string
-					node_origin: INode
-					node_destiny: INode
+					nodeOrigin: INodeCanvas
+					nodeDestiny: INodeCanvas
 					input: string
 					output: string
 				} | null
@@ -235,90 +226,6 @@ export class Canvas {
 		return Object.values(this.nodes)
 	}
 
-	// fn_node_connect_focus({ x, y }: INodePoint) {
-	// 	const verify = verifyNodeFocus({
-	// 		x,
-	// 		y,
-	// 		nodes: this.nodes,
-	// 		margin: { x1: 10, y1: 0, x2: 10, y2: 0 }
-	// 	})
-	// 	if (!verify.node || verify.output_index === null) return
-	// 	this.newConnectionNode = {
-	// 		node: verify.node,
-	// 		output_index: verify.output_index
-	// 	}
-	// 	this.isNodeConnectionVisible = false
-	// 	this.selectedNode.set(verify.node.id, {
-	// 		node: verify.node,
-	// 		relative_pos: {
-	// 			x: this.canvasRelativePos.x - verify.node.design.x,
-	// 			y: this.canvasRelativePos.y - verify.node.design.y
-	// 		},
-	// 		isMove: false
-	// 	})
-	// }
-
-	// fn_node_connect_property_focus({ openMenu }: { openMenu: boolean }) {
-	// 	for (const value of Array.from(this.connectionNodes.values())) {
-	// 		value.isFocused = false
-	// 	}
-	// 	const pointers = Array.from(this.connectionNodes.values()).flatMap((value) => {
-	// 		return value.pointers
-	// 			? value.pointers.map((pointer, key: number) => {
-	// 					const prev = value.pointers?.[key - 1]
-	// 						? {
-	// 								x2: value.pointers[key - 1].x,
-	// 								y2: value.pointers[key - 1].y
-	// 							}
-	// 						: { x2: pointer.x, y2: pointer.y }
-	// 					return {
-	// 						x1: Math.min(pointer.x, prev.x2),
-	// 						y1: Math.min(pointer.y, prev.y2),
-	// 						x2: Math.max(pointer.x, prev.x2),
-	// 						y2: Math.max(pointer.y, prev.y2),
-	// 						index: key,
-	// 						el: value
-	// 					}
-	// 				})
-	// 			: []
-	// 	})
-	// 	const { x, y } = this.canvasRelativePos
-	// 	for (const value of pointers) {
-	// 		const x1 = value.x1 - 10
-	// 		const y1 = value.y1 - 10
-	// 		const x2 = value.x2 + 10
-	// 		const y2 = value.y2 + 10
-	// 		if (x1 < x && x2 > x && y1 < y && y2 > y) {
-	// 			value.el.isFocused = true
-	// 			if (openMenu && this.events_show_connection_context) {
-	// 				this.events_show_connection_context({
-	// 					id: value.el.id,
-	// 					node_origin: this.nodes[value.el.id_node_origin],
-	// 					node_destiny: this.nodes[value.el.id_node_destiny],
-	// 					input: value.el.input,
-	// 					output: value.el.output
-	// 				})
-	// 			}
-	// 			break
-	// 		}
-	// 	}
-	// }
-
-	// fn_node_move() {
-	// 	for (const select of this.selectedNode.values()) {
-	// 		console.log(select)
-	// 		let x = this.canvasRelativePos.x - select.relative_pos.x
-	// 		let y = this.canvasRelativePos.y - select.relative_pos.y
-	// 		// x and y only divisible by 20
-	// 		x = Math.round(x / this.canvasGrid) * this.canvasGrid
-	// 		y = Math.round(y / this.canvasGrid) * this.canvasGrid
-	// 		if (x === select.node.design.x && y === select.node.design.y) return
-	// 		select.node.design.x = x
-	// 		select.node.design.y = y
-	// 		select.isMove = true
-	// 	}
-	// }
-
 	fn_selected() {
 		if (!this.canvasSelect.show) {
 			this.canvasSelect.x1 = this.canvasRelativePos.x
@@ -332,7 +239,7 @@ export class Canvas {
 	// ============================================================================
 	// Events
 	// ============================================================================
-	event_mouse_init({ x, y, button }: INodePoint) {
+	event_mouse_init({ x, y, button }: INodeCanvas['design'] & { button: number }) {
 		this.canvasTempPosX = x - this.canvasTranslateX
 		this.canvasTempPosY = y - this.canvasTranslateY
 		this.newConnectionNode = this.nodes.selected({ relative: this.canvasRelativePos })
@@ -366,7 +273,7 @@ export class Canvas {
 					console.log(12)
 					// this.newConnectionNode.temp_pos = { ...this.canvasRelativePos }
 					this.events_new_node_start({
-						pos: this.canvasPosition,
+						design: this.canvasPosition,
 						relative_pos: { ...this.canvasRelativePos },
 						output_index: this.newConnectionNode.index,
 						node: this.newConnectionNode.node
@@ -388,7 +295,7 @@ export class Canvas {
 
 		const tempConnection = getTempConnection()
 		// if (tempConnection) {
-		// 	this.nodes[tempConnection.nodeOrigin.id].actionAddConnection({ ...tempConnection, isManual: true })
+		// 	this.nodes[tempConnection.nodeOrigin.id].addConnection({ ...tempConnection, isManual: true })
 		// 	this.selectedNode.clear()
 		// 	setTempConnection(null)
 		// 	this.newConnectionNode = null
@@ -433,12 +340,12 @@ export class Canvas {
 		}
 	}
 
-	event_mouse_move({ x, y }: INodePoint) {
+	event_mouse_move({ x, y }: INodeCanvas['design']) {
 		this.canvasTranslateX = x - this.canvasTempPosX
 		this.canvasTranslateY = y - this.canvasTempPosY
 	}
 
-	event_mouse_relative({ x, y }: INodePoint) {
+	event_mouse_relative({ x, y }: INodeCanvas['design']) {
 		this.canvasPosition = { x, y }
 		this.canvasRelativePos = {
 			x: Number.parseFloat(((x - this.canvasTranslateX) / this.canvasFactor).toFixed(2)),
@@ -455,11 +362,8 @@ export class Canvas {
 
 	event_context_menu() {
 		if (this.events_context_menu) {
-			const selectedNodes = new Map<string, INode>()
-			this.selectedNode.forEach((value, key) => {
-				selectedNodes.set(key, value.node)
-			})
-			this.events_context_menu({ show: this.selectedNode.size > 0 })
+			const selected = this.nodes.getSelected()
+			this.events_context_menu({ show: selected.length > 0 })
 		}
 	}
 
@@ -506,67 +410,41 @@ export class Canvas {
 		}
 	}
 
-	// ============================================================================
-	// Actions
-	// ============================================================================
-	/**
-	 * Adds a new node to the canvas with the specified properties.
-	 *
-	 * @param {INodeNew} value - The properties of the new node to be added.
-	 * @returns {string} The unique identifier of the newly added node.
-	 *
-	 * @remarks
-	 * - The node's position (x, y) will be adjusted to align with the canvas grid.
-	 * - The node's width will be determined by the greater of the specified width,
-	 *   the width calculated based on the number of inputs, or the width calculated
-	 *   based on the number of outputs.
-	 * - The node's height will be determined by the greater of the specified height,
-	 *   the height calculated based on the number of inputs, or the height calculated
-	 *   based on the number of outputs.
-	 * - If the node's name is not unique, it will be validated and adjusted to ensure uniqueness.
-	 *
-	 * @example
-	 * ```typescript
-	 * const newNode: INodeNew = {
-	 *   name: 'Example Node',
-	 *   type: 'exampleType',
-	 *   x: 100,
-	 *   y: 150,
-	 *   inputs: [{ id: 'input1' }],
-	 *   outputs: [{ id: 'output1' }],
-	 *   properties: { key: 'value' },
-	 *   meta: { description: 'An example node' }
-	 * };
-	 * const nodeId = actionAddNode(newNode);
-	 * console.log(nodeId); // Outputs the unique identifier of the newly added node
-	 * ```
-	 */
-	actionAddNode(value: INodeClass & INodeCanvas) {
+	actionAddNode({
+		origin,
+		node,
+		isManual
+	}: {
+		origin?: { idNode: string; connectorType: 'input' | 'output' | 'callback'; connectorName: string }
+		node: INodeCanvas
+		isManual?: boolean
+	}) {
 		const id = uuidv4()
-		console.log({ value })
+		console.log('actionAddNode', { origin, node })
 		const data: INodeCanvas = {
-			id: value.id || id,
-			name: utilsValidateName({
-				text: value.name,
-				nodes: Object.values(this.nodes.getNodes())
-			}),
-			type: value.type,
+			...node,
+			id: node.id || id,
 			design: {
-				x: Math.round((value.design?.x || 0) / this.canvasGrid) * this.canvasGrid,
-				y: Math.round((value.design?.y || 0) / this.canvasGrid) * this.canvasGrid,
-				width: value.design?.width || 90,
-				height: 0
-			},
-			color: value.info.color,
-			icon: value.info.icon,
-			connectors: value.info.connectors,
-			properties: value.properties || {},
-			meta: value.meta || {},
-			connections: []
+				x: Math.round((node.design.x || 0) / this.canvasGrid) * this.canvasGrid,
+				y: Math.round((node.design.y || 0) / this.canvasGrid) * this.canvasGrid
+			}
 		}
-		console.log({ data })
+		console.log('infoName', data.info.name)
+		data.info.name = utilsValidateName({
+			text: node.info.name,
+			nodes: Object.values(this.nodes.getNodes())
+		})
+		const nodeDestiny = this.nodes.addNode(data, isManual)
 
-		this.nodes.addNode(data, value.isManual)
+		if (origin) {
+			this.nodes.getNode({ id: origin.idNode }).addConnection({
+				connectorType: origin.connectorType,
+				connectorName: origin.connectorName,
+				nodeDestiny: nodeDestiny,
+				connectorDestinyType: 'output',
+				connectorDestinyName: nodeDestiny.info.connectors.inputs[0]
+			})
+		}
 
 		return id
 	}
@@ -595,12 +473,12 @@ export class Canvas {
 			})
 		}
 		if (action === 'removeNode' && !Array.isArray(node)) {
-			this.selectedNode.delete(node.id)
+			// this.selectedNode.delete(node.id)
 			// const listConnection = this.connectionNodes.filter((value) => value.id_node_origin === node.id || value.id_node_destiny === node.id)
 			// for (const connection of listConnection) {
 			// 	this.actionDeleteConnectionById({ id: connection.id })
 			// }
-			this.nodes.removeNode(node.id)
+			this.nodes.removeNode(String(node.id))
 			if (this.events_context_menu) {
 				this.events_context_menu({ show: false })
 			}
@@ -611,12 +489,15 @@ export class Canvas {
 			const tempConnections = []
 			const nodes = Array.isArray(node) ? node : [node]
 			for (const node of nodes) {
-				const name = node.name.split('_').length > 1 ? node.name.split('_').slice(0, -1).join('_') : node.name
-				const id = this.actionAddNode({
+				const name = node.info.name.split('_').length > 1 ? node.info.name.split('_').slice(0, -1).join('_') : node.info.name
+				const newNode = {
 					...node,
-					name,
 					properties: JSON.parse(JSON.stringify(node.properties)),
-					connections: [],
+					connections: []
+				}
+				newNode.info.name = name
+				const id = this.actionAddNode({
+					node: newNode,
 					isManual: true
 				})
 				tempConnections.push(...JSON.parse(JSON.stringify(node.connections)))
@@ -629,7 +510,7 @@ export class Canvas {
 				temp.id_node_destiny = tempIds.find((f) => f.beforeId === temp.id_node_destiny)?.afterId || temp.id_node_destiny
 			}
 			// for (const connection of tempConnections.filter((f) => ids.includes(f.id_node_origin) && ids.includes(f.id_node_destiny))) {
-			// 	this.actionAddConnection({
+			// 	this.addConnection({
 			// 		id_node_origin: connection.id_node_origin,
 			// 		id_node_destiny: connection.id_node_destiny,
 			// 		input: connection.input,

@@ -1,11 +1,4 @@
-import type {
-	INodeClass,
-	INodeClassOnCreate,
-	INodeClassOnCredential,
-	INodeClassOnExecute,
-	INodeClassProperty,
-	INodeClassPropertyType
-} from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 
 interface IProperties extends INodeClassProperty {
 	operation: Extract<INodeClassPropertyType, { type: 'options' }>
@@ -27,142 +20,134 @@ interface ICredentials extends INodeClassProperty {
 	additionalOptions: Extract<INodeClassPropertyType, { type: 'code' }>
 }
 
-export default class implements INodeClass<IProperties, ICredentials> {
+export default class implements INodeClass {
 	private redisConnections = new Map<string, any>()
-	constructor(
-		public accessSecrets: boolean,
-		public dependencies: string[],
-		public info: INodeClass['info'],
-		public properties: IProperties,
-		public credentials: ICredentials,
-		public credentialsActions = [
-			{
-				name: 'test',
-				label: 'Test'
-			},
-			{
-				name: 'new',
-				label: 'Crear Credencial'
-			}
-		]
-	) {
-		this.accessSecrets = true
-		this.dependencies = ['ioredis']
-		this.info = {
-			title: 'Redis',
-			desc: 'Conecta con Redis para obtener o asignar datos',
-			icon: '󰽘', // Placeholder icon, consider finding a better one
-			group: 'Database',
-			color: '#DC382D',
-			connectors: {
-				inputs: ['input'],
-				outputs: ['response', 'error']
-			},
-			flags: {
-				isSingleton: true
-			}
+	public credentialsActions = [
+		{
+			name: 'test',
+			label: 'Test'
+		},
+		{
+			name: 'new',
+			label: 'Crear Credencial'
 		}
-
-		this.properties = {
-			authMode: {
-				name: 'Modo de Autenticación',
-				type: 'options',
-				options: [
-					{ label: 'Usar Secreto', value: 'secret' },
-					{ label: 'Configuración Manual', value: 'manual' }
-				],
-				value: 'manual'
-			},
-			authSecret: {
-				name: 'Credencial de Redis',
-				type: 'credential',
-				options: [],
-				value: '',
-				show: false
-			},
-			host: {
-				name: 'Host',
-				type: 'string',
-				value: '127.0.0.1'
-			},
-			port: {
-				name: 'Puerto',
-				type: 'number',
-				value: 6379
-			},
-			password: {
-				name: 'Contraseña',
-				type: 'password',
-				value: ''
-			},
-			db: {
-				name: 'DB Número',
-				type: 'number',
-				value: 0,
-				description: 'Número de la base de datos Redis (ej: 0)'
-			},
-			operation: {
-				name: 'Operación',
-				type: 'options',
-				options: [
-					{ label: 'GET (Obtener valor)', value: 'get' },
-					{ label: 'SET (Asignar valor)', value: 'set' },
-					{ label: 'DEL (Eliminar clave)', value: 'del' },
-					{ label: 'KEYS (Listar claves por patrón)', value: 'keys' },
-					{ label: 'EXISTS (Verificar si existe clave)', value: 'exists' }
-				],
-				value: 'get'
-			},
-			key: {
-				name: 'Clave / Patrón',
-				type: 'string',
-				value: '',
-				description: 'La clave para operaciones GET/SET/DEL/EXISTS, o patrón para KEYS (ej: user:*)'
-			},
-			value: {
-				name: 'Valor',
-				type: 'string',
-				value: '',
-				description: 'El valor a asignar (solo para operación SET)',
-				show: false
-			}
-		}
-
-		this.credentials = {
-			host: {
-				name: 'Host',
-				type: 'string',
-				value: '127.0.0.1',
-				required: true
-			},
-			port: {
-				name: 'Puerto',
-				type: 'number',
-				value: 6379,
-				required: true
-			},
-			password: {
-				name: 'Contraseña',
-				type: 'password',
-				value: '',
-				required: false
-			},
-			db: {
-				name: 'DB Número',
-				type: 'number',
-				value: 0,
-				required: false,
-				description: 'Número de la base de datos Redis (ej: 0)'
-			},
-			additionalOptions: {
-				name: 'Opciones adicionales',
-				type: 'code',
-				lang: 'json',
-				value: '{\n}'
-			}
+	]
+	accessSecrets = true
+	dependencies = ['ioredis']
+	info = {
+		name: 'Redis',
+		desc: 'Conecta con Redis para obtener o asignar datos',
+		icon: '󰽘', // Placeholder icon, consider finding a better one
+		group: 'Database',
+		color: '#DC382D',
+		connectors: {
+			inputs: ['input'],
+			outputs: ['response', 'error']
+		},
+		flags: {
+			isSingleton: true
 		}
 	}
-	async onCreate({ context, environment }: INodeClassOnCreate) {
+	properties: IProperties = {
+		authMode: {
+			name: 'Modo de Autenticación',
+			type: 'options',
+			options: [
+				{ label: 'Usar Secreto', value: 'secret' },
+				{ label: 'Configuración Manual', value: 'manual' }
+			],
+			value: 'manual'
+		},
+		authSecret: {
+			name: 'Credencial de Redis',
+			type: 'credential',
+			options: [],
+			value: '',
+			show: false
+		},
+		host: {
+			name: 'Host',
+			type: 'string',
+			value: '127.0.0.1'
+		},
+		port: {
+			name: 'Puerto',
+			type: 'number',
+			value: 6379
+		},
+		password: {
+			name: 'Contraseña',
+			type: 'password',
+			value: ''
+		},
+		db: {
+			name: 'DB Número',
+			type: 'number',
+			value: 0,
+			description: 'Número de la base de datos Redis (ej: 0)'
+		},
+		operation: {
+			name: 'Operación',
+			type: 'options',
+			options: [
+				{ label: 'GET (Obtener valor)', value: 'get' },
+				{ label: 'SET (Asignar valor)', value: 'set' },
+				{ label: 'DEL (Eliminar clave)', value: 'del' },
+				{ label: 'KEYS (Listar claves por patrón)', value: 'keys' },
+				{ label: 'EXISTS (Verificar si existe clave)', value: 'exists' }
+			],
+			value: 'get'
+		},
+		key: {
+			name: 'Clave / Patrón',
+			type: 'string',
+			value: '',
+			description: 'La clave para operaciones GET/SET/DEL/EXISTS, o patrón para KEYS (ej: user:*)'
+		},
+		value: {
+			name: 'Valor',
+			type: 'string',
+			value: '',
+			description: 'El valor a asignar (solo para operación SET)',
+			show: false
+		}
+	}
+
+	credentials: ICredentials = {
+		host: {
+			name: 'Host',
+			type: 'string',
+			value: '127.0.0.1',
+			required: true
+		},
+		port: {
+			name: 'Puerto',
+			type: 'number',
+			value: 6379,
+			required: true
+		},
+		password: {
+			name: 'Contraseña',
+			type: 'password',
+			value: '',
+			required: false
+		},
+		db: {
+			name: 'DB Número',
+			type: 'number',
+			value: 0,
+			required: false,
+			description: 'Número de la base de datos Redis (ej: 0)'
+		},
+		additionalOptions: {
+			name: 'Opciones adicionales',
+			type: 'code',
+			lang: 'json',
+			value: '{\n}'
+		}
+	}
+
+	async onCreate({ context, environment }: Parameters<NonNullable<INodeClass['onCreate']>>[0]) {
 		const authMode = this.properties.authMode.value
 		const operation = this.properties.operation.value
 
@@ -209,7 +194,7 @@ export default class implements INodeClass<IProperties, ICredentials> {
 			this.redisConnections.delete(key)
 		}
 	}
-	async onExecute({ outputData, dependency, credential }: INodeClassOnExecute) {
+	async onExecute({ outputData, dependency, credential }: Parameters<INodeClass['onExecute']>[0]) {
 		const Redis = await dependency.getRequire('ioredis')
 		let redisClient: any
 
@@ -336,7 +321,7 @@ export default class implements INodeClass<IProperties, ICredentials> {
 		// NO cerramos la conexión aquí para permitir reutilización
 	}
 
-	async onCredential({ action, dependency }: INodeClassOnCredential) {
+	async onCredential({ action, dependency }: Parameters<NonNullable<INodeClass['onCredential']>>[0]) {
 		if (action === 'test') {
 			let redisClient: any
 			const Redis = await dependency.getRequire('ioredis')

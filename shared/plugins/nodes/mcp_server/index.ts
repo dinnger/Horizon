@@ -1,29 +1,24 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
+import type { INodeClass } from '@shared/interface/node.interface.js'
 
 export default class implements INodeClass {
-	public properties: INodeClassProperty
-	public info: INodeClass['info']
-
-	constructor() {
-		this.info = {
-			title: 'MCP Server',
-			desc: 'Orquestador tipo tool router para exponer outputs como tools',
-			icon: '󰘳',
-			group: 'Orquestadores',
-			color: '#8E44AD',
-			connectors: {
-				inputs: ['input'],
-				outputs: ['response', 'error'],
-				callbacks: ['tools']
-			},
-			flags: {
-				isTrigger: true
-			}
+	info = {
+		name: 'MCP Server',
+		desc: 'Orquestador tipo tool router para exponer outputs como tools',
+		icon: '󰘳',
+		group: 'Orquestadores',
+		color: '#8E44AD',
+		connectors: {
+			inputs: ['input'],
+			outputs: ['response', 'error'],
+			callbacks: ['tools']
+		},
+		flags: {
+			isTrigger: true
 		}
-		this.properties = {}
 	}
+	properties = {}
 
-	async onExecute({ execute, outputData, inputData, context }: INodeClassOnExecute) {
+	async onExecute({ execute, outputData, inputData, context }: Parameters<INodeClass['onExecute']>[0]) {
 		// Extraer los outputs conectados a este nodo
 		const nodeId = context.currentNode?.id
 		if (!nodeId) return outputData('error', { error: 'No se encontró el nodo MCP' })

@@ -1,10 +1,11 @@
 import type { Worker } from '../../worker.js'
 import type { ICommunicationTypes } from '@shared/interface/connect.interface.js'
+import type { INodeCanvas, INodeConnections } from '@shared/interface/node.interface.js'
+import winston from 'winston'
+import Transport from 'winston-transport'
 import { MessageChannel, parentPort, type MessagePort } from 'node:worker_threads'
 import { getMemoryUsage } from '../../utils/utils.js'
 import { getStatusChange } from '../virtual/status.module.js'
-import winston from 'winston'
-import Transport from 'winston-transport'
 
 let flow = ''
 let tempParentPort: MessagePort | null = null
@@ -224,9 +225,12 @@ export class CommunicationModule {
 			return Promise.resolve(changes)
 		})
 
-		this.subscriberMessage('addNode', ({ data }: any) => {
+		this.subscriberMessage('addNode', ({ data }: { data: { node: INodeCanvas; isManual: boolean } }) => {
 			this.el.virtualModule.virtualNodeAdd({
-				node: data.node,
+				node: {
+					...data.node,
+					id: data.node.id ?? ''
+				},
 				isNew: true
 			})
 			return Promise.resolve()
@@ -270,15 +274,9 @@ export class CommunicationModule {
 			return Promise.resolve(changes)
 		})
 
-		this.subscriberMessage('addConnection', ({ data }: any) => {
-			const { id, id_node_origin, output, id_node_destiny, input } = data
+		this.subscriberMessage('addConnection', (data: INodeConnections) => {
 			const changes = this.el.virtualModule.virtualConnectionAdd({
-				id,
-				id_node_origin,
-				output,
-				id_node_destiny,
-				input,
-				isNew: true
+				...data
 			})
 			return Promise.resolve(changes)
 		})
@@ -418,7 +416,7 @@ export class CommunicationModule {
 	subscriberMessage(
 		type: ICommunicationTypes,
 		// biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-		callback: (value: object) => Promise<{ data: any } | null | void>
+		callback: (value: any) => Promise<{ data: any } | null | void>
 	) {
 		if (!subscribers.has(type)) subscribers.set(type, [])
 		const subscriberList = subscribers.get(type)

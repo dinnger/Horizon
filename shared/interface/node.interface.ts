@@ -9,8 +9,18 @@ interface Point {
 	y: number
 }
 
-export interface INodePoint extends Point {
-	button?: number
+interface INodeInfo {
+	name: string
+	desc: string
+	icon: string
+	group: string
+	color: string
+	connectors: INodeConnectors
+	flags?: {
+		isSingleton?: boolean
+		isTrigger?: boolean
+		isAccessSecrets?: boolean
+	}
 }
 
 interface IMetaNode {
@@ -24,11 +34,13 @@ export interface INodeConnectors {
 }
 
 export interface INodeConnections {
-	id: string
-	nodeOrigin: INodeCanvasNewClass
-	nodeDestiny: INodeCanvasNewClass
-	idConnectorOrigin: string // connector output
-	idConnectorDestiny: string // connector input
+	id?: string
+	connectorType: 'input' | 'output' | 'callback'
+	connectorName: string
+	nodeOrigin?: INodeCanvas
+	nodeDestiny: INodeCanvas
+	connectorDestinyType: 'input' | 'output' | 'callback' // connector output
+	connectorDestinyName: string // connector input
 	isManual?: boolean
 	pointers?: Point[]
 	colorGradient?: any
@@ -36,72 +48,6 @@ export interface INodeConnections {
 	isNew?: boolean
 }
 
-interface INodeDesign extends INodePoint {
-	width: number
-	height: number
-}
-
-export interface INode {
-	id: string
-	name: string
-	type: string
-	icon: string
-	color: string
-	properties: INodePropertiesType
-	meta?: IMetaNode
-	design?: INodeDesign
-	connectors: INodeConnectors
-	connections?: INodeConnections[]
-}
-
-// ============================================================================
-// CANVAS
-// ============================================================================
-
-export interface INodeCanvas extends Omit<INode, 'design'> {
-	design: INodeDesign
-	isManual?: boolean
-}
-
-export type INodeCanvasNew = Omit<INodeCanvas, 'isManual'>
-
-export interface INodeCanvasNewClass extends INodeCanvasNew {
-	design: INodeDesign
-	setSelected: ({ pos, relative }: { pos?: { x: number; y: number; x2?: number; y2?: number }; relative: { x: number; y: number } }) => {
-		node: INodeCanvasNewClass
-		type: 'input' | 'output' | 'callback'
-		index: number
-		value: any
-	} | null
-	getSelected: () => boolean
-	move: ({ relative }: { relative: { x: number; y: number } }) => void
-	actionAddConnection: (element: INodeConnections) => void
-	render: ({ ctx }: { ctx: CanvasRenderingContext2D }) => void
-	renderConnections: ({ ctx, nodes }: { ctx: CanvasRenderingContext2D; nodes: { [key: string]: INodeCanvasNew } }) => void
-}
-
-// ============================================================================
-// PLUGINS NODES
-// ============================================================================
-// Node Info
-// ============================================================================
-interface INodeInfo {
-	title: string
-	desc: string
-	icon: string
-	group: string
-	color: string
-	connectors: INodeConnectors
-	flags?: {
-		isSingleton?: boolean
-		isTrigger?: boolean
-		isAccessSecrets?: boolean
-	}
-}
-
-// ============================================================================
-// Workflow Creation
-// ============================================================================
 interface IClassOnCreateDependency {
 	getRequire: (name: string) => Promise<any>
 	getModule: ({ path, name }: { path: string; name: string }) => Promise<any>
@@ -109,20 +55,16 @@ interface IClassOnCreateDependency {
 	listSecrets: ({ type, subType }: { type: string; subType?: string }) => Promise<any>
 }
 
-export interface INodeClassOnCreate {
+interface INodeClassOnCreate {
 	context: IWorkflowContext
 	environment: Partial<IServerEnv> & Partial<IWorkerEnv>
 	dependency: IClassOnCreateDependency
 }
-
-// ============================================================================
-// Workflow Execution
-// ============================================================================
-interface IClassOnExecuteExecution {
+interface IClassExecute {
 	isTest: boolean
-	getNodeById: (id: string) => INodeClassExec | null
+	getNodeById: (id: string) => INode | null
 	getNodeByType: (type: string) => {
-		node: INodeClassExec
+		node: INode
 		meta?: IMetaNode
 		data: object
 	} | null
@@ -137,12 +79,18 @@ interface IClassOnExecuteExecution {
 	stop: () => void
 }
 
-export interface INodeClassOnExecute {
+interface INodeClassOnExecute {
 	app: Express
-	execute: IClassOnExecuteExecution
+	execute: IClassExecute
 	context: IWorkflowContext
 	environment: Partial<IServerEnv> & Partial<IWorkerEnv>
-	inputData: { idNode: string; inputName: string; data: object; meta?: IMetaNode }
+	inputData: {
+		idNode: string
+		connectorType: 'input' | 'output' | 'callback'
+		connectorName: string
+		data: object
+		meta?: IMetaNode
+	}
 	outputData: (output: string, data: object, meta?: IMetaNode) => void
 	dependency: any
 	credential: any
@@ -152,68 +100,60 @@ export interface INodeClassOnExecute {
 	}
 }
 
-// ============================================================================
-// Workflow Credential
-// ============================================================================
-interface IClassOnCredentialResponse {
-	alert: string
-	type: 'info' | 'error'
-}
-
-export interface INodeClassOnCredential {
+interface INodeClassOnCredential {
 	action: 'test' | 'new' | 'save'
 	dependency: any
+	response?: {
+		alert: string
+		type: 'info' | 'error'
+	}
+}
+
+// ============================================================================
+// Node
+// ============================================================================
+export interface INode {
+	id?: string
+	info: INodeInfo
+	dependencies?: string[]
+	properties: INodePropertiesType
+	credentials?: INodePropertiesType
+	meta?: IMetaNode
+	tags?: string[]
+}
+
+// ============================================================================
+// CANVAS
+// ============================================================================
+
+export interface INodeCanvas extends INode {
+	type: string
+	design: Point & { width?: number; height?: number }
+	connections?: INodeConnections[]
 }
 
 // ============================================================================
 // Node Class
 // ============================================================================
-export interface INodeClass<T extends INodePropertiesType = INodePropertiesType, C extends INodePropertiesType = INodePropertiesType> {
-	info: INodeInfo
-	dependencies?: string[]
-	properties: T
-	credentials?: C
-	meta?: IMetaNode
-	tags?: 'tools'[]
+export interface INodeClass extends INode {
+	type?: string
 	onCreate?: (data: INodeClassOnCreate) => void
 	onExecute: (data: INodeClassOnExecute) => void
 	onCredential?: (data: INodeClassOnCredential) => void
 	onDeploy?: () => void
 }
 
-export type INodeClassProperty = INodePropertiesType
-export type INodeClassPropertyType = INodePropertiesType[keyof INodePropertiesType]
-
-// ============================================================================
-// Node Class Exec
-// ============================================================================
-export interface INodeClassExec extends Omit<INode, 'icon' | 'color' | 'connectors'> {
-	icon?: string
-	color?: string
-	connectors?: INodeConnectors
-	class: any
-	update?: () => void
-}
-
-// ============================================================================
-// Node Map
-// ============================================================================
-export interface INodeMap extends Omit<INodeClass, 'onCreate' | 'onExecute' | 'onCredential'> {
-	name: string
-	type: string
-	group: string
-	dependencies: string[]
-	properties: INodePropertiesType
-	class: any
-	credentialsActions?: {
-		[key: string]: string
-	}
-}
+export type INodeClassProperty = INodeClass['properties']
+export type INodeClassPropertyType = INodeClassProperty[keyof INodeClassProperty]
 
 // ============================================================================
 // Comunicación para microservicios
 // ============================================================================
-export interface INodeClassConnection {
+export interface INodeMicroservice {
+	execute: INodeClassOnExecute['execute']
+	outputData: INodeClassOnExecute['outputData']
+	context: INodeClassOnExecute['context']
+
 	connection?(params: Record<string, any>): Promise<void>
 	request?(params: Record<string, any>): Promise<void>
 	retry?(params: {

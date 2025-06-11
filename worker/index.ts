@@ -71,9 +71,9 @@ const workerStart = async ({
 			const node = flow.nodes[key]
 			const newNode = worker.nodeModule.addNode({
 				id: key,
-				name: node.name,
-				pos: { x: node.design?.x || 0, y: node.design?.y || 0 },
-				className: node.type,
+				info: node.info,
+				design: node.design,
+				type: node.type,
 				properties: node.properties || {},
 				meta: node.meta
 			})
@@ -81,11 +81,7 @@ const workerStart = async ({
 		for (const key of Object.keys(flow.connections)) {
 			const connection = flow.connections[key as any]
 			worker.nodeModule.addEdge({
-				id: connection.id,
-				id_node_origin: connection.id_node_origin,
-				id_node_destiny: connection.id_node_destiny,
-				output: connection.output,
-				input: connection.input
+				...connection
 			})
 		}
 
@@ -99,7 +95,7 @@ const workerStart = async ({
 		// =========================================================================
 		console.log('WORKER STARTED')
 		worker.coreModule.startExecution({
-			inputData: { idNode: '', inputName: '', data: {} },
+			inputData: { idNode: '', connectorType: 'input', connectorName: '', data: {} },
 			executeData: new Map(),
 			executeMeta: { accumulativeTime: 0 }
 		})

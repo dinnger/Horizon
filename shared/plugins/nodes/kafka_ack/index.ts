@@ -1,37 +1,31 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 
+interface IProperties extends INodeClassProperty {
+	ack: Extract<INodeClassPropertyType, { type: 'switch' }>
+}
 export default class implements INodeClass {
-	// ===============================================
-	// Dependencias
-	// ===============================================
-	// ===============================================
-	constructor(
-		public info: INodeClass['info'],
-		public properties: INodeClassProperty
-	) {
-		this.info = {
-			title: 'Kafka Ack',
-			desc: 'Confirma mensajes de un tópico de Kafka',
-			icon: '󱀏',
-			group: 'Kafka',
-			color: '#3498DB',
-			connectors: {
-				inputs: ['input'],
-				outputs: ['response', 'error']
-			}
+	info = {
+		name: 'Kafka Ack',
+		desc: 'Confirma mensajes de un tópico de Kafka',
+		icon: '󱀏',
+		group: 'Kafka',
+		color: '#3498DB',
+		connectors: {
+			inputs: ['input'],
+			outputs: ['response', 'error']
 		}
-		this.properties = {
-			ack: {
-				name: 'Ack:',
-				value: true,
-				type: 'switch',
-				description: 'Habilita la confirmación del mensaje, si no se confirma el mensaje se pierde (nack)',
-				size: 1
-			}
+	}
+	properties: IProperties = {
+		ack: {
+			name: 'Ack:',
+			value: true,
+			type: 'switch',
+			description: 'Habilita la confirmación del mensaje, si no se confirma el mensaje se pierde (nack)',
+			size: 1
 		}
 	}
 
-	async onExecute({ inputData, outputData, execute }: INodeClassOnExecute) {
+	async onExecute({ inputData, outputData, execute }: Parameters<INodeClass['onExecute']>[0]) {
 		try {
 			const node = execute.getNodeByType('triggers/rabbit')
 			if (!node) return outputData('error', { error: 'No se ha definido el nodo' })

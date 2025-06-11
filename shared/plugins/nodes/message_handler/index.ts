@@ -1,55 +1,56 @@
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 import { validate } from './valid.js'
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
 
+interface IProperties extends INodeClassProperty {
+	name: Extract<INodeClassPropertyType, { type: 'string' }>
+	validationSchema: Extract<INodeClassPropertyType, { type: 'code' }>
+	autoAck: Extract<INodeClassPropertyType, { type: 'switch' }>
+	validateButton: Extract<INodeClassPropertyType, { type: 'button' }>
+}
 export default class implements INodeClass {
-	constructor(
-		public info: INodeClass['info'],
-		public properties: INodeClassProperty,
-		public meta: { [key: string]: any } = {}
-	) {
-		this.info = {
-			title: 'Message',
-			desc: 'Send and receive messages',
-			icon: '󱋵',
-			group: 'Project',
-			color: '#3498DB',
-			connectors: {
-				inputs: ['init'],
-				outputs: ['message', 'error']
-			}
+	public meta: { [key: string]: any } = {}
+	info = {
+		name: 'Message',
+		desc: 'Send and receive messages',
+		icon: '󱋵',
+		group: 'Project',
+		color: '#3498DB',
+		connectors: {
+			inputs: ['init'],
+			outputs: ['message', 'error']
 		}
-		this.properties = {
-			name: {
-				name: 'Nombre:',
-				value: '',
-				type: 'string',
-				description: 'Nombre de la función'
-			},
-			validationSchema: {
-				name: 'Esquema de validación (AJV):',
-				type: 'code',
-				lang: 'json',
-				value: `{
+	}
+	properties: IProperties = {
+		name: {
+			name: 'Nombre:',
+			value: '',
+			type: 'string',
+			description: 'Nombre de la función'
+		},
+		validationSchema: {
+			name: 'Esquema de validación (AJV):',
+			type: 'code',
+			lang: 'json',
+			value: `{
   "nombre":"string",
   "valor":"number"
 }`,
-				description: 'Esquema JSON para validación de datos con AJV'
+			description: 'Esquema JSON para validación de datos con AJV'
+		},
+		autoAck: {
+			name: 'Auto Ack',
+			type: 'switch',
+			value: true,
+			description: 'Si se activa, se confirmará automáticamente la recepción de mensajes'
+		},
+		validateButton: {
+			name: 'Validar esquema',
+			type: 'button',
+			value: 'Validar esquema',
+			action: {
+				click: 'validateSchema'
 			},
-			autoAck: {
-				name: 'Auto Ack',
-				type: 'switch',
-				value: true,
-				description: 'Si se activa, se confirmará automáticamente la recepción de mensajes'
-			},
-			validateButton: {
-				name: 'Validar esquema',
-				type: 'button',
-				value: 'Validar esquema',
-				action: {
-					click: 'validateSchema'
-				},
-				buttonClass: 'btn-info'
-			}
+			buttonClass: 'btn-info'
 		}
 	}
 
@@ -61,7 +62,7 @@ export default class implements INodeClass {
 		}
 	}
 
-	async onExecute({ outputData, execute, dependency, context }: INodeClassOnExecute): Promise<void> {
+	async onExecute({ outputData, execute, dependency, context }: Parameters<INodeClass['onExecute']>[0]): Promise<void> {
 		try {
 			if (!context.project) return
 			const projectType = Object.keys(context.project)[0]

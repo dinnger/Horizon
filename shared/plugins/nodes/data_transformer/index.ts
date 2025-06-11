@@ -1,61 +1,53 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 
 interface IProperties extends INodeClassProperty {
 	mapping: Extract<INodeClassPropertyType, { type: 'code' }>
 	helperFunctions: Extract<INodeClassPropertyType, { type: 'code' }>
 }
 
-export default class implements INodeClass<IProperties> {
-	constructor(
-		public dependencies: string[],
-		public info: INodeClass['info'],
-		public properties: IProperties
-	) {
-		this.dependencies = []
-
-		this.info = {
-			title: 'Data Transformer',
-			desc: 'Transforma datos mediante mapeo, filtrado y expresiones personalizadas',
-			icon: '󰁪',
-			group: 'Utilities',
-			color: '#E67E22',
-			connectors: {
-				inputs: ['input'],
-				outputs: ['output', 'error']
-			}
+export default class implements INodeClass {
+	info = {
+		name: 'Data Transformer',
+		desc: 'Transforma datos mediante mapeo, filtrado y expresiones personalizadas',
+		icon: '󰁪',
+		group: 'Utilities',
+		color: '#E67E22',
+		connectors: {
+			inputs: ['input'],
+			outputs: ['output', 'error']
 		}
+	}
 
-		this.properties = {
-			// Propiedades específicas para mapeo
-			mapping: {
-				name: 'Definición de mapeo:',
-				type: 'code',
-				lang: 'json',
-				value: `{
+	properties: IProperties = {
+		// Propiedades específicas para mapeo
+		mapping: {
+			name: 'Definición de mapeo:',
+			type: 'code',
+			lang: 'json',
+			value: `{
   "id": "{{input.data.id}}",
   "nombre": "{{input.data.nombre}}",
   "precio_con_iva": "{{input.data.precio}} * 1.21",
   "fecha_formateada": "formatDate({{input.data.fecha}})"
 }`,
-				show: true
-			},
-			// Funciones auxiliares disponibles
-			helperFunctions: {
-				name: 'Funciones auxiliares:',
-				type: 'code',
-				lang: 'js',
-				value: `// Estas funciones auxiliares estarán disponibles en tus expresiones
+			show: true
+		},
+		// Funciones auxiliares disponibles
+		helperFunctions: {
+			name: 'Funciones auxiliares:',
+			type: 'code',
+			lang: 'js',
+			value: `// Estas funciones auxiliares estarán disponibles en tus expresiones
 function formatDate(date) {
   if (!date) return '';
   const d = new Date(date);
   return d.toLocaleDateString();
 }`,
-				show: true
-			}
+			show: true
 		}
 	}
 
-	async onExecute({ inputData, outputData }: INodeClassOnExecute) {
+	async onExecute({ inputData, outputData }: Parameters<INodeClass['onExecute']>[0]) {
 		try {
 			const value = this.properties.mapping.value
 			const obj = typeof value === 'string' ? JSON.parse(value) : value

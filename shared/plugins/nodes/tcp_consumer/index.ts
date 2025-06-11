@@ -1,81 +1,82 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
+
+interface IProperties extends INodeClassProperty {
+	host: Extract<INodeClassPropertyType, { type: 'string' }>
+	port: Extract<INodeClassPropertyType, { type: 'number' }>
+	encoding: Extract<INodeClassPropertyType, { type: 'options' }>
+	response: Extract<INodeClassPropertyType, { type: 'code' }>
+}
 
 export default class implements INodeClass {
 	private server: any
 	private connections: any[] = []
+	public meta: { [key: string]: any } = {}
 
-	constructor(
-		public info: INodeClass['info'],
-		public properties: INodeClassProperty,
-		public meta: { [key: string]: any } = {}
-	) {
-		this.info = {
-			title: 'TCP Consumer',
-			desc: 'Recibe datos a través de una conexión TCP',
-			icon: '󰥿',
-			group: 'TCP',
-			color: '#27AE60',
-			connectors: {
-				inputs: ['init', 'stop'],
-				outputs: ['connection', 'data', 'closed', 'error']
-			},
-			flags: {
-				isSingleton: true
-			}
+	info = {
+		name: 'TCP Consumer',
+		desc: 'Recibe datos a través de una conexión TCP',
+		icon: '󰥿',
+		group: 'TCP',
+		color: '#27AE60',
+		connectors: {
+			inputs: ['init', 'stop'],
+			outputs: ['connection', 'data', 'closed', 'error']
+		},
+		flags: {
+			isSingleton: true
 		}
-
-		this.properties = {
-			host: {
-				name: 'Host:',
-				value: '0.0.0.0',
-				type: 'string',
-				description: 'Dirección IP donde escuchará el servidor (0.0.0.0 para todas las interfaces)',
-				size: 2
-			},
-			port: {
-				name: 'Puerto:',
-				value: 9000,
-				type: 'number',
-				size: 2
-			},
-			encoding: {
-				name: 'Encoding:',
-				value: 'utf8',
-				type: 'options',
-				options: [
-					{
-						label: 'UTF-8',
-						value: 'utf8'
-					},
-					{
-						label: 'ASCII',
-						value: 'ascii'
-					},
-					{
-						label: 'Binario',
-						value: 'binary'
-					}
-				],
-				description: 'Codificación de los datos recibidos',
-				size: 2
-			},
-			response: {
-				name: 'Respuesta:',
-				value: JSON.stringify({ status: 'OK' }, null, ' '),
-				type: 'code',
-				lang: 'json',
-				description: 'Datos a enviar como respuesta al cliente (opcional)',
-				size: 4
-			}
+	}
+	properties: IProperties = {
+		host: {
+			name: 'Host:',
+			value: '0.0.0.0',
+			type: 'string',
+			description: 'Dirección IP donde escuchará el servidor (0.0.0.0 para todas las interfaces)',
+			size: 2
+		},
+		port: {
+			name: 'Puerto:',
+			value: 9000,
+			type: 'number',
+			size: 2
+		},
+		encoding: {
+			name: 'Encoding:',
+			value: 'utf8',
+			type: 'options',
+			options: [
+				{
+					label: 'UTF-8',
+					value: 'utf8'
+				},
+				{
+					label: 'ASCII',
+					value: 'ascii'
+				},
+				{
+					label: 'Binario',
+					value: 'binary'
+				}
+			],
+			description: 'Codificación de los datos recibidos',
+			size: 2
+		},
+		response: {
+			name: 'Respuesta:',
+			value: JSON.stringify({ status: 'OK' }, null, ' '),
+			type: 'code',
+			lang: 'json',
+			description: 'Datos a enviar como respuesta al cliente (opcional)',
+			size: 4
 		}
 	}
 
-	async onExecute({ inputData, outputData, dependency, context }: INodeClassOnExecute): Promise<void> {
+	async onExecute({ inputData, outputData, dependency, context }: Parameters<INodeClass['onExecute']>[0]): Promise<void> {
 		try {
 			const net = await import('node:net')
 
 			// Detener servidor si se recibe la señal de stop
-			if (inputData.inputName === 'stop') {
+			if (inputData.connectorName === 'stop') {
 				this.onDestroy()
 				outputData('closed', { message: 'Servidor TCP detenido' })
 				return

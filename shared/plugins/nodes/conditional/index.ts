@@ -1,7 +1,5 @@
 import type {
 	INodeClass,
-	INodeClassOnCreate,
-	INodeClassOnExecute,
 	INodeClassProperty,
 	INodeClassPropertyType
 } from '@shared/interface/node.interface.js'
@@ -10,14 +8,9 @@ interface IProperties extends INodeClassProperty {
 	conditions: Extract<INodeClassPropertyType, { type: 'list' }>
 }
 
-export default class ConditionalNode implements INodeClass<IProperties> {
-	constructor(
-		public info: INodeClass['info'],
-		public properties: IProperties,
-		public meta: { [key: string]: any } = {}
-	) {
-		this.info = {
-			title: 'Conditional',
+export default class ConditionalNode implements INodeClass {
+		info = {
+			name: 'Conditional',
 			desc: 'Evalúa una condición y ramifica según el resultado.',
 			icon: '󰈲',
 			group: 'Control Flow / Logic',
@@ -31,7 +24,7 @@ export default class ConditionalNode implements INodeClass<IProperties> {
 			}
 		}
 
-		this.properties = {
+		properties: IProperties = {
 			conditions: {
 				name: 'Condiciones:',
 				type: 'list',
@@ -62,10 +55,9 @@ export default class ConditionalNode implements INodeClass<IProperties> {
 				},
 				value: []
 			}
-		}
 	}
 
-	async onCreate({ context, environment }: INodeClassOnCreate) {
+	async onCreate({ context, environment }: Parameters<NonNullable<INodeClass['onCreate']>>[0]) {
 		const valor = this.properties.conditions.value
 		this.info.connectors.outputs = []
 		for (let i = 0; i < valor.length; i++) {
@@ -77,7 +69,7 @@ export default class ConditionalNode implements INodeClass<IProperties> {
 		this.info.connectors.outputs.push('error')
 	}
 
-	async onExecute({ inputData, outputData }: INodeClassOnExecute): Promise<void> {
+	async onExecute({ inputData, outputData }: Parameters<INodeClass['onExecute']>[0]): Promise<void> {
 		try {
 			const code = this.properties.conditions.value.map((m) => m.condition.value)
 

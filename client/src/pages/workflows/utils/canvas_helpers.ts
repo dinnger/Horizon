@@ -1,4 +1,4 @@
-import type { INode, INodeCanvas, INodeCanvasNewClass, INodeConnections } from '@shared/interface/node.interface.js'
+import type { INodeCanvas, INodeConnections } from '@shared/interface/node.interface.js'
 import type { Point } from './canvas_connector'
 import type { ICommunicationTypes } from '@shared/interface/connect.interface'
 import { OrthogonalConnector } from './canvas_connector'
@@ -148,35 +148,35 @@ export function render_node({
 	// console.log(node)
 	// selected = true
 	ctx.beginPath()
-	ctx.fillStyle = selected ? node.color : background
+	ctx.fillStyle = selected ? node.info.color : background
 	if (selected) {
-		ctx.shadowColor = node.color
+		ctx.shadowColor = node.info.color
 		ctx.shadowBlur = 20
 		ctx.shadowOffsetX = 0
 		ctx.shadowOffsetY = 0
 	}
 	ctx.lineWidth = 0
-	ctx.roundRect(node.design.x, node.design.y, node.design.width, node.design.height, 16)
+	ctx.roundRect(node.design.x, node.design.y, node.design.width!, node.design.height!, 16)
 	ctx.fill()
 	ctx.shadowColor = 'transparent' // Reset shadow
 	ctx.closePath()
 
 	ctx.beginPath()
-	ctx.strokeStyle = selected ? invert_background : node.color
+	ctx.strokeStyle = selected ? invert_background : node.info.color
 	ctx.lineWidth = 3
-	ctx.roundRect(node.design.x + 4, node.design.y + 4, node.design.width - 8, node.design.height - 8, 12)
+	ctx.roundRect(node.design.x + 4, node.design.y + 4, node.design.width! - 8, node.design.height! - 8, 12)
 	ctx.stroke()
 	ctx.lineWidth = 0
 	ctx.closePath()
 
 	// icon
-	ctx.fillStyle = selected ? invert_background : node.color
+	ctx.fillStyle = selected ? invert_background : node.info.color
 	ctx.font = '40px material-icons, sans-serif'
-	ctx.fillText(node.icon, node.design.x + 25, node.design.y + 50)
+	ctx.fillText(node.info.icon, node.design.x + 25, node.design.y + 50)
 	// name
 	ctx.font = '10px "Comfortaa Variable"'
 	ctx.textAlign = 'center'
-	ctx.fillText(node.name, node.design.x + node.design.width / 2, node.design.y + 65, 700)
+	ctx.fillText(node.info.name, node.design.x + node.design.width! / 2, node.design.y + 65, 700)
 	// info
 	// if (node.info) {
 	// 	ctx.textAlign = 'right'
@@ -199,9 +199,9 @@ function renderConnectors({
 	ctx,
 	theme
 }: { selected: boolean; node: INodeCanvas; ctx: CanvasRenderingContext2D; theme: string }) {
-	if (!node.connectors) return
+	if (!node.info.connectors) return
 	// console.log(Object.keys(node.connectors))
-	for (const [type, connector] of Object.entries(node.connectors)) {
+	for (const [type, connector] of Object.entries(node.info.connectors)) {
 		let x = node.design.x
 		let y = node.design.y
 		let separator = 0
@@ -214,13 +214,13 @@ function renderConnectors({
 				textAlign = 'right'
 			}
 			if (type === 'outputs') {
-				x = node.design.x + node.design.width - 5
+				x = node.design.x + node.design.width! - 5
 				y = node.design.y + (25 + Number.parseInt(key) * 20)
 				textAlign = 'left'
 				separator = 4
 			}
 			if (type === 'callbacks') {
-				x = node.design.x + node.design.width / 2
+				x = node.design.x + node.design.width! / 2
 				y = node.design.y + (25 + Number.parseInt(key) * 20)
 				textAlign = 'center'
 			}
@@ -235,7 +235,7 @@ function renderConnectors({
 				ctx.font = '9px "Comfortaa Variable"'
 				ctx.fillText(String(input), x + separator, y)
 			}
-			ctx.fillStyle = node.color
+			ctx.fillStyle = node.info.color
 			ctx.textAlign = 'left'
 			ctx.fill()
 			ctx.closePath()
@@ -460,27 +460,27 @@ export function renderSelected({ canvasSelect, theme, ctx }: Render_Select_Inter
  * @param {Object} params.nodes - The nodes to be checked for selection.
  * @param {CanvasRenderingContext2D} params.ctx - The canvas rendering context.
  */
-function event_selected_nodes({ selectedNode, canvasSelect, canvasRelativePos, nodes }: Event_Select_Nodes_Interface) {
-	if (!canvasSelect.show) return
-	// standarize
-	const x1 = Math.min(canvasSelect.x1, canvasSelect.x2)
-	const y1 = Math.min(canvasSelect.y1, canvasSelect.y2)
-	const x2 = Math.max(canvasSelect.x1, canvasSelect.x2)
-	const y2 = Math.max(canvasSelect.y1, canvasSelect.y2)
+// function event_selected_nodes({ selectedNode, canvasSelect, canvasRelativePos, nodes }: Event_Select_Nodes_Interface) {
+// 	if (!canvasSelect.show) return
+// 	// standarize
+// 	const x1 = Math.min(canvasSelect.x1, canvasSelect.x2)
+// 	const y1 = Math.min(canvasSelect.y1, canvasSelect.y2)
+// 	const x2 = Math.max(canvasSelect.x1, canvasSelect.x2)
+// 	const y2 = Math.max(canvasSelect.y1, canvasSelect.y2)
 
-	selectedNode.clear()
-	for (const node of Object.values(nodes)) {
-		if (node.design.x >= x1 && node.design.x + node.design.width <= x2 && node.design.y >= y1 && node.design.y + node.design.height <= y2) {
-			selectedNode.set(node.id, {
-				node,
-				relative_pos: {
-					x: canvasRelativePos.x - node.design.x,
-					y: canvasRelativePos.y - node.design.y
-				}
-			})
-		}
-	}
-}
+// 	selectedNode.clear()
+// 	for (const node of Object.values(nodes)) {
+// 		if (node.design.x >= x1 && node.design.x + node.design.width <= x2 && node.design.y >= y1 && node.design.y + node.design.height <= y2) {
+// 			selectedNode.set(node.id, {
+// 				node,
+// 				relative_pos: {
+// 					x: canvasRelativePos.x - node.design.x,
+// 					y: canvasRelativePos.y - node.design.y
+// 				}
+// 			})
+// 		}
+// 	}
+// }
 
 /**
  * Draws a preview of a node connection on the canvas.
@@ -560,19 +560,11 @@ export function drawNodeConnectionPreview({
  * @param {number} params.indexTime - The current time index used for animation.
  */
 export function renderConnectionNodes({
-	nodeOrigin,
-	nodeDestiny,
-	idConnectorDestiny,
-	idConnectorOrigin,
 	ctx,
 	connection,
 	nodes,
 	indexTime
 }: {
-	nodeOrigin: INodeCanvas
-	nodeDestiny: INodeCanvas
-	idConnectorDestiny: string
-	idConnectorOrigin: string
 	ctx: CanvasRenderingContext2D
 	connection: INodeConnections
 	nodes: { [key: string]: INodeCanvas }
@@ -580,31 +572,38 @@ export function renderConnectionNodes({
 }) {
 	let connector: Point[] = []
 	if (connection.pointers) connector = connection.pointers
+	const nodeOrigin = connection.nodeOrigin || connection.nodeOrigin
+	const nodeDestiny = connection.nodeDestiny || connection.nodeDestiny
+	if (!nodeOrigin || !nodeDestiny) return
 	if (!connection.pointers) {
+		console.log(12)
 		const shapeA = {
 			left: nodeOrigin.design.x,
 			top: nodeOrigin.design.y,
-			width: nodeOrigin.design.width,
-			height: nodeOrigin.design.height
+			width: nodeOrigin.design.width!,
+			height: nodeOrigin.design.height!
 		}
 		const shapeB = {
 			left: nodeDestiny.design.x,
 			top: nodeDestiny.design.y,
-			width: nodeDestiny.design.width,
-			height: nodeDestiny.design.height
+			width: nodeDestiny.design.width!,
+			height: nodeDestiny.design.height!
 		}
+		const indexOutput = nodeOrigin.info.connectors.outputs.indexOf(connection.connectorName)
+		const indexInput = nodeDestiny.info.connectors.inputs.indexOf(connection.connectorDestinyName)
+
 		connector = OrthogonalConnector.route({
 			ctx,
 			nodes,
 			pointA: {
 				shape: shapeA,
 				side: 'right',
-				distance: 30 + 1 * 20
+				distance: 30 + indexOutput * 20
 			},
 			pointB: {
 				shape: shapeB,
 				side: 'left',
-				distance: 30 + 1 * 20
+				distance: 30 + indexInput * 20
 			},
 			shapeMargin: 5,
 			globalBoundsMargin: 10,
@@ -623,8 +622,8 @@ export function renderConnectionNodes({
 			const { x: xPath, y: yPath } = firstPoint
 			const { x: xPath2, y: yPath2 } = lastPoint
 			const color = ctx.createLinearGradient(xPath, yPath, xPath2, yPath2)
-			color.addColorStop(0, nodeOrigin.color || '#3498DB')
-			color.addColorStop(1, nodeDestiny.color || '#3498DB')
+			color.addColorStop(0, nodeOrigin.info.color || '#3498DB')
+			color.addColorStop(1, nodeDestiny.info.color || '#3498DB')
 			connection.colorGradient = color
 		}
 	}
@@ -720,7 +719,7 @@ function calcBezier({
 	output_index: number
 	time?: number
 }): Interface_Bezier {
-	const originX = node_origin.design.x + node_origin.design.width + 9
+	const originX = node_origin.design.x + node_origin.design.width! + 9
 	const originY = node_origin.design.y + (30 + output_index * 20)
 
 	const pointX = originX
@@ -779,9 +778,9 @@ export function verifyNodeFocus({
 	for (const node of Object.values(nodes)) {
 		if (
 			node.design.x < x + x_margin &&
-			node.design.x + node.design.width + x_margin2 > x &&
+			node.design.x + node.design.width! + x_margin2 > x &&
 			node.design.y < y + y_margin &&
-			node.design.y + node.design.height + y_margin2 > y
+			node.design.y + node.design.height! + y_margin2 > y
 		) {
 			nodes_selected = node
 			// for (const input of Object.keys(node.inputs)) {

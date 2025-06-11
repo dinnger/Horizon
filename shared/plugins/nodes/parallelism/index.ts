@@ -1,53 +1,51 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
+
+interface IProperties extends INodeClassProperty {
+	type: Extract<INodeClassPropertyType, { type: 'options' }>
+}
 
 export default class implements INodeClass {
-	constructor(
-		public info: INodeClass['info'],
-		public properties: INodeClassProperty,
-		public instance: {
-			nodesExecuted?: Set<string>
-			executeData?: Map<string, { data: object; meta?: object; time: number }>
-		} = {}
-	) {
-		this.info = {
-			title: 'Parallelism',
-			desc: 'Procesa multiples entradas en paralelo.',
-			icon: '󰽜',
-			group: 'Procesamiento',
-			color: '#F39C12',
-			connectors: {
-				inputs: ['input'],
-				outputs: ['response', 'error']
-			},
-			flags: {
-				isSingleton: true
-			}
+	public instance: {
+		nodesExecuted?: Set<string>
+		executeData?: Map<string, { data: object; meta?: object; time: number }>
+	} = {}
+	info = {
+		name: 'Parallelism',
+		desc: 'Procesa multiples entradas en paralelo.',
+		icon: '󰽜',
+		group: 'Procesamiento',
+		color: '#F39C12',
+		connectors: {
+			inputs: ['input'],
+			outputs: ['response', 'error']
+		},
+		flags: {
+			isSingleton: true
 		}
-
-		this.properties = {
-			type: {
-				name: 'Tipo de validación de paralelismo:',
-				type: 'options',
-				options: [
-					{
-						label: 'Esperar todas las ejecuciones',
-						value: 'allParallel'
-					},
-					{
-						label: 'Primer resultado',
-						value: 'firstParallel'
-					}
-				],
-				value: 'allParallel'
-			}
+	}
+	properties: IProperties = {
+		type: {
+			name: 'Tipo de validación de paralelismo:',
+			type: 'options',
+			options: [
+				{
+					label: 'Esperar todas las ejecuciones',
+					value: 'allParallel'
+				},
+				{
+					label: 'Primer resultado',
+					value: 'firstParallel'
+				}
+			],
+			value: 'allParallel'
 		}
 	}
 
-	async onExecute({ inputData, execute, context, outputData }: INodeClassOnExecute) {
+	async onExecute({ inputData, execute, context, outputData }: Parameters<INodeClass['onExecute']>[0]) {
 		// Si existen todas las entradas, se procede a ejecutar la salida
 		if (this.properties.type.value === 'allParallel') {
 			if (!this.instance.nodesExecuted) {
-				if (!context.currentNode) {
+				if (!context.currentNode || !context.currentNode.id) {
 					return outputData('error', { error: 'No se encontraron nodos' })
 				}
 				const inputs = execute.getNodesInputs(context.currentNode.id)

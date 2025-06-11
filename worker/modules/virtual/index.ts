@@ -1,4 +1,4 @@
-import type { INode, INodeClass, INodeClassExec } from '@shared/interface/node.interface.js'
+import type { INode, INodeCanvas, INodeClass, INodeConnections } from '@shared/interface/node.interface.js'
 import type { INodePropertiesType, IPropertiesType } from '@shared/interface/node.properties.interface.js'
 import type { IWorkflow } from '@shared/interface/workflow.interface.js'
 import type { Worker } from '../../worker.js'
@@ -8,23 +8,23 @@ import { utils_standard_name } from '@shared/utils/utilities.js'
 import { getNodeClass } from '@shared/maps/nodes.map.js'
 
 interface IPropertyNode {
-	node: INodeClassExec
+	node: INode
 	key: string
 	value: IPropertiesType
 }
 interface IPropertyInit {
-	node: INodeClassExec
+	node: INode
 }
 type IPropertyWatch = IPropertyNode | IPropertyInit
 
-type IConnection = IWorkflow['connections'][number]
+type IConnection = INodeConnections
 type IProperties = IWorkflow['properties']
 
 // ============================================================================
 // Iniciadores
 // ============================================================================
 let virtualProject: any = {}
-const virtualNode: Map<string, INodeClassExec> = new Map()
+const virtualNode: Map<string, INodeCanvas> = new Map()
 const virtualConnections: Map<string, IConnection> = new Map()
 let virtualProperties: IProperties = {
 	basic: {
@@ -39,25 +39,25 @@ interface IMetaNode {
 	[key: string]: any
 }
 
-export class VirtualNode implements INodeClassExec {
-	name: string
+export class VirtualNode implements INodeCanvas {
+	id?: string
 	type: string
-	x: number
-	y: number
-	properties: INodePropertiesType
-	meta: INodeClassExec['meta']
+	info: INodeCanvas['info']
+	design: INodeCanvas['design']
+	properties: INodeCanvas['properties']
+	meta: INode['meta']
+	connections: INodeCanvas['connections']
 	isManual?: boolean
-	id: string
-	class: any
-	constructor(value: INodeClassExec) {
+
+	constructor(value: INodeCanvas) {
 		this.id = value.id
-		this.name = utils_standard_name(value.name)
+		this.info = value.info
+		this.info.name = utils_standard_name(value.info.name)
 		this.type = value.type
-		this.x = value.design?.x || 0
-		this.y = value.design?.y || 0
+		this.design = value.design
 		this.properties = value.properties
 		this.meta = value.meta
-		this.class = value.class
+		this.connections = value.connections
 	}
 
 	/**
@@ -166,10 +166,12 @@ export class VirtualModule {
 		node,
 		isNew = false
 	}: {
-		node: INodeClassExec
+		node: INodeCanvas
 		isNew?: boolean
 		// Cargando todas las propiedades de la clase y no solo el value almacenado
 	}) {
+		if (!node.info) return
+		if (!node.id) return
 		virtualNode.set(node.id, new VirtualNode(node))
 
 		await this.virtualNodePropertiesWatch({ node })
@@ -194,7 +196,7 @@ export class VirtualModule {
 	 * @param data - The connection node data to be added.
 	 */
 	async virtualConnectionAdd(data: IConnection) {
-		virtualConnections.set(data.id, data)
+		virtualConnections.set(data.id!, data)
 		if (data.isNew) updateChangeStatus(true)
 	}
 
@@ -249,6 +251,7 @@ export class VirtualModule {
 	async virtualNodePropertiesWatch(data: IPropertyWatch) {
 		// isInit determina si se llama desde init para inicializar los valors (value)
 		const isInit = !('key' in data)
+		if (!data.node.id) return { error: 'No se encontró el nodo' }
 		const node = virtualNode.get(data.node.id)
 
 		if (!node) return { error: 'No se encontró el nodo' }
@@ -275,9 +278,7 @@ export class VirtualModule {
 		if (!isInit) nodeClass.properties[data.key].value = data.value
 
 		if (isInit) {
-			node.icon = nodeClass.info.icon
-			node.color = nodeClass.info.color
-			node.connectors = nodeClass.info.connectors
+			node.info = nodeClass.info
 		} else {
 			updateChangeStatus(true)
 		}
@@ -335,19 +336,19 @@ export class VirtualModule {
 		}
 
 		// Actualizando información de la propiedad si tienen transform
-		if (node.update && node.properties) {
-			node.update()
-			const tempProperty = JSON.parse(JSON.stringify(node.properties))
-			for (const key in tempProperty) {
-				// biome-ignore lint/performance/noDelete: <explanation>
-				if (tempProperty[key].object) delete tempProperty[key].object
-			}
-			analizar({
-				beforeProperties,
-				property: tempProperty,
-				tempKey: '_'
-			})
-		}
+		// if (node.update && node.properties) {
+		// 	node.update()
+		// 	const tempProperty = JSON.parse(JSON.stringify(node.properties))
+		// 	for (const key in tempProperty) {
+		// 		// biome-ignore lint/performance/noDelete: <explanation>
+		// 		if (tempProperty[key].object) delete tempProperty[key].object
+		// 	}
+		// 	analizar({
+		// 		beforeProperties,
+		// 		property: tempProperty,
+		// 		tempKey: '_'
+		// 	})
+		// }
 
 		// Si existe el onCreate
 		if (nodeClass.onCreate) {
@@ -356,21 +357,21 @@ export class VirtualModule {
 				environment: this.el.environment,
 				dependency: CoreDependencies('create')
 			})
-			if (JSON.stringify(node.connectors?.inputs) !== JSON.stringify(nodeClass.info.connectors.inputs)) {
+			if (JSON.stringify(node.info.connectors?.inputs) !== JSON.stringify(nodeClass.info.connectors.inputs)) {
 				changes.push({
 					key: '_inputs_',
-					before: structuredClone(node.connectors?.inputs),
+					before: structuredClone(node.info.connectors?.inputs),
 					value: nodeClass.info.connectors.inputs
 				})
-				if (node.connectors) node.connectors.inputs = nodeClass.info.connectors.inputs
+				if (node.info.connectors) node.info.connectors.inputs = nodeClass.info.connectors.inputs
 			}
-			if (JSON.stringify(node.connectors?.outputs) !== JSON.stringify(nodeClass.info.connectors.outputs)) {
+			if (JSON.stringify(node.info.connectors?.outputs) !== JSON.stringify(nodeClass.info.connectors.outputs)) {
 				changes.push({
 					key: '_outputs_',
-					before: structuredClone(node.connectors?.outputs),
+					before: structuredClone(node.info.connectors?.outputs),
 					value: nodeClass.info.connectors.outputs
 				})
-				if (node.connectors) node.connectors.outputs = nodeClass.info.connectors.outputs
+				if (node.info.connectors) node.info.connectors.outputs = nodeClass.info.connectors.outputs
 			}
 
 			analizar({
@@ -379,7 +380,7 @@ export class VirtualModule {
 			})
 			node.properties = nodeClass.properties
 
-			node.connectors = nodeClass.info.connectors
+			node.info.connectors = nodeClass.info.connectors
 
 			return changes
 		}
@@ -395,10 +396,13 @@ export class VirtualModule {
 	 * @param {any} param.event - The event data.
 	 * @returns {Promise<Object>} - An object containing the changes.
 	 */
-	async virtualAction({ node, action, event }: { node: INodeClassExec; action: string; event: any }) {
+	async virtualAction({ node, action, event }: { node: INodeCanvas; action: string; event: any }) {
+		if (!node.id) return { error: 'No se encontró el nodo' }
 		const nodeC = virtualNode.get(node.id)
 		if (!nodeC) return { error: 'No se encontró el nodo' }
-		const nodeClass = new (nodeC.class as any)()
+		const getNodeC = getNodeClass()[nodeC.type].class
+		if (!getNodeC) return { error: 'No se encontró el nodo' }
+		const nodeClass = new (getNodeC.class as any)()
 		nodeClass.properties = nodeC.properties
 		const changes = await nodeClass.onAction()
 		if (changes) return changes[action]()

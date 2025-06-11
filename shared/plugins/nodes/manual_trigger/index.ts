@@ -1,32 +1,29 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 
+interface IProperties extends INodeClassProperty {
+	delay: Extract<INodeClassPropertyType, { type: 'switch' }>
+}
 export default class implements INodeClass {
-	constructor(
-		public info: INodeClass['info'],
-		public properties: INodeClassProperty
-	) {
-		this.info = {
-			title: 'Event Manual',
-			desc: 'Emit a manual event',
-			icon: '󰆍',
-			group: 'Integrations',
-			color: '#95A5A6',
-			connectors: {
-				inputs: ['input'],
-				outputs: ['response']
-			}
+	info = {
+		name: 'Event Manual',
+		desc: 'Emit a manual event',
+		icon: '󰆍',
+		group: 'Integrations',
+		color: '#95A5A6',
+		connectors: {
+			inputs: ['input'],
+			outputs: ['response']
 		}
-
-		this.properties = {
-			delay: {
-				name: 'Mostrar en producción',
-				type: 'switch',
-				value: false
-			}
+	}
+	properties: IProperties = {
+		delay: {
+			name: 'Mostrar en producción',
+			type: 'switch',
+			value: false
 		}
 	}
 
-	async onExecute({ inputData, outputData }: INodeClassOnExecute) {
+	async onExecute({ inputData, outputData }: Parameters<INodeClass['onExecute']>[0]) {
 		console.debug(inputData.data)
 		outputData('response', inputData.data)
 	}

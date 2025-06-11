@@ -36,7 +36,7 @@ export function utils_standard_name(text: string) {
 
 export function utils_validate_name({ id, text, nodes }: { id?: number; text: string; nodes: INode[] }): string {
 	const node_name = id ? `${text.toLowerCase()}_${id}` : text.toLowerCase()
-	const exist = nodes.find((f) => f.name.toLowerCase() === node_name)
+	const exist = nodes.find((f) => f.info.name.toLowerCase() === node_name)
 	const id_new = id ? id + 1 : 1
 	if (exist) return utils_validate_name({ id: id_new, text, nodes })
 	if (!id) return text

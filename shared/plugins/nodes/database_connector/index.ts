@@ -1,10 +1,4 @@
-import type {
-	INodeClass,
-	INodeClassOnCreate,
-	INodeClassOnExecute,
-	INodeClassProperty,
-	INodeClassPropertyType
-} from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 
 type IDialect = 'mysql' | 'postgres' | 'sqlite' | 'mariadb' | 'mssql' | 'oracle'
 
@@ -22,84 +16,78 @@ interface ICredentials extends INodeClassProperty {
 	config: Extract<INodeClassPropertyType, { type: 'code' }>
 }
 
-export default class DatabaseNode implements INodeClass<IProperties, ICredentials> {
-	constructor(
-		public accessSecrets: boolean,
-		public dependencies: string[],
-		public info: INodeClass['info'],
-		public properties: IProperties,
-		public credentials: ICredentials,
-		private connections: Record<string, any> = {}
-	) {
-		this.accessSecrets = true
-		this.dependencies = ['sequelize']
-		this.info = {
-			title: 'Database',
-			desc: 'Interactúa con bases de datos usando Sequelize.',
-			icon: '󰆼',
-			group: 'Base de Datos',
-			color: '#52b0e7',
-			connectors: {
-				inputs: ['input'],
-				outputs: ['response', 'error']
-			},
-			flags: {
-				isSingleton: true
-			}
-		}
+export default class DatabaseNode implements INodeClass {
+	private connections: Record<string, any> = {}
 
-		this.properties = {
-			dialect: {
-				name: 'Dialecto',
-				type: 'options',
-				options: [
-					{
-						label: 'Mysql',
-						value: 'mysql'
-					},
-					{
-						label: 'Postgres',
-						value: 'postgres'
-					},
-					{
-						label: 'SQLite',
-						value: 'sqlite'
-					},
-					{
-						label: 'MariaDB',
-						value: 'mariadb'
-					},
-					{
-						label: 'MSSQL',
-						value: 'mssql'
-					},
-					{
-						label: 'Oracle',
-						value: 'oracle'
-					}
-				],
-				value: 'postgres'
-			},
-			connection: {
-				name: 'Tipo de conexión',
-				type: 'options',
-				options: [
-					{
-						label: 'Manual',
-						value: 'manual'
-					},
-					{
-						label: 'Secreto',
-						value: 'secret'
-					}
-				],
-				value: 'manual'
-			},
-			config: {
-				name: 'Configuración',
-				type: 'code',
-				lang: 'json',
-				value: `{
+	accessSecrets = true
+	dependencies = ['sequelize']
+	info = {
+		name: 'Database',
+		desc: 'Interactúa con bases de datos usando Sequelize.',
+		icon: '󰆼',
+		group: 'Base de Datos',
+		color: '#52b0e7',
+		connectors: {
+			inputs: ['input'],
+			outputs: ['response', 'error']
+		},
+		flags: {
+			isSingleton: true
+		}
+	}
+
+	properties: IProperties = {
+		dialect: {
+			name: 'Dialecto',
+			type: 'options',
+			options: [
+				{
+					label: 'Mysql',
+					value: 'mysql'
+				},
+				{
+					label: 'Postgres',
+					value: 'postgres'
+				},
+				{
+					label: 'SQLite',
+					value: 'sqlite'
+				},
+				{
+					label: 'MariaDB',
+					value: 'mariadb'
+				},
+				{
+					label: 'MSSQL',
+					value: 'mssql'
+				},
+				{
+					label: 'Oracle',
+					value: 'oracle'
+				}
+			],
+			value: 'postgres'
+		},
+		connection: {
+			name: 'Tipo de conexión',
+			type: 'options',
+			options: [
+				{
+					label: 'Manual',
+					value: 'manual'
+				},
+				{
+					label: 'Secreto',
+					value: 'secret'
+				}
+			],
+			value: 'manual'
+		},
+		config: {
+			name: 'Configuración',
+			type: 'code',
+			lang: 'json',
+			value: `{
           "host": "localhost",
           "username": "user",
           "password": "password",
@@ -107,74 +95,73 @@ export default class DatabaseNode implements INodeClass<IProperties, ICredential
           "port": 5432,
           "logging": false
         }`
-			},
-			configSecret: {
-				name: 'Configuración',
-				type: 'secret',
-				secretType: 'DATABASE',
-				options: [],
-				value: '',
-				show: false
-			},
-			query: {
-				name: 'Query',
-				type: 'code',
-				lang: 'sql',
-				value: 'select * from users where id = :id'
-			},
-			replacements: {
-				name: 'Replacements',
-				type: 'code',
-				lang: 'json',
-				value: '{\n  "id": 1\n}'
-			},
-			keepAlive: {
-				name: 'Mantener conexión',
-				type: 'switch',
-				value: true
-			}
+		},
+		configSecret: {
+			name: 'Configuración',
+			type: 'secret',
+			secretType: 'DATABASE',
+			options: [],
+			value: '',
+			show: false
+		},
+		query: {
+			name: 'Query',
+			type: 'code',
+			lang: 'sql',
+			value: 'select * from users where id = :id'
+		},
+		replacements: {
+			name: 'Replacements',
+			type: 'code',
+			lang: 'json',
+			value: '{\n  "id": 1\n}'
+		},
+		keepAlive: {
+			name: 'Mantener conexión',
+			type: 'switch',
+			value: true
 		}
+	}
 
-		this.credentials = {
-			database: {
-				name: 'Database',
-				type: 'options',
-				options: [
-					{
-						label: 'Postgres',
-						value: 'postgres'
-					},
-					{
-						label: 'MySQL',
-						value: 'mysql'
-					},
-					{
-						label: 'SQLite',
-						value: 'sqlite'
-					},
-					{
-						label: 'MariaDB',
-						value: 'mariadb'
-					},
-					{
-						label: 'Oracle',
-						value: 'oracle'
-					}
-				],
-				value: 'postgres'
-			},
-			config: {
-				name: 'Configuración de conexión',
-				type: 'code',
-				lang: 'json',
-				value: `{ 
+	credentials: ICredentials = {
+		database: {
+			name: 'Database',
+			type: 'options',
+			options: [
+				{
+					label: 'Postgres',
+					value: 'postgres'
+				},
+				{
+					label: 'MySQL',
+					value: 'mysql'
+				},
+				{
+					label: 'SQLite',
+					value: 'sqlite'
+				},
+				{
+					label: 'MariaDB',
+					value: 'mariadb'
+				},
+				{
+					label: 'Oracle',
+					value: 'oracle'
+				}
+			],
+			value: 'postgres'
+		},
+		config: {
+			name: 'Configuración de conexión',
+			type: 'code',
+			lang: 'json',
+			value: `{ 
     "database": "mydb",
     "user": "myuser",
     "password": "mypass",
     "host": "localhost"
 }
 `
-			}
 		}
 	}
 
@@ -201,7 +188,7 @@ export default class DatabaseNode implements INodeClass<IProperties, ICredential
 		}
 	}
 
-	async onCreate({ dependency }: INodeClassOnCreate): Promise<void> {
+	async onCreate({ dependency }: Parameters<NonNullable<INodeClass['onCreate']>>[0]): Promise<void> {
 		if (this.properties.connection.value === 'secret') {
 			this.properties.configSecret.show = true
 			this.properties.config.show = false
@@ -219,7 +206,7 @@ export default class DatabaseNode implements INodeClass<IProperties, ICredential
 		}
 	}
 
-	async onExecute({ outputData, dependency }: INodeClassOnExecute) {
+	async onExecute({ outputData, dependency }: Parameters<INodeClass['onExecute']>[0]) {
 		const { Sequelize, QueryTypes } = await dependency.getRequire('sequelize')
 		let sequelize: typeof Sequelize | null = null
 

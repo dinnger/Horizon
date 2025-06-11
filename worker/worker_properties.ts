@@ -1,6 +1,6 @@
 import type { IWorkflowContext, IWorkflowPropertyType } from '@shared/interface/workflow.interface.js'
+import type { INode } from '@shared/interface/node.interface.js'
 import type { Worker } from './worker.js'
-import type { INodeClassExec } from '@shared/interface/node.interface.js'
 import { proprietaryFunctions } from './worker_properties_proprietary.js'
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
@@ -12,8 +12,8 @@ const envVariables = {}
 
 export class initProperties {
 	el: Worker
-	node: INodeClassExec
-	nodes: { [key: string]: INodeClassExec }
+	node: INode
+	nodes: { [key: string]: INode }
 	input: object
 	context: IWorkflowContext
 	executeData: Map<string, { data: object; meta?: object; time: number }>
@@ -30,8 +30,8 @@ export class initProperties {
 		variables = {}
 	}: {
 		el: Worker
-		node: INodeClassExec
-		nodes: { [key: string]: INodeClassExec }
+		node: INode
+		nodes: { [key: string]: INode }
 		input: object
 		context: IWorkflowContext
 		executeData: Map<string, { data: object; meta?: object; time: number }>
@@ -59,11 +59,11 @@ export class initProperties {
 			const value = this.executeData.get(key)
 			if (!value) continue
 			if (value.meta)
-				this.currentObject[this.nodes[key].name] = {
+				this.currentObject[this.nodes[key].info.name] = {
 					data: value.data,
 					meta: value.meta
 				}
-			else this.currentObject[this.nodes[key].name] = { data: value.data }
+			else this.currentObject[this.nodes[key].info.name] = { data: value.data }
 		}
 	}
 

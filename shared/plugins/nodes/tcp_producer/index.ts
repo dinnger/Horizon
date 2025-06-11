@@ -1,4 +1,4 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 
 interface IProperties extends INodeClassProperty {
 	host: Extract<INodeClassPropertyType, { type: 'string' }>
@@ -9,86 +9,80 @@ interface IProperties extends INodeClassProperty {
 	retries: Extract<INodeClassPropertyType, { type: 'number' }> // Nueva propiedad para reintentos
 }
 
-export default class TcpProducer implements INodeClass<IProperties> {
-	constructor(
-		public info: INodeClass['info'],
-		public properties: IProperties,
-		public client: any
-	) {
-		this.info = {
-			title: 'TCP Producer',
-			desc: 'Envía datos a través de una conexión TCP',
-			icon: '󰹑',
-			group: 'TCP',
-			color: '#3498DB',
-			connectors: {
-				inputs: ['init'],
-				outputs: ['response', 'error']
-			},
-			flags: {
-				isSingleton: true
-			}
-		}
-
-		this.properties = {
-			host: {
-				name: 'Host:',
-				value: 'localhost',
-				type: 'string',
-				size: 2
-			},
-			port: {
-				name: 'Puerto:',
-				value: 9000,
-				type: 'number',
-				size: 2
-			},
-			timeout: {
-				name: 'Timeout (ms):',
-				value: 5000,
-				type: 'number',
-				description: 'Tiempo máximo de espera para la conexión',
-				size: 2
-			},
-			encoding: {
-				name: 'Encoding:',
-				value: 'utf8',
-				type: 'options',
-				options: [
-					{
-						label: 'UTF-8',
-						value: 'utf8'
-					},
-					{
-						label: 'ASCII',
-						value: 'ascii'
-					},
-					{
-						label: 'Binario',
-						value: 'binary'
-					}
-				],
-				description: 'Codificación de los datos',
-				size: 2
-			},
-			message: {
-				name: 'Mensaje:',
-				value: JSON.stringify({ data: 'Hello World' }, null, ' '),
-				type: 'code',
-				lang: 'json',
-				size: 4
-			},
-			retries: {
-				name: 'Reintentos:',
-				value: 0,
-				type: 'number',
-				description: 'Número de reintentos antes de fallar. 0 significa indefinido.',
-				size: 2
-			} // Nueva propiedad para reintentos
+export default class TcpProducer implements INodeClass {
+	public client: any
+	info = {
+		name: 'TCP Producer',
+		desc: 'Envía datos a través de una conexión TCP',
+		icon: '󰹑',
+		group: 'TCP',
+		color: '#3498DB',
+		connectors: {
+			inputs: ['init'],
+			outputs: ['response', 'error']
+		},
+		flags: {
+			isSingleton: true
 		}
 	}
+	properties: IProperties = {
+		host: {
+			name: 'Host:',
+			value: 'localhost',
+			type: 'string',
+			size: 2
+		},
+		port: {
+			name: 'Puerto:',
+			value: 9000,
+			type: 'number',
+			size: 2
+		},
+		timeout: {
+			name: 'Timeout (ms):',
+			value: 5000,
+			type: 'number',
+			description: 'Tiempo máximo de espera para la conexión',
+			size: 2
+		},
+		encoding: {
+			name: 'Encoding:',
+			value: 'utf8',
+			type: 'options',
+			options: [
+				{
+					label: 'UTF-8',
+					value: 'utf8'
+				},
+				{
+					label: 'ASCII',
+					value: 'ascii'
+				},
+				{
+					label: 'Binario',
+					value: 'binary'
+				}
+			],
+			description: 'Codificación de los datos',
+			size: 2
+		},
+		message: {
+			name: 'Mensaje:',
+			value: JSON.stringify({ data: 'Hello World' }, null, ' '),
+			type: 'code',
+			lang: 'json',
+			size: 4
+		},
+		retries: {
+			name: 'Reintentos:',
+			value: 0,
+			type: 'number',
+			description: 'Número de reintentos antes de fallar. 0 significa indefinido.',
+			size: 2
+		} // Nueva propiedad para reintentos
+	}
 
-	async onExecute({ inputData, outputData, dependency, context }: INodeClassOnExecute): Promise<void> {
+	async onExecute({ inputData, outputData, dependency, context }: Parameters<INodeClass['onExecute']>[0]): Promise<void> {
 		try {
 			const retries = this.properties.retries.value
 			let attempts = 0

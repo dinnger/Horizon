@@ -1,4 +1,4 @@
-import type { INode, INodeClass, INodeClassExec } from '@shared/interface/node.interface.js'
+import type { INode, INodeCanvas, INodeConnections } from '@shared/interface/node.interface.js'
 import type { IWorkerDependencies } from '@shared/interface/worker.interface.js'
 import type { Worker } from '../../worker.js'
 import { v4 as uuidv4 } from 'uuid'
@@ -6,14 +6,13 @@ import { getNodeClass } from '@shared/maps/nodes.map.js'
 
 export class NodeModule {
 	el: Worker
-
-	nodesInit: INodeClassExec | null = null
-	nodes: { [key: string]: INodeClassExec } = {}
+	nodesInit: INodeCanvas | null = null
+	nodes: { [key: string]: INodeCanvas & { class: any } } = {}
 	nodesType = new Map<string, Set<string>>()
 	nodesClass = getNodeClass()
 	connections: {
 		[key: string]: {
-			[key: string]: { id_node_destiny: string; input: string }[]
+			[key: string]: { idNodeDestiny: string; connectorDestinyType: 'input' | 'output' | 'callback'; connectorDestinyName: string }[]
 		}
 	} = {}
 	connectionsInputs: { [key: string]: Set<string> } = {}
@@ -45,28 +44,28 @@ export class NodeModule {
 	 */
 	addNode({
 		id,
-		name,
-		className,
-		pos,
+		info,
+		type,
+		design,
 		properties = {},
 		meta
 	}: {
 		id?: string
-		name: string
-		className: string
-		pos: { x: number; y: number }
-		properties?: INodeClass['properties']
-		meta?: INodeClass['meta']
-	}): INodeClassExec | null {
+		info: INodeCanvas['info']
+		type: string
+		design: INodeCanvas['design']
+		properties?: INodeCanvas['properties']
+		meta?: INodeCanvas['meta']
+	}): INodeCanvas | null {
 		if (!this.el) return null
-		if (!this.nodesClass[className]) {
-			console.error(`No existe el nodo ${className}`)
+		if (!this.nodesClass[type]) {
+			console.error(`No existe el nodo ${type}`)
 		}
 		id = id || uuidv4()
 
 		const prop: { [key: string]: any } = {}
-		if (this.nodesClass[className]?.properties) {
-			for (const [key, value] of Object.entries(this.nodesClass[className].properties) as [string, any][]) {
+		if (this.nodesClass[type]?.properties) {
+			for (const [key, value] of Object.entries(this.nodesClass[type].properties) as [string, any][]) {
 				prop[key] = JSON.parse(JSON.stringify(value))
 				if (value.onTransform) prop[key].onTransform = value.onTransform
 				if (value.type === 'list') {
@@ -87,7 +86,7 @@ export class NodeModule {
 				this.dependencies.secrets.add({
 					idNode: id,
 					name: value.value,
-					type: className,
+					type,
 					secret: value.value
 				})
 			}
@@ -95,7 +94,7 @@ export class NodeModule {
 			if (value.type === 'credential') {
 				this.dependencies.credentials.add({
 					idNode: id,
-					type: className,
+					type,
 					name: value.value,
 					credentials: meta?.credentials || []
 				})
@@ -104,23 +103,19 @@ export class NodeModule {
 
 		this.nodes[id] = {
 			id,
-			name,
+			info,
 			properties: prop,
 			meta,
-			design: {
-				x: pos.x,
-				y: pos.y,
-				width: 90,
-				height: 0
-			},
-			type: className,
-			class: this.nodesClass[className]?.class
+			design,
+			type,
+			class: this.nodesClass[type]?.class,
+			connections: []
 		}
 
-		if (!this.nodesType.has(className)) {
-			this.nodesType.set(className, new Set())
+		if (!this.nodesType.has(type)) {
+			this.nodesType.set(type, new Set())
 		}
-		this.nodesType.get(className)?.add(id)
+		this.nodesType.get(type)?.add(id)
 		if (this.nodes[id].type === 'workflow_init') this.nodesInit = this.nodes[id]
 		// Iniciar propiedades virtuales para manipulación de datos
 		if (this.el.isDev) {
@@ -139,37 +134,32 @@ export class NodeModule {
 	 * @param {string} params.id_node_destiny - The ID of the destination node.
 	 * @param {string} params.input - The input of the destination node.
 	 */
-	addEdge({
-		id,
-		id_node_origin,
-		output,
-		id_node_destiny,
-		input
-	}: {
-		id: string
-		id_node_origin: string
-		output: string
-		id_node_destiny: string
-		input: string
-	}) {
+	addEdge({ id, nodeOrigin, nodeDestiny, connectorType, connectorName, connectorDestinyType, connectorDestinyName }: INodeConnections) {
 		if (!this.el) return
-		if (!this.connections[id_node_origin]) this.connections[id_node_origin] = {}
-		if (!this.connections[id_node_origin][output]) this.connections[id_node_origin][output] = []
-		this.connections[id_node_origin][output].push({ id_node_destiny, input })
+		if (!this.connections[nodeOrigin?.id!]) this.connections[nodeOrigin?.id!] = {}
+		if (!this.connections[nodeOrigin?.id!][`${connectorType}:${connectorName}`])
+			this.connections[nodeOrigin?.id!][`${connectorType}:${connectorName}`] = []
+		this.connections[nodeOrigin?.id!][`${connectorType}:${connectorName}`].push({
+			idNodeDestiny: nodeDestiny.id!,
+			connectorDestinyType,
+			connectorDestinyName
+		})
 
 		// Guardar los nodos que se conectan a un nodo
-		if (!this.connectionsInputs[id_node_destiny]) this.connectionsInputs[id_node_destiny] = new Set()
-		if (!this.connectionsOutputs[id_node_origin]) this.connectionsOutputs[id_node_origin] = new Set()
-		this.connectionsInputs[id_node_destiny].add(id_node_origin)
-		this.connectionsOutputs[id_node_origin].add(id_node_destiny)
+		if (!this.connectionsInputs[nodeDestiny.id!]) this.connectionsInputs[nodeDestiny.id!] = new Set()
+		if (!this.connectionsOutputs[nodeOrigin?.id!]) this.connectionsOutputs[nodeOrigin?.id!] = new Set()
+		this.connectionsInputs[nodeDestiny.id!].add(nodeOrigin?.id!)
+		this.connectionsOutputs[nodeOrigin?.id!].add(nodeDestiny.id!)
 		// Iniciar propiedades virtuales para manipulación de datos
 		if (this.el.isDev) {
 			this.el.virtualModule.virtualConnectionAdd({
 				id,
-				id_node_origin,
-				output,
-				id_node_destiny,
-				input
+				nodeOrigin,
+				nodeDestiny,
+				connectorType,
+				connectorName,
+				connectorDestinyType,
+				connectorDestinyName
 			})
 		}
 	}

@@ -1,139 +1,149 @@
-import type { INodeClass, INodeClassOnExecute, INodeClassProperty } from '@shared/interface/node.interface.js'
+import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
+
+interface IProperties extends INodeClassProperty {
+	email: Extract<INodeClassPropertyType, { type: 'string' }>
+	authType: Extract<INodeClassPropertyType, { type: 'options' }>
+	password: Extract<INodeClassPropertyType, { type: 'password' }>
+	clientId: Extract<INodeClassPropertyType, { type: 'string' }>
+	clientSecret: Extract<INodeClassPropertyType, { type: 'password' }>
+	refreshToken: Extract<INodeClassPropertyType, { type: 'password' }>
+	from: Extract<INodeClassPropertyType, { type: 'string' }>
+	to: Extract<INodeClassPropertyType, { type: 'string' }>
+	cc: Extract<INodeClassPropertyType, { type: 'string' }>
+	bcc: Extract<INodeClassPropertyType, { type: 'string' }>
+	subject: Extract<INodeClassPropertyType, { type: 'string' }>
+	messageType: Extract<INodeClassPropertyType, { type: 'options' }>
+	message: Extract<INodeClassPropertyType, { type: 'code' }>
+	attachments: Extract<INodeClassPropertyType, { type: 'switch' }>
+	attachmentsConfig: Extract<INodeClassPropertyType, { type: 'code' }>
+}
 
 export default class implements INodeClass {
-	constructor(
-		public dependencies: string[],
-		public info: INodeClass['info'],
-		public tags: INodeClass['tags'],
-		public properties: INodeClassProperty
-	) {
-		this.dependencies = ['nodemailer']
-		this.tags = ['tools']
+	dependencies = ['nodemailer']
+	tags = ['tools']
 
-		this.info = {
-			title: 'Gmail',
-			desc: 'Envía correos electrónicos a través de Gmail',
-			icon: '󰊫',
-			group: 'Email',
-			color: '#D44638',
-			connectors: {
-				inputs: ['input'],
-				outputs: ['success', 'error']
-			}
+	info = {
+		name: 'Gmail',
+		desc: 'Envía correos electrónicos a través de Gmail',
+		icon: '󰊫',
+		group: 'Email',
+		color: '#D44638',
+		connectors: {
+			inputs: ['input'],
+			outputs: ['success', 'error']
 		}
-
-		this.properties = {
-			email: {
-				name: 'Correo electrónico:',
-				type: 'string',
-				value: '',
-				placeholder: 'tu.correo@gmail.com'
-			},
-			authType: {
-				name: 'Tipo de autenticación:',
-				type: 'options',
-				options: [
-					{
-						label: 'Contraseña de aplicación',
-						value: 'password'
-					},
-					{
-						label: 'OAuth 2.0',
-						value: 'oauth2'
-					}
-				],
-				value: 'password'
-			},
-			password: {
-				name: 'Contraseña de aplicación:',
-				type: 'password',
-				value: ''
-			},
-			clientId: {
-				name: 'Client ID:',
-				type: 'string',
-				value: ''
-			},
-			clientSecret: {
-				name: 'Client Secret:',
-				type: 'password',
-				value: ''
-			},
-			refreshToken: {
-				name: 'Refresh Token:',
-				type: 'password',
-				value: ''
-			},
-			from: {
-				name: 'Nombre del remitente:',
-				type: 'string',
-				value: '',
-				placeholder: 'Tu Nombre'
-			},
-			to: {
-				name: 'Destinatarios:',
-				type: 'string',
-				value: '',
-				placeholder: 'email1@ejemplo.com, email2@ejemplo.com'
-			},
-			cc: {
-				name: 'CC:',
-				type: 'string',
-				value: '',
-				placeholder: 'email1@ejemplo.com, email2@ejemplo.com'
-			},
-			bcc: {
-				name: 'CCO:',
-				type: 'string',
-				value: '',
-				placeholder: 'email1@ejemplo.com, email2@ejemplo.com'
-			},
-			subject: {
-				name: 'Asunto:',
-				type: 'string',
-				value: ''
-			},
-			messageType: {
-				name: 'Tipo de mensaje:',
-				type: 'options',
-				options: [
-					{
-						label: 'Texto plano',
-						value: 'text'
-					},
-					{
-						label: 'HTML',
-						value: 'html'
-					}
-				],
-				value: 'text'
-			},
-			message: {
-				name: 'Mensaje:',
-				type: 'code',
-				lang: 'string',
-				value: ''
-			},
-			attachments: {
-				name: 'Incluir adjuntos:',
-				type: 'switch',
-				value: false
-			},
-			attachmentsConfig: {
-				name: 'Configuración de adjuntos:',
-				type: 'code',
-				lang: 'json',
-				value: `[
+	}
+	properties: IProperties = {
+		email: {
+			name: 'Correo electrónico:',
+			type: 'string',
+			value: '',
+			placeholder: 'tu.correo@gmail.com'
+		},
+		authType: {
+			name: 'Tipo de autenticación:',
+			type: 'options',
+			options: [
+				{
+					label: 'Contraseña de aplicación',
+					value: 'password'
+				},
+				{
+					label: 'OAuth 2.0',
+					value: 'oauth2'
+				}
+			],
+			value: 'password'
+		},
+		password: {
+			name: 'Contraseña de aplicación:',
+			type: 'password',
+			value: ''
+		},
+		clientId: {
+			name: 'Client ID:',
+			type: 'string',
+			value: ''
+		},
+		clientSecret: {
+			name: 'Client Secret:',
+			type: 'password',
+			value: ''
+		},
+		refreshToken: {
+			name: 'Refresh Token:',
+			type: 'password',
+			value: ''
+		},
+		from: {
+			name: 'Nombre del remitente:',
+			type: 'string',
+			value: '',
+			placeholder: 'Tu Nombre'
+		},
+		to: {
+			name: 'Destinatarios:',
+			type: 'string',
+			value: '',
+			placeholder: 'email1@ejemplo.com, email2@ejemplo.com'
+		},
+		cc: {
+			name: 'CC:',
+			type: 'string',
+			value: '',
+			placeholder: 'email1@ejemplo.com, email2@ejemplo.com'
+		},
+		bcc: {
+			name: 'CCO:',
+			type: 'string',
+			value: '',
+			placeholder: 'email1@ejemplo.com, email2@ejemplo.com'
+		},
+		subject: {
+			name: 'Asunto:',
+			type: 'string',
+			value: ''
+		},
+		messageType: {
+			name: 'Tipo de mensaje:',
+			type: 'options',
+			options: [
+				{
+					label: 'Texto plano',
+					value: 'text'
+				},
+				{
+					label: 'HTML',
+					value: 'html'
+				}
+			],
+			value: 'text'
+		},
+		message: {
+			name: 'Mensaje:',
+			type: 'code',
+			lang: 'string',
+			value: ''
+		},
+		attachments: {
+			name: 'Incluir adjuntos:',
+			type: 'switch',
+			value: false
+		},
+		attachmentsConfig: {
+			name: 'Configuración de adjuntos:',
+			type: 'code',
+			lang: 'json',
+			value: `[
   {
     "filename": "documento.pdf",
     "path": "/ruta/al/archivo.pdf"
   }
 ]`
-			}
 		}
 	}
 
-	async onExecute({ inputData, outputData, dependency }: INodeClassOnExecute) {
+	async onExecute({ inputData, outputData, dependency }: Parameters<INodeClass['onExecute']>[0]) {
 		try {
 			const nodemailer = await dependency.getRequire('nodemailer')
 
