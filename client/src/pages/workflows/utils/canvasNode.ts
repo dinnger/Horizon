@@ -119,23 +119,21 @@ class NewNode {
 		watch(
 			this.properties,
 			(newValue) => {
+				const isLockedProperty = (this as any).isLockedProperty
+				if (isLockedProperty) {
+					this.oldProperties = JSON.parse(JSON.stringify(newValue))
+					return
+				}
 				for (const key in newValue) {
-					// Si la propiedad existía pero el valor es diferente, fue MODIFICADA
-					// (Comparamos también objetos anidados convirtiéndolos a string)
 					if (JSON.stringify(newValue[key]) !== JSON.stringify(this.oldProperties[key])) {
-						console.log(`🔄 Propiedad modificada: '${key}' Valor: ${this.oldProperties[key].value} -> ${newValue[key].value}`)
 						subscriberHelper().send('virtualChangeProperties', {
 							node: this,
 							key,
-							value: newValue[key]
+							value: newValue[key].value
 						})
 					}
 				}
 				this.oldProperties = JSON.parse(JSON.stringify(newValue))
-				// subscriberHelper().send('changeMeta', {
-				// 	id: this.id,
-				// 	meta: this.meta
-				// })
 			},
 			{
 				deep: true
@@ -278,8 +276,7 @@ class NewNode {
 			renderConnectionNodes({
 				ctx,
 				connection,
-				nodes,
-				indexTime: 0
+				nodes
 			})
 		}
 	}
@@ -298,6 +295,8 @@ class NewConnector implements INodeConnections {
 	colorGradient?: any
 	isFocused?: boolean
 	isNew?: boolean
+	// Si se bloquea la propiedad para evitar redudancia al obtener los cambios
+	isLockedProperty = false
 	constructor(value: INodeConnections) {
 		this.id = value.id || uuidv4()
 		this.connectorType = value.connectorType

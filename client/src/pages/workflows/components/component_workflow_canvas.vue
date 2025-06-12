@@ -236,7 +236,9 @@ onMounted(() => {
   canvasInstance.value.event_subscriber("virtualChangeProperties", ({ data }) => {
     const flow = props.uid
     const { node, key, value } = data
-    const selectedNode = property_show.value?.selected
+    const arr = property_show.value?.selected
+    if (!arr || !Array.isArray(arr) || arr.length === 0) return
+    const selectedNode = arr[0]
     socket.socketEmit(
       'server/workflows/virtual/nodeProperty',
       { flow, node: { id: node.id, type: node.type }, key, value: value },
@@ -244,6 +246,7 @@ onMounted(() => {
         if (value?.error) return console.log(value.error)
         if (!value || typeof value !== 'object' || Object.keys(value).length === 0) return
 
+        selectedNode.isLockedProperty = true
         // inputs/outputs
         // const inputs = value.find((item: any) => item.key === '_inputs_')
         // const outputs = value.find((item: any) => item.key === '_outputs_')
@@ -271,6 +274,9 @@ onMounted(() => {
             property[keys[keys.length - 1]] = item.value
           }
         }
+        setTimeout(() => {
+          selectedNode.isLockedProperty = false
+        }, 100);
       }
     )
   });
