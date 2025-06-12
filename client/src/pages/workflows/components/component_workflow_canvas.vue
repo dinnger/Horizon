@@ -53,7 +53,7 @@ const canvas = ref<HTMLCanvasElement | null>(null);
 const theme = ref<string>(main.theme);
 const canvasInstance = ref<Canvas>();
 const select_type = ref<"cursor" | "move">("cursor");
-const property_show = ref<{ selected: INodeCanvas[] } | null>(null);
+const property_show = ref<{ selected: INodeCanvas } | null>(null);
 const context_menu_show = ref(false);
 const connection_properties_context = ref<{
   id: string;
@@ -217,22 +217,62 @@ onMounted(() => {
     virtualServer({ event, data })
   });
 
-  canvasInstance.value.event_subscriber("changePosition", ({ data }) => {
+  canvasInstance.value.event_subscriber("virtualChangePosition", ({ data }) => {
     socket.socketEmit("server/workflows/virtual/nodeUpdate", {
       flow: props.uid,
-      type: "position",
-      idNode: data.node.id,
-      value: { x: data.node.x, y: data.node.y },
+      type: "virtualChangePosition",
+      data: { idNode: data.node.id, value: { x: data.node.x, y: data.node.y } },
     });
   });
 
-  canvasInstance.value.event_subscriber("changeMeta", ({ data }) => {
+  canvasInstance.value.event_subscriber("virtualChangeMeta", ({ data }) => {
     socket.socketEmit("server/workflows/virtual/nodeUpdate", {
       flow: props.uid,
-      type: "meta",
-      idNode: data.id,
-      value: data.meta,
+      type: "virtualChangeMeta",
+      data: { idNode: data.id, value: data.meta },
     });
+  });
+
+  canvasInstance.value.event_subscriber("virtualChangeProperties", ({ data }) => {
+    const flow = props.uid
+    const { node, key, value } = data
+    const selectedNode = property_show.value?.selected
+    socket.socketEmit(
+      'server/workflows/virtual/nodeProperty',
+      { flow, node: { id: node.id, type: node.type }, key, value: value },
+      (value: { error?: string } & any[]) => {
+        if (value?.error) return console.log(value.error)
+        if (!value || typeof value !== 'object' || Object.keys(value).length === 0) return
+
+        // inputs/outputs
+        // const inputs = value.find((item: any) => item.key === '_inputs_')
+        // const outputs = value.find((item: any) => item.key === '_outputs_')
+        // if (inputs) {
+        //   selectedNode.inputs = inputs.value
+        //   selectedNode.update()
+        // }
+        // if (outputs) {
+        //   selectedNode.outputs = outputs.value
+        //   selectedNode.update()
+        //   selectedNode.updateConnectionsOutput({
+        //     before: outputs.before,
+        //     after: outputs.value
+        //   })
+        // }
+
+        for (const item of value) {
+          let property: any = selectedNode?.properties || {}
+          const keys = item.key.split('.')
+          if (keys.length > 1 && keys[0] === '_') keys.shift()
+          for (let i = 0; i < keys.length - 1; i++) {
+            property = property[keys[i]]
+          }
+          if (keys.length > 1) {
+            property[keys[keys.length - 1]] = item.value
+          }
+        }
+      }
+    )
   });
 
   canvasInstance.value.event_subscriber("addConnection", ({ data }) => {

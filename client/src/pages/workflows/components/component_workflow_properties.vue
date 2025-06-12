@@ -41,8 +41,7 @@
             <span class="mdi mdi-hammer-screwdriver text-lg"></span>
           </label>
           <div class="tab-content p-2 bg-neutral-950/10 " v-if="selectedNode.properties">
-            <CustomFields :value="selectedNode.properties" @change="changeProperties"
-              @button:click="handleButtonClick" />
+            <CustomFields :value="selectedNode.properties" @button:click="handleButtonClick" />
           </div>
 
           <label class="tab">
@@ -63,23 +62,20 @@
 </template>
 
 <script setup lang="ts">
-import type { INodeCanvas } from '@shared/interfaces/workflow.interface.js'
-import type { Canvas } from '../utils/canvas'
+import type { INodeCanvas } from '@shared/interface/node.interface.js'
 import { computed, onMounted, ref, watch } from 'vue'
 import { utilsStandardName, utilsValidateName } from '../../../shared/utils'
 import { useSocket } from '../../../stores/socket'
 import { useRoute } from 'vue-router'
-import Logs from './properties/logs.vue'
+import { toast } from 'vue-sonner'
 import CustomField from '../../../shared/components/customField.vue'
 import CustomFields from '../../../shared/components/customFields.vue'
-import { toast } from 'vue-sonner'
-import type { INodeCanvasNewClass } from '@shared/interface/node.interface'
 
 const route = useRoute()
 const socket = useSocket()
 
 const props = defineProps<{
-  selected: INodeCanvasNewClass[]
+  selected: INodeCanvas[]
 }>()
 
 const input_name = ref()
@@ -120,46 +116,11 @@ const change_name = () => {
   }
 }
 
-const changeProperties = ({ key, value }: { key: string; value: any }) => {
-  const flow = route.params.workflow_id
-  const node = selectedNode.value
-  socket.socketEmit(
-    'server/workflows/virtual/nodeProperty',
-    { flow, node: { id: node.id, type: node.type }, key, value: value },
-    (value: { error?: string } & any[]) => {
-      if (value?.error) return console.log(value.error)
-      if (!value || typeof value !== 'object' || Object.keys(value).length === 0) return
+// const changeProperties = ({ key, value }: { key: string; value: any }) => {
+//   const flow = route.params.workflow_id
+//   const node = selectedNode.value
 
-      // inputs/outputs
-      const inputs = value.find((item: any) => item.key === '_inputs_')
-      const outputs = value.find((item: any) => item.key === '_outputs_')
-      if (inputs) {
-        selectedNode.value.inputs = inputs.value
-        selectedNode.value.update()
-      }
-      if (outputs) {
-        selectedNode.value.outputs = outputs.value
-        selectedNode.value.update()
-        selectedNode.value.updateConnectionsOutput({
-          before: outputs.before,
-          after: outputs.value
-        })
-      }
-
-      for (const item of value) {
-        let property: any = selectedNode.value?.properties || {}
-        const keys = item.key.split('.')
-        if (keys.length > 1 && keys[0] === '_') keys.shift()
-        for (let i = 0; i < keys.length - 1; i++) {
-          property = property[keys[i]]
-        }
-        if (keys.length > 1) {
-          property[keys[keys.length - 1]] = item.value
-        }
-      }
-    }
-  )
-}
+// }
 
 const handleButtonClick = (e: any) => {
   const flow = route.params.workflow_id

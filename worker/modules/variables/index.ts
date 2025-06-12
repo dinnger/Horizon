@@ -56,8 +56,7 @@ export class VariableModule {
 				// Cambiar el node para en su meta agregar las credenciales que necesitan
 				if (value.credentials !== Object.keys(result)) {
 					value.credentials = Object.keys(result)
-					this.el.virtualModule.virtualNodeUpdate({
-						type: 'meta',
+					this.el.virtualModule.virtualNodeChangeMeta({
 						idNode,
 						value: {
 							credentials: Object.keys(result)

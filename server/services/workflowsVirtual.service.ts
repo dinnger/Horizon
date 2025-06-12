@@ -84,20 +84,18 @@ export function virtualWorkflowService() {
 		nodeUpdate: async ({
 			flow,
 			type,
-			idNode,
-			value
+			data
 		}: {
 			flow: string
-			type: 'position'
-			idNode: string
-			value: any
+			type: ICommunicationTypes
+			data: any
 		}) => {
 			if (!flow) return { error: 'No se especificó el flujo' }
 			const worker = workersList.get(flow.toLocaleLowerCase().trim())
 			if (!worker) return { error: 'No se encontró el worker' }
 			const changes = await worker.worker.getDataWorker({
-				type: 'updateNode',
-				data: { type, idNode, value }
+				type,
+				data: { type, ...data }
 			})
 			return { changes }
 		},
@@ -118,7 +116,7 @@ export function virtualWorkflowService() {
 			const worker = workersList.get(flow.toLocaleLowerCase().trim())
 			if (!worker) return { error: 'No se encontró el worker' }
 			const changes = await worker.worker.getDataWorker({
-				type: 'propertyNode',
+				type: 'virtualChangeProperties',
 				data: { node, key, value }
 			})
 			return changes

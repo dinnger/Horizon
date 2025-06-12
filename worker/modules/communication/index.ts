@@ -244,17 +244,25 @@ export class CommunicationModule {
 			return Promise.resolve()
 		})
 
-		this.subscriberMessage('updateNode', ({ data }: any) => {
+		this.subscriberMessage('virtualChangePosition', ({ data }: any) => {
 			const { type, idNode, value } = data
-			this.el.virtualModule.virtualNodeUpdate({
-				type,
+			this.el.virtualModule.virtualNodeChangePosition({
 				idNode,
 				value
 			})
 			return Promise.resolve()
 		})
 
-		this.subscriberMessage('propertyNode', async ({ data }: any) => {
+		this.subscriberMessage('virtualChangeMeta', ({ data }: any) => {
+			const { type, idNode, value } = data
+			this.el.virtualModule.virtualNodeChangeMeta({
+				idNode,
+				value
+			})
+			return Promise.resolve()
+		})
+
+		this.subscriberMessage('virtualChangeProperties', async ({ data }: any) => {
 			const { node, key, value } = data
 			const changes = await this.el.virtualModule.virtualNodePropertiesWatch({
 				node,

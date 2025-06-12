@@ -382,7 +382,7 @@ export class Canvas {
 
 	event_scroll_zoom({ deltaY }: { deltaY: number }) {
 		const tempFactor = this.canvasFactor
-		this.event_zoom({ value: deltaY > 0 ? 0.1 : -0.1 })
+		this.event_zoom({ value: deltaY > 0 ? -0.1 : 0.1 })
 		this.canvasTranslateX -= this.canvasRelativePos.x * (this.canvasFactor - tempFactor)
 		this.canvasTranslateY -= this.canvasRelativePos.y * (this.canvasFactor - tempFactor)
 	}

@@ -1,9 +1,9 @@
 import type { INodeCanvas, INodeConnections } from '@shared/interface/node.interface'
 import type { INodePropertiesType } from '@shared/interface/node.properties.interface'
+import type { Point } from './canvas_connector'
 import { utilsStandardName } from '../../../shared/utils'
 import { v4 as uuidv4 } from 'uuid'
 import { render_node, renderConnectionNodes, subscriberHelper } from './canvas_helpers'
-import type { Point } from './canvas_connector'
 import { watch } from 'vue'
 
 const canvasGrid = 20
@@ -89,6 +89,7 @@ class NewNode {
 	type: string
 	info: INodeCanvas['info']
 	properties: INodePropertiesType
+	oldProperties: INodePropertiesType
 	meta?: INodeCanvas['meta'] | undefined
 	design: INodeCanvas['design']
 	connections: INodeConnections[]
@@ -102,6 +103,7 @@ class NewNode {
 		this.info.name = utilsStandardName(value.info.name)
 		this.type = value.type
 		this.properties = value.properties
+		this.oldProperties = JSON.parse(JSON.stringify(value.properties))
 		this.meta = value.meta
 		this.design = value.design
 		this.connections = value.connections || []
@@ -110,12 +112,43 @@ class NewNode {
 		this.design.width = value.design.width || 90
 		this.design.height = this.calculateNodeHeight() || 90
 
-		watch(this.properties, (value) => {
-			console.log('watch', value)
-			// subscriberHelper().send('changeMeta', {
-			// 	id: this.id,
-			// 	meta: this.meta
-			// })
+		this.listeners()
+	}
+
+	listeners() {
+		watch(
+			this.properties,
+			(newValue) => {
+				for (const key in newValue) {
+					// Si la propiedad existía pero el valor es diferente, fue MODIFICADA
+					// (Comparamos también objetos anidados convirtiéndolos a string)
+					if (JSON.stringify(newValue[key]) !== JSON.stringify(this.oldProperties[key])) {
+						console.log(`🔄 Propiedad modificada: '${key}' Valor: ${this.oldProperties[key].value} -> ${newValue[key].value}`)
+						subscriberHelper().send('virtualChangeProperties', {
+							node: this,
+							key,
+							value: newValue[key]
+						})
+					}
+				}
+				this.oldProperties = JSON.parse(JSON.stringify(newValue))
+				// subscriberHelper().send('changeMeta', {
+				// 	id: this.id,
+				// 	meta: this.meta
+				// })
+			},
+			{
+				deep: true
+			}
+		)
+		watch(this.design, (value) => {
+			subscriberHelper().send('virtualChangePosition', {
+				node: {
+					id: this.id,
+					x: value.x,
+					y: value.y
+				}
+			})
 		})
 	}
 
@@ -223,9 +256,6 @@ class NewNode {
 		if (this.design.x === x && this.design.y === y) return
 		this.design.x = x
 		this.design.y = y
-		subscriberHelper().send('changePosition', {
-			node: this
-		})
 
 		for (const connection of this.connections) {
 			connection.pointers = undefined

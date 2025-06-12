@@ -216,15 +216,17 @@ export class VirtualModule {
 	 * @param {INode} param.node - The node object containing updated properties, meta, and coordinates.
 	 * @returns {Promise<void>} - A promise that resolves when the update is complete.
 	 */
-	async virtualNodeUpdate({ type, idNode, value }: { type: 'position' | 'meta'; idNode: string; value: any }) {
+	async virtualNodeChangeMeta({ idNode, value }: { idNode: string; value: any }) {
 		const vNode = virtualNode.get(idNode)
 		if (!vNode) return
-		if (type === 'position') {
-			vNode.design = { ...vNode.design, ...value }
-		}
-		if (type === 'meta') {
-			vNode.meta = { ...(vNode.meta || {}), ...value }
-		}
+		vNode.meta = { ...(vNode.meta || {}), ...value }
+		updateChangeStatus(true)
+	}
+
+	async virtualNodeChangePosition({ idNode, value }: { idNode: string; value: any }) {
+		const vNode = virtualNode.get(idNode)
+		if (!vNode) return
+		vNode.design = { ...vNode.design, ...value }
 		updateChangeStatus(true)
 	}
 
