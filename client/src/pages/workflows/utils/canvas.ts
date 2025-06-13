@@ -11,7 +11,7 @@ import {
 } from './canvas_helpers'
 import { pattern_dark, pattern_light } from './canvas_pattern'
 import { v4 as uuidv4 } from 'uuid'
-import { Nodes } from './canvasNode'
+import { Nodes, type ICanvasNodeNew } from './canvasNodes'
 
 export interface ILog {
 	logs?: object
@@ -21,8 +21,7 @@ export class Canvas {
 	canvas: HTMLCanvasElement
 	context: CanvasRenderingContext2D
 	ctx: CanvasRenderingContext2D
-	canvasTranslateX: number
-	canvasTranslateY: number
+	canvasTranslate: { x: number; y: number } = { x: 0, y: 0 }
 	canvasTempPosX: number
 	canvasTempPosY: number
 	canvasWidth: number
@@ -83,7 +82,7 @@ export class Canvas {
 	// Muestra la ventana de propiedades
 	events_show_properties: null | ((data: any) => void)
 	// Context Menu
-	events_context_menu: null | (({ show }: { show: boolean }) => void)
+	events_context_menu: null | ((data: { nodes: ICanvasNodeNew[]; canvasTranslate: INodeCanvas['design'] } | null) => void)
 	// Muestra la ventana de propiedades de conexiones
 	events_show_connection_context:
 		| null
@@ -107,8 +106,6 @@ export class Canvas {
 		this.canvas = canvas
 		this.context = canvas.getContext('2d') as CanvasRenderingContext2D
 		this.ctx = this.context
-		this.canvasTranslateX = 0
-		this.canvasTranslateY = 0
 		this.canvasTempPosX = 0
 		this.canvasTempPosY = 0
 		this.canvasWidth = 0
@@ -122,7 +119,7 @@ export class Canvas {
 		this.canvasGrid = 40
 		this.indexTime = 0 // valor de 0 a 100 que se incrementa en cada frame
 
-		this.nodes = new Nodes()
+		this.nodes = new Nodes({ canvasTranslate: this.canvasTranslate })
 
 		this.theme = theme
 		this.selectedNode = new Map()
@@ -178,8 +175,8 @@ export class Canvas {
 
 	background() {
 		if (!this.canvas || !this.ctx || !this.canvasPattern) return
-		const x = this.canvasTranslateX
-		const y = this.canvasTranslateY
+		const x = this.canvasTranslate.x
+		const y = this.canvasTranslate.y
 		// Relativas
 		const x_ = -x / this.canvasFactor
 		const y_ = -y / this.canvasFactor
@@ -243,8 +240,8 @@ export class Canvas {
 	// Events
 	// ============================================================================
 	event_mouse_init({ x, y, button }: INodeCanvas['design'] & { button: number }) {
-		this.canvasTempPosX = x - this.canvasTranslateX
-		this.canvasTempPosY = y - this.canvasTranslateY
+		this.canvasTempPosX = x - this.canvasTranslate.x
+		this.canvasTempPosY = y - this.canvasTranslate.y
 		this.newConnectionNode = this.nodes.selected({ relative: this.canvasRelativePos })
 
 		if (button === 0) {
@@ -263,7 +260,7 @@ export class Canvas {
 		}
 
 		if (this.events_context_menu) {
-			this.events_context_menu({ show: false })
+			this.events_context_menu(null)
 		}
 	}
 
@@ -316,7 +313,7 @@ export class Canvas {
 				this.events_show_properties(null)
 			}
 			if (this.events_context_menu) {
-				this.events_context_menu({ show: false })
+				this.events_context_menu(null)
 			}
 		}
 		if (this.events_show_connection_context) {
@@ -337,15 +334,15 @@ export class Canvas {
 	}
 
 	event_mouse_move({ x, y }: INodeCanvas['design']) {
-		this.canvasTranslateX = x - this.canvasTempPosX
-		this.canvasTranslateY = y - this.canvasTempPosY
+		this.canvasTranslate.x = x - this.canvasTempPosX
+		this.canvasTranslate.y = y - this.canvasTempPosY
 	}
 
 	event_mouse_relative({ x, y }: INodeCanvas['design']) {
 		this.canvasPosition = { x, y }
 		this.canvasRelativePos = {
-			x: Number.parseFloat(((x - this.canvasTranslateX) / this.canvasFactor).toFixed(2)),
-			y: Number.parseFloat(((y - this.canvasTranslateY) / this.canvasFactor).toFixed(2))
+			x: Number.parseFloat(((x - this.canvasTranslate.x) / this.canvasFactor).toFixed(2)),
+			y: Number.parseFloat(((y - this.canvasTranslate.y) / this.canvasFactor).toFixed(2))
 		}
 	}
 
@@ -359,7 +356,7 @@ export class Canvas {
 	event_context_menu() {
 		if (this.events_context_menu) {
 			const selected = this.nodes.getSelected()
-			this.events_context_menu({ show: selected.length > 0 })
+			this.events_context_menu({ nodes: selected, canvasTranslate: this.nodes.canvasTranslate })
 		}
 	}
 
@@ -383,8 +380,8 @@ export class Canvas {
 	event_scroll_zoom({ deltaY }: { deltaY: number }) {
 		const tempFactor = this.canvasFactor
 		this.event_zoom({ value: deltaY > 0 ? -0.1 : 0.1 })
-		this.canvasTranslateX -= this.canvasRelativePos.x * (this.canvasFactor - tempFactor)
-		this.canvasTranslateY -= this.canvasRelativePos.y * (this.canvasFactor - tempFactor)
+		this.canvasTranslate.x -= this.canvasRelativePos.x * (this.canvasFactor - tempFactor)
+		this.canvasTranslate.y -= this.canvasRelativePos.y * (this.canvasFactor - tempFactor)
 	}
 
 	event_node_position(fn: (data: { id: string; x: number; y: number }) => void) {
@@ -468,7 +465,7 @@ export class Canvas {
 			// 	}
 			// })
 		}
-		if (action === 'removeNode' && !Array.isArray(node)) {
+		if (action === 'virtualRemoveNode' && !Array.isArray(node)) {
 			// this.selectedNode.delete(node.id)
 			// const listConnection = this.connectionNodes.filter((value) => value.id_node_origin === node.id || value.id_node_destiny === node.id)
 			// for (const connection of listConnection) {
@@ -476,7 +473,7 @@ export class Canvas {
 			// }
 			this.nodes.removeNode(String(node.id))
 			if (this.events_context_menu) {
-				this.events_context_menu({ show: false })
+				this.events_context_menu(null)
 			}
 		}
 		if (action === 'duplicateNode') {
@@ -486,14 +483,14 @@ export class Canvas {
 			const nodes = Array.isArray(node) ? node : [node]
 			for (const node of nodes) {
 				const name = node.info.name.split('_').length > 1 ? node.info.name.split('_').slice(0, -1).join('_') : node.info.name
-				const newNode = {
+				const ICanvasNodeNew = {
 					...node,
 					properties: JSON.parse(JSON.stringify(node.properties)),
 					connections: []
 				}
-				newNode.info.name = name
+				ICanvasNodeNew.info.name = name
 				const id = this.actionAddNode({
-					node: newNode,
+					node: ICanvasNodeNew,
 					isManual: true
 				})
 				tempConnections.push(...JSON.parse(JSON.stringify(node.connections)))
@@ -518,7 +515,7 @@ export class Canvas {
 			// this.actionSelectNodeById({ ids })
 		}
 
-		if (this.events_context_menu) this.events_context_menu({ show: false })
+		if (this.events_context_menu) this.events_context_menu(null)
 	}
 
 	/**

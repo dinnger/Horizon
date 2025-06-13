@@ -1,5 +1,5 @@
 <template>
-  <div class=" w-full  mb-2 " v-if="element && element.show !== false && element.type">
+  <div class=" w-full  mb-2 text-[13px] " v-if="element && element.show !== false && element.type">
     <div v-if="element.name" class="text-[12px] opacity-80 mt-2 inline-block">
       {{ element.name }} {{ element.required ? '*' : '' }}
     </div>
@@ -35,8 +35,8 @@
     </div>
     <!-- switch -->
     <template v-if="element.type === 'switch'">
-      <input ref="fieldInput" type="checkbox" v-model="element.value" class="toggle" :class="element.class"
-        @change="handleChange" />
+      <input ref="fieldInput" type="checkbox" v-model="element.value" class="toggle float-right relative top-1"
+        :class="element.class" @change="handleChange" />
     </template>
     <!-- options, secret, credential -->
     <div v-if="element.type === 'options' || element.type === 'secret' || element.type === 'credential'">

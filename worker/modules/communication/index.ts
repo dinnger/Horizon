@@ -225,7 +225,7 @@ export class CommunicationModule {
 			return Promise.resolve(changes)
 		})
 
-		this.subscriberMessage('addNode', ({ data }: { data: { node: INodeCanvas; isManual: boolean } }) => {
+		this.subscriberMessage('virtualAddNode', ({ data }: { data: { node: INodeCanvas; isManual: boolean } }) => {
 			this.el.virtualModule.virtualNodeAdd({
 				node: {
 					...data.node,
@@ -236,7 +236,7 @@ export class CommunicationModule {
 			return Promise.resolve()
 		})
 
-		this.subscriberMessage('removeNode', ({ data }: any) => {
+		this.subscriberMessage('virtualRemoveNode', ({ data }: any) => {
 			const { node } = data
 			this.el.virtualModule.virtualNodeRemove({
 				idNode: node?.id

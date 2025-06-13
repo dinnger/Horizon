@@ -45,7 +45,6 @@ export class VirtualNode implements INodeCanvas {
 	design: INodeCanvas['design']
 	properties: INodeCanvas['properties']
 	meta: INode['meta']
-	connections: INodeCanvas['connections']
 	isManual?: boolean
 
 	constructor(value: INodeCanvas) {
@@ -56,7 +55,6 @@ export class VirtualNode implements INodeCanvas {
 		this.design = value.design
 		this.properties = value.properties
 		this.meta = value.meta
-		this.connections = value.connections
 	}
 
 	/**
@@ -171,7 +169,8 @@ export class VirtualModule {
 	}) {
 		if (!node.info) return
 		if (!node.id) return
-		virtualNode.set(node.id, new VirtualNode(node))
+		const newNode = new VirtualNode(node)
+		virtualNode.set(node.id, newNode)
 
 		await this.virtualNodePropertiesWatch({ node })
 		if (isNew) updateChangeStatus(true)

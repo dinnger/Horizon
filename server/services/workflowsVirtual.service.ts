@@ -56,7 +56,7 @@ export function virtualWorkflowService() {
 			const worker = workersList.get(flow.toLocaleLowerCase().trim())
 			if (!worker) return { error: 'No se encontró el worker' }
 			const changes = await worker.worker.getDataWorker({
-				type: 'addNode',
+				type: 'virtualAddNode',
 				data: { node }
 			})
 			return { changes }
@@ -74,7 +74,7 @@ export function virtualWorkflowService() {
 			const worker = workersList.get(flow.toLocaleLowerCase().trim())
 			if (!worker) return { error: 'No se encontró el worker' }
 			const changes = await worker.worker.getDataWorker({
-				type: 'removeNode',
+				type: 'virtualRemoveNode',
 				data: { idNode: node.id }
 			})
 			return { changes }

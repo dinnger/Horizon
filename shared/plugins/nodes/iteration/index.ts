@@ -20,6 +20,15 @@ export default class implements INodeClass {
 		}
 	}
 	properties: IProperties = {
+		type: {
+			name: 'Tipo de iteración:',
+			type: 'options',
+			options: [
+				{ label: 'Automatico', value: 'auto' },
+				{ label: 'Manual', value: 'manual' }
+			],
+			value: 'auto'
+		},
 		valor: {
 			name: 'Valor de la iteración:',
 			type: 'code',

@@ -1,90 +1,14 @@
 import type { INodeCanvas, INodeConnections } from '@shared/interface/node.interface'
 import type { INodePropertiesType } from '@shared/interface/node.properties.interface'
 import type { Point } from './canvas_connector'
-import { utilsStandardName } from '../../../shared/utils'
-import { v4 as uuidv4 } from 'uuid'
+import { utilsStandardName, utilsValidateName } from '../../../shared/utils'
 import { render_node, renderConnectionNodes, subscriberHelper } from './canvas_helpers'
 import { watch } from 'vue'
+import { v4 as uuidv4 } from 'uuid'
+import type { Nodes } from './canvasNodes'
 
-const canvasGrid = 20
-
-export class Nodes {
-	private nodes: { [key: string]: NewNode } = {}
-	getNode(data: { id: string }) {
-		const node = this.nodes[data.id]
-		if (!node) throw new Error('No se encontró el nodo')
-		return this.nodes[data.id]
-	}
-	addNode(node: INodeCanvas, isManual?: boolean) {
-		node.id = node.id || uuidv4()
-		if (isManual) {
-			subscriberHelper().send('addNode', { node, isManual })
-		}
-		this.nodes[node.id] = new NewNode(node)
-		return this.nodes[node.id]
-	}
-	addConnection(connection: INodeConnections) {
-		const id = typeof connection.nodeOrigin === 'string' ? connection.nodeOrigin : connection.nodeOrigin?.id || ''
-		if (!this.nodes[id]) return console.error('No se encontró el nodo', id)
-
-		if (typeof connection.nodeOrigin === 'string') {
-			connection.nodeOrigin = this.nodes[connection.nodeOrigin]
-		}
-
-		if (typeof connection.nodeDestiny === 'string') {
-			connection.nodeDestiny = this.nodes[connection.nodeDestiny]
-		}
-
-		this.nodes[id].addConnection(connection)
-	}
-	removeNode(id: string) {
-		delete this.nodes[id]
-	}
-	render({ ctx }: { ctx: CanvasRenderingContext2D }) {
-		for (const node of Object.values(this.nodes)) {
-			// const selected = this.selectedNode.has(node.id)
-			node.renderConnections({ ctx, nodes: this.nodes })
-			node.render({ ctx })
-		}
-	}
-	selected({ relative }: { relative: { x: number; y: number } }) {
-		const x = relative.x
-		const y = relative.y
-		let newConnection = null
-		for (const node of Object.values(this.nodes)) {
-			const connector = node.setSelected({ pos: { x, y }, relative })
-			if (connector) newConnection = connector
-		}
-		return newConnection
-	}
-	selectedMultiple({ range, relative }: { range: { x1: number; y1: number; x2: number; y2: number }; relative: { x: number; y: number } }) {
-		const xMin = Math.min(range.x1, range.x2)
-		const xMax = Math.max(range.x1, range.x2)
-		const yMin = Math.min(range.y1, range.y2)
-		const yMax = Math.max(range.y1, range.y2)
-		for (const node of Object.values(this.nodes)) {
-			node.setSelected({ pos: { x: xMin, y: yMin, x2: xMax, y2: yMax }, relative })
-		}
-	}
-	getSelected() {
-		return Object.values(this.nodes).filter((f) => f.getSelected())
-	}
-	getNodes() {
-		return this.nodes
-	}
-	move({ relative }: { relative: { x: number; y: number } }) {
-		for (const node of this.getSelected()) {
-			this.nodes[node.id || -1].move({ relative })
-		}
-	}
-	clear() {
-		for (const node of Object.values(this.nodes)) {
-			node.setSelected({ relative: { x: 0, y: 0 } })
-		}
-	}
-}
-
-class NewNode {
+export class NewNode {
+	private el: Nodes
 	id: string
 	type: string
 	info: INodeCanvas['info']
@@ -96,11 +20,13 @@ class NewNode {
 	relativePos = { x: 0, y: 0 }
 	isSelected = false
 	isMove = false
+	public isLockedProperty = false
 
-	constructor(value: INodeCanvas) {
+	constructor(value: INodeCanvas, el: Nodes) {
+		this.el = el
 		this.id = value.id || uuidv4()
 		this.info = value.info
-		this.info.name = utilsStandardName(value.info.name)
+		this.info.name = utilsValidateName({ text: utilsStandardName(value.info.name), nodes: Object.values(this.el.nodes) })
 		this.type = value.type
 		this.properties = value.properties
 		this.oldProperties = JSON.parse(JSON.stringify(value.properties))
@@ -111,16 +37,20 @@ class NewNode {
 		this.design.y = value.design.y || 0
 		this.design.width = value.design.width || 90
 		this.design.height = this.calculateNodeHeight() || 90
-
 		this.listeners()
 	}
 
-	listeners() {
+	private calculateNodeHeight() {
+		const widthByInputs = Math.max(35 + (this.info.connectors?.inputs?.length || 0) * 20, 85)
+		const widthByOutputs = Math.max(35 + (this.info.connectors?.outputs?.length || 0) * 20, 85)
+		return Math.max(widthByInputs, widthByOutputs)
+	}
+
+	private listeners() {
 		watch(
 			this.properties,
 			(newValue) => {
-				const isLockedProperty = (this as any).isLockedProperty
-				if (isLockedProperty) {
+				if (this.isLockedProperty) {
 					this.oldProperties = JSON.parse(JSON.stringify(newValue))
 					return
 				}
@@ -150,10 +80,13 @@ class NewNode {
 		})
 	}
 
-	calculateNodeHeight() {
-		const widthByInputs = Math.max(35 + (this.info.connectors?.inputs?.length || 0) * 20, 85)
-		const widthByOutputs = Math.max(35 + (this.info.connectors?.outputs?.length || 0) * 20, 85)
-		return Math.max(widthByInputs, widthByOutputs)
+	changeName(name: string): boolean {
+		const standardName = utilsStandardName(name)
+		const nodesWithoutMe = Object.values(this.el.nodes).filter((f) => f.id !== this.id)
+		const newName = utilsValidateName({ text: standardName, nodes: nodesWithoutMe })
+		if (newName !== standardName) return false
+		this.info.name = newName
+		return true
 	}
 
 	addConnection(element: INodeConnections & { isManual?: boolean }) {
@@ -180,6 +113,28 @@ class NewNode {
 				isManual: undefined
 			}
 			subscriberHelper().send('addConnection', data)
+		}
+	}
+
+	deleteConnections({ id }: { id?: string }) {
+		subscriberHelper().send('removeConnection', { id })
+		this.connections = this.connections.filter((f) => f.id !== id)
+	}
+
+	deleteAllConnections({ id }: { id?: string } = {}) {
+		const list = id ? this.connections.filter((f) => f.id === id) : this.connections
+		for (const connection of list) {
+			console.log(connection)
+			if (typeof connection.nodeOrigin === 'string') {
+				this.el.nodes[connection.nodeOrigin].deleteConnections({ id: connection.id })
+			} else {
+				if (connection.nodeOrigin) (connection.nodeOrigin as NewNode).deleteConnections({ id: connection.id })
+			}
+			if (typeof connection.nodeDestiny === 'string') {
+				this.el.nodes[connection.nodeDestiny].deleteConnections({ id: connection.id })
+			} else {
+				if (connection.nodeDestiny) (connection.nodeDestiny as NewNode).deleteConnections({ id: connection.id })
+			}
 		}
 	}
 
@@ -247,8 +202,8 @@ class NewNode {
 		let x = relative.x - this.relativePos.x
 		let y = relative.y - this.relativePos.y
 		// x and y only divisible by 20
-		x = Math.round(x / canvasGrid) * canvasGrid
-		y = Math.round(y / canvasGrid) * canvasGrid
+		x = Math.round(x / this.el.canvasGrid) * this.el.canvasGrid
+		y = Math.round(y / this.el.canvasGrid) * this.el.canvasGrid
 		if (x === this.design.x && y === this.design.y) return
 
 		if (this.design.x === x && this.design.y === y) return
@@ -258,6 +213,18 @@ class NewNode {
 		for (const connection of this.connections) {
 			connection.pointers = undefined
 		}
+	}
+
+	delete() {
+		this.deleteAllConnections()
+		delete this.el.nodes[this.id]
+		this.isSelected = false
+		subscriberHelper().send('virtualRemoveNode', { node: this })
+	}
+
+	duplicate() {
+		this.isSelected = false
+		this.el.duplicateNode({ id: this.id })
 	}
 
 	render({ ctx }: { ctx: CanvasRenderingContext2D }) {

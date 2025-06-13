@@ -9,14 +9,14 @@
       <component_canvas_new v-if="new_node_start" :new_node_start="new_node_start" :data_nodes="data_nodes"
         :canvasInstance="canvasInstance">
       </component_canvas_new>
-
-      <component_workflow_context v-if="context_menu_show" :canvasInstance="canvasInstance">
+      <component_workflow_context v-if="selectedContext && selectedContext.length > 0"
+        :selectedContext="selectedContext" :selectedCanvasTranslate="selectedCanvasTranslate" :refresh="context_menu">
       </component_workflow_context>
       <component_workflow_context_connection v-if="connection_properties_context" :canvasInstance="canvasInstance"
         :connection_properties_context="connection_properties_context">
       </component_workflow_context_connection>
 
-      <component_workflow_properties v-if="property_show" :selected="property_show.selected">
+      <component_workflow_properties v-if="selected" :selected="selected">
       </component_workflow_properties>
     </template>
   </div>
@@ -26,6 +26,7 @@
 import type {
   INodeCanvas
 } from "@shared/interface/node.interface.js";
+import type { ICanvasNodeNew } from '../utils/canvasNodes.js'
 import { onMounted, onUnmounted, ref, watch } from "vue";
 import { Canvas } from "../utils/canvas";
 import { useMain } from "../../../stores/main";
@@ -53,8 +54,9 @@ const canvas = ref<HTMLCanvasElement | null>(null);
 const theme = ref<string>(main.theme);
 const canvasInstance = ref<Canvas>();
 const select_type = ref<"cursor" | "move">("cursor");
-const property_show = ref<{ selected: INodeCanvas } | null>(null);
-const context_menu_show = ref(false);
+const selected = ref<ICanvasNodeNew[]>();
+const selectedContext = ref<ICanvasNodeNew[]>();
+const selectedCanvasTranslate = ref<INodeCanvas['design']>();
 const connection_properties_context = ref<{
   id: string;
   nodeOrigin: INodeCanvas;
@@ -131,7 +133,7 @@ const canvas_listener_wheel = (e: WheelEvent) => {
 };
 
 const document_listener_mouse_up = (e: MouseEvent) => {
-  if (!canvasInstance.value || property_show.value) return;
+  if (!canvasInstance.value || selected.value) return;
   e.preventDefault();
   if (e.button === 1) select_type.value = "cursor";
   canvasInstance.value.event_mouse_end({ all: true });
@@ -182,12 +184,18 @@ onMounted(() => {
     }
   };
 
-  canvasInstance.value.events_show_properties = (data: { selected: INodeCanvas[] } | null) => {
-    property_show.value = data;
+  canvasInstance.value.events_show_properties = (data: { selected: ICanvasNodeNew[] }) => {
+    selected.value = data?.selected;
   };
 
-  canvasInstance.value.events_context_menu = ({ show }) => {
-    context_menu_show.value = show;
+  canvasInstance.value.events_context_menu = (data) => {
+    if (!data) {
+      (selectedContext.value as any) = null
+      return
+    }
+    const { nodes, canvasTranslate } = data
+    selectedContext.value = nodes as ICanvasNodeNew[];
+    selectedCanvasTranslate.value = canvasTranslate
   };
 
   canvasInstance.value.events_show_connection_context = (data) => {
@@ -213,7 +221,7 @@ onMounted(() => {
     });
   }
 
-  canvasInstance.value.event_subscriber(["dataNode", 'statsNode', 'addNode', 'removeNode'], ({ event, data }) => {
+  canvasInstance.value.event_subscriber(["dataNode", 'statsNode', 'virtualAddNode', 'virtualRemoveNode'], ({ event, data }) => {
     virtualServer({ event, data })
   });
 
@@ -236,7 +244,7 @@ onMounted(() => {
   canvasInstance.value.event_subscriber("virtualChangeProperties", ({ data }) => {
     const flow = props.uid
     const { node, key, value } = data
-    const arr = property_show.value?.selected
+    const arr = selected.value
     if (!arr || !Array.isArray(arr) || arr.length === 0) return
     const selectedNode = arr[0]
     socket.socketEmit(
