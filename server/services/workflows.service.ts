@@ -137,7 +137,7 @@ export function workflowsService() {
 			uid: string
 			uid_project?: string
 			workspace_id?: number
-		}): Promise<any> => {
+		}): Promise<IWorkflow | null | { error: string }> => {
 			try {
 				const projectWhere: any = { id_status: 1 }
 				if (workspace_id) {
@@ -195,20 +195,9 @@ export function workflowsService() {
 					workflows.flow.properties = Object.keys(properties).length > 0 ? properties : defaultProperties
 					workflows.flow.nodes = nodes
 					workflows.flow.connections = connections
-					return workflows.dataValues
 				}
 				return {
-					...workflows.dataValues,
-					flow: {
-						info: workflows.flow?.info,
-						properties: defaultProperties,
-						nodes: {},
-						connections: [],
-						env: {
-							secrets: {},
-							variables: {}
-						}
-					}
+					...workflows.dataValues.flow
 				}
 			} catch (error) {
 				let message = 'Error'
@@ -256,14 +245,9 @@ export function workflowsService() {
 			// FLOW
 			// =========================================================================
 			const flow: IWorkflow = {
-				info: {
-					uid: worker.uidFlow,
-					name: worker.nameFlow,
-					description: '',
-					version: '',
-					author: '',
-					date: ''
-				},
+				uid: worker.uidFlow,
+				name: worker.nameFlow,
+				version: '0.0.1',
 				project: flowProject,
 				properties: properties || defaultProperties,
 				nodes: flowNodes,

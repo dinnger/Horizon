@@ -102,11 +102,6 @@ const change_name = () => {
   lock_name.value = true
 }
 
-// const changeProperties = ({ key, value }: { key: string; value: any }) => {
-//   const flow = route.params.workflow_id
-//   const node = selectedNode.value
-
-// }
 
 const handleButtonClick = (e: any) => {
   const flow = route.params.workflow_id

@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import type { INode } from '@shared/interface/node.interface.js';
+import type { INodeCanvas } from '@shared/interface/node.interface.js';
 import type { Canvas } from './utils/canvas';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
@@ -48,7 +48,7 @@ const socket = useSocket()
 const route = useRoute()
 
 const data_workflow = ref()
-const data_nodes = ref<INode[]>([])
+const data_nodes = ref<INodeCanvas[]>([])
 const componentCanvas = ref<InstanceType<typeof component_workflow_canvas>>()
 const canvasInstance = ref<Canvas>()
 
@@ -58,7 +58,8 @@ onMounted(() => {
   data_nodes.value = []
   socket.socketEmit('server/workflows/initialize', { uid }, (value) => {
     socket.socketJoin(uid)
-    data_workflow.value = value.flow
+    console.log(value)
+    data_workflow.value = value
     toast.success(`Workflow ${data_workflow?.value?.name} cargado exitosamente`)
   })
 

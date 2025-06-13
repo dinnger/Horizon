@@ -29,7 +29,7 @@ export default class implements INodeMicroservice {
 	// CONNECTION
 	// ======================================================================
 	async connection({ name, schema, autoAck }: { name: string; schema: string; autoAck: boolean }) {
-		const queue = `${this.exchange}-${this.context.info.name}-${name}`
+		const queue = `${this.exchange}-${this.context.name}-${name}`
 
 		if (!this.amqpConnection) {
 			this.amqpConnection = await amqplib.connect(this.host)
@@ -44,7 +44,7 @@ export default class implements INodeMicroservice {
 				await this.channel.assertQueue(queue, {
 					durable: true
 				})
-				await this.channel.bindQueue(queue, this.exchange, `${this.context.info.name}.${name}`)
+				await this.channel.bindQueue(queue, this.exchange, `${this.context.name}.${name}`)
 				this.channel.prefetch(1)
 
 				this.channel.consume(queue, (msg: any) => {

@@ -10,36 +10,9 @@ interface Canvas_Interface {
 	show: boolean
 }
 
-interface Render_Interface {
-	nodes: { [key: string]: INodeCanvas }
-	selectedNode: Map<
-		string,
-		{
-			node: INodeCanvas
-			relative_pos: { x: number; y: number }
-		}
-	>
-	theme: string
-	ctx: CanvasRenderingContext2D
-}
-
 interface Render_Select_Interface {
 	canvasSelect: Canvas_Interface
 	theme: string
-	ctx: CanvasRenderingContext2D
-}
-
-interface Event_Select_Nodes_Interface {
-	selectedNode: Map<
-		string,
-		{
-			node: INodeCanvas
-			relative_pos: { x: number; y: number }
-		}
-	>
-	canvasSelect: Canvas_Interface
-	canvasRelativePos: { x: number; y: number }
-	nodes: { [key: string]: INodeCanvas }
 	ctx: CanvasRenderingContext2D
 }
 
@@ -63,7 +36,7 @@ interface Interface_Bezier {
 }
 
 // Animation List
-// let animationList: { id: string; outputName: string; time: number }[] = []
+let animationList: { id: string; outputName: string; time: number }[] = []
 
 let indexTime = 0
 
@@ -178,7 +151,7 @@ export function render_node({
 	// icon
 	ctx.fillStyle = selected ? invert_background : node.info.color
 	ctx.font = '40px material-icons, sans-serif'
-	ctx.fillText(node.info.icon, node.design.x + 25, node.design.y + 50)
+	ctx.fillText(node.info.icon, node.design.x + node.design.width! / 2 - 20, node.design.y + 50)
 	// name
 	ctx.font = '10px "Comfortaa Variable"'
 	ctx.textAlign = 'center'
@@ -199,12 +172,7 @@ export function render_node({
 	// render_outputs({ selected, node, ctx, theme })
 }
 
-function renderConnectors({
-	selected,
-	node,
-	ctx,
-	theme
-}: { selected: boolean; node: INodeCanvas; ctx: CanvasRenderingContext2D; theme: string }) {
+function renderConnectors({ node, ctx, theme }: { selected: boolean; node: INodeCanvas; ctx: CanvasRenderingContext2D; theme: string }) {
 	if (!node.info.connectors) return
 	// console.log(Object.keys(node.connectors))
 	for (const [type, connector] of Object.entries(node.info.connectors)) {
@@ -253,89 +221,6 @@ function renderConnectors({
 		}
 	}
 }
-
-/**
- * Renders the inputs of a node on a canvas.
- *
- * @param {Object} params - The parameters for rendering inputs.
- * @param {INode} params.node - The node object containing input data and position.
- * @param {CanvasRenderingContext2D} params.ctx - The canvas rendering context.
- * @param {string} params.theme - The theme string, either 'dark' or 'light'.
- */
-// function render_inputs({
-// 	selected,
-// 	node,
-// 	ctx,
-// 	theme
-// }: {
-// 	selected: boolean
-// 	node: INodeCanvas
-// 	ctx: CanvasRenderingContext2D
-// 	theme: string
-// }) {
-// 	// inputs
-// 	for (const [key, input] of Object.entries(node.inputs)) {
-// 		ctx.beginPath()
-
-// 		ctx.roundRect(node.design.x - 5, node.design.y + (25 + Number.parseInt(key) * 20), 8, 10, 2)
-// 		if (node.inputs.length > 0) {
-// 			ctx.textAlign = 'right'
-// 			ctx.fillStyle = theme === 'dark' ? '#fff' : '#333'
-// 			ctx.font = '9px "Comfortaa Variable"'
-// 			ctx.fillText(input, node.design.x, node.design.y + (24 + Number.parseInt(key) * 20))
-// 		}
-// 		ctx.fillStyle = node.color
-// 		ctx.textAlign = 'left'
-// 		ctx.fill()
-// 		ctx.closePath()
-// 	}
-// }
-
-/**
- * Renders the outputs of a node on a canvas.
- *
- * @param {Object} params - The parameters for rendering outputs.
- * @param {INode} params.node - The node containing the outputs to render.
- * @param {CanvasRenderingContext2D} params.ctx - The canvas rendering context.
- * @param {string} params.theme - The theme of the canvas, either 'dark' or 'light'.
- */
-// function render_outputs({
-// 	selected,
-// 	node,
-// 	ctx,
-// 	theme
-// }: {
-// 	selected: boolean
-// 	node: INodeCanvas
-// 	ctx: CanvasRenderingContext2D
-// 	theme: string
-// }) {
-// 	// outputs
-// 	for (const [key, output] of Object.entries(node.outputs)) {
-// 		if (node.info) {
-// 			if (node.info.outputs.data[output] && node.info.outputs.data[output].changes > 0) {
-// 				animationList.push({
-// 					id: node.id,
-// 					outputName: output,
-// 					time: 60
-// 				})
-// 				node.info.outputs.data[output].changes = 0
-// 			}
-// 		}
-
-// 		ctx.beginPath()
-// 		ctx.roundRect(node.design.x + node.design.width - 3, node.design.y + (25 + Number.parseInt(key) * 20), 8, 10, 2)
-// 		if (node.outputs.length > 0) {
-// 			ctx.textAlign = 'left'
-// 			ctx.fillStyle = theme === 'dark' ? '#fff' : '#333'
-// 			ctx.font = '9px "Comfortaa Variable"'
-// 			ctx.fillText(output, node.design.x + node.design.width, node.design.y + (24 + Number.parseInt(key) * 20))
-// 		}
-// 		ctx.fillStyle = node.color
-// 		ctx.fill()
-// 		ctx.closePath()
-// 	}
-// }
 
 /**
  * Calcula la longitud total del camino formado por un arreglo de puntos.
@@ -410,24 +295,25 @@ function drawCircle(ctx: CanvasRenderingContext2D, position: Point, radius: numb
  *
  * @param {CanvasRenderingContext2D} ctx - The canvas rendering context to draw on.
  */
-// export function renderAnimation(nodes: { [key: string]: INodeCanvas }, ctx: CanvasRenderingContext2D) {
-// 	// console.log(connectionNodes)
-// 	for (const item of animationList) {
-// 		const node = nodes[item.id]
-// 		for (const connection of node.connections.filter((f) => f.output === item.outputName && f.id_node_origin === item.id)) {
-// 			if (!connection.pointers) return
+export function renderAnimation(nodes: { [key: string]: INodeCanvas }, ctx: CanvasRenderingContext2D) {
+	// console.log(connectionNodes)
+	for (const item of animationList) {
+		const node = nodes[item.id]
+		if (!node || !node.connections) return
+		for (const connection of node.connections.filter((f) => f.connectorName === item.outputName && f.idNodeOrigin === item.id)) {
+			if (!connection.pointers) return
 
-// 			const percentage = 1 - (item.time * 1) / 60
-// 			// console.log(percentage)
-// 			const position = getPointAtPercentage(connection.pointers, percentage)
-// 			if (connection.colorGradient) {
-// 				drawCircle(ctx, position, 5, connection.colorGradient)
-// 			}
-// 		}
-// 		item.time--
-// 	}
-// 	animationList = animationList.filter((f) => f.time > 0)
-// }
+			const percentage = 1 - (item.time * 1) / 60
+			// console.log(percentage)
+			const position = getPointAtPercentage(connection.pointers, percentage)
+			if (connection.colorGradient) {
+				drawCircle(ctx, position, 5, connection.colorGradient)
+			}
+		}
+		item.time--
+	}
+	animationList = animationList.filter((f) => f.time > 0)
+}
 
 /**
  * Renders a selection rectangle on the canvas and triggers the event for selected nodes.
@@ -508,17 +394,16 @@ export function renderSelected({ canvasSelect, theme, ctx }: Render_Select_Inter
  */
 export function drawNodeConnectionPreview({
 	node_connection_new,
-	type,
 	index,
 	canvasRelativePos,
 	nodes,
 	ctx
 }: {
-	node_connection_new: INodeCanvasNewClass
+	node_connection_new: INodeCanvas
 	type: 'input' | 'output' | 'callback'
 	index: number
 	canvasRelativePos: { x: number; y: number }
-	nodes: { [key: string]: INodeCanvasNewClass }
+	nodes: { [key: string]: INodeCanvas }
 	ctx: CanvasRenderingContext2D
 }) {
 	const node_origin = node_connection_new
@@ -550,7 +435,7 @@ export function drawNodeConnectionPreview({
 	})
 	draw_bezier({
 		ctx,
-		color: node_origin.color,
+		color: node_origin.info.color,
 		bezier_value,
 		is_dashed: node_destiny?.input_index === null
 	})
@@ -581,8 +466,8 @@ export function renderConnectionNodes({
 }) {
 	let connector: Point[] = []
 	if (connection.pointers) connector = connection.pointers
-	const nodeOrigin = connection.nodeOrigin || connection.nodeOrigin
-	const nodeDestiny = connection.nodeDestiny || connection.nodeDestiny
+	const nodeOrigin = nodes[connection.idNodeOrigin!]
+	const nodeDestiny = nodes[connection.idNodeDestiny]
 	if (!nodeOrigin || !nodeDestiny || typeof nodeOrigin === 'string' || typeof nodeDestiny === 'string') return
 	if (!connection.pointers) {
 		const shapeA = {

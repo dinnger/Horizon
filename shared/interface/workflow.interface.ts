@@ -4,10 +4,7 @@ import type { IPropertiesType } from './node.properties.interface.js'
 interface IWorkflowInfo {
 	uid: string
 	name: string
-	description: string
 	version: string
-	author: string
-	date: string
 }
 
 type IWorkflowProject =
@@ -32,8 +29,7 @@ export type IWorkflowPropertyType = IPropertiesType
 export interface IWorkflowContext extends Omit<IWorkflow, 'connections'> {
 	currentNode?: INodeCanvas
 }
-export interface IWorkflow {
-	info: IWorkflowInfo
+export interface IWorkflow extends IWorkflowInfo {
 	project?: IWorkflowProject
 	env: IWorkflowEnv
 	connections: INodeConnections[]

@@ -37,8 +37,8 @@ export interface INodeConnections {
 	id?: string
 	connectorType: 'input' | 'output' | 'callback'
 	connectorName: string
-	nodeOrigin?: INodeCanvas | string
-	nodeDestiny: INodeCanvas | string
+	idNodeOrigin?: string
+	idNodeDestiny: string
 	connectorDestinyType: 'input' | 'output' | 'callback' // connector output
 	connectorDestinyName: string // connector input
 	pointers?: Point[]

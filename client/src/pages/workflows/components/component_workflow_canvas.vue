@@ -146,14 +146,14 @@ const context_menu = () => {
 
 onMounted(() => {
   if (!canvas.value) return;
-  const flow = props.data_workflow;
+  const workflow = props.data_workflow;
   canvasInstance.value = new Canvas({
     canvas: canvas.value,
     theme: theme.value,
   });
   canvasInstance.value.init({
-    nodes: flow?.nodes,
-    connections: flow?.connections
+    nodes: workflow?.nodes,
+    connections: workflow?.connections
   });
 
   canvasInstance.value.event_resize();
@@ -289,7 +289,7 @@ onMounted(() => {
     )
   });
 
-  canvasInstance.value.event_subscriber("addConnection", ({ data }) => {
+  canvasInstance.value.event_subscriber("virtualAddConnection", ({ data }) => {
     socket.socketEmit("server/workflows/virtual/connectionAdd", {
       flow: props.uid,
       data
@@ -310,8 +310,10 @@ onMounted(() => {
     }
   );
 
+
+  console.log({ flow: workflow })
   // Nodes
-  if (!flow?.nodes || Object.entries(flow.nodes).length === 0) {
+  if (!workflow?.nodes || Object.entries(workflow.nodes).length === 0) {
     const node: INodeCanvas | null =
       props.data_nodes.find((f) => f.type === "workflow_init") || null;
     if (!node) return;

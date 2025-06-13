@@ -17,8 +17,8 @@ export default class implements INodeMicroservice {
 	context: INodeMicroservice['context']
 
 	constructor({ context, execute, outputData }: INodeMicroservice) {
-		this.flowUid = context.info.uid
-		this.flowName = context.info.name
+		this.flowUid = context.uid
+		this.flowName = context.name
 		this.client = null
 		// this.timeoutTimer = null
 		this.execute = execute

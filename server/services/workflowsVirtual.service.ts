@@ -156,7 +156,7 @@ export function virtualWorkflowService() {
 			const worker = workersList.get(flow.toLocaleLowerCase().trim())
 			if (!worker) return { error: 'No se encontró el worker' }
 			const changes = await worker.worker.getDataWorker({
-				type: 'addConnection',
+				type: 'virtualAddConnection',
 				data
 			})
 			return { changes }

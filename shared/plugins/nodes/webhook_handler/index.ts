@@ -317,7 +317,7 @@ export default class implements INodeClass {
 
 		// Generar URL
 		const base = context.properties.basic?.router || ''
-		const prefix = `/f_${context.info.uid}/api`
+		const prefix = `/f_${context.uid}/api`
 
 		let endpoint: string = String(this.properties.endpoint.value).toString() || ''
 		if (endpoint[0] === '/') endpoint = endpoint.slice(1)
@@ -354,7 +354,7 @@ export default class implements INodeClass {
 				prefix = `/api/f_${environment.subFlowParent}`
 			} else {
 				base = context.properties?.basic?.router || ''
-				prefix = `/f_${context.info.uid}/api`
+				prefix = `/f_${context.uid}/api`
 			}
 			const timeout = this.properties.timeout.value || 50
 			const serverBase = environment.SERVER_BASE || ''

@@ -134,30 +134,28 @@ export class NodeModule {
 	 * @param {string} params.id_node_destiny - The ID of the destination node.
 	 * @param {string} params.input - The input of the destination node.
 	 */
-	addEdge({ id, nodeOrigin, nodeDestiny, connectorType, connectorName, connectorDestinyType, connectorDestinyName }: INodeConnections) {
+	addEdge({ id, idNodeOrigin, idNodeDestiny, connectorType, connectorName, connectorDestinyType, connectorDestinyName }: INodeConnections) {
 		if (!this.el) return
-		const idOrigin = typeof nodeOrigin === 'string' ? nodeOrigin : nodeOrigin?.id!
-		const idDestiny = typeof nodeDestiny === 'string' ? nodeDestiny : nodeDestiny?.id!
-		if (!this.connections[idOrigin]) this.connections[idOrigin] = {}
-		if (!this.connections[idOrigin][`${connectorType}:${connectorName}`])
-			this.connections[idOrigin][`${connectorType}:${connectorName}`] = []
-		this.connections[idOrigin][`${connectorType}:${connectorName}`].push({
-			idNodeDestiny: idDestiny,
+		if (!this.connections[idNodeOrigin!]) this.connections[idNodeOrigin!] = {}
+		if (!this.connections[idNodeOrigin!][`${connectorType}:${connectorName}`])
+			this.connections[idNodeOrigin!][`${connectorType}:${connectorName}`] = []
+		this.connections[idNodeOrigin!][`${connectorType}:${connectorName}`].push({
+			idNodeDestiny: idNodeDestiny,
 			connectorDestinyType,
 			connectorDestinyName
 		})
 
 		// Guardar los nodos que se conectan a un nodo
-		if (!this.connectionsInputs[idDestiny]) this.connectionsInputs[idDestiny] = new Set()
-		if (!this.connectionsOutputs[idOrigin]) this.connectionsOutputs[idOrigin] = new Set()
-		this.connectionsInputs[idDestiny].add(idOrigin)
-		this.connectionsOutputs[idOrigin].add(idDestiny)
+		if (!this.connectionsInputs[idNodeDestiny]) this.connectionsInputs[idNodeDestiny] = new Set()
+		if (!this.connectionsOutputs[idNodeOrigin!]) this.connectionsOutputs[idNodeOrigin!] = new Set()
+		this.connectionsInputs[idNodeDestiny].add(idNodeOrigin!)
+		this.connectionsOutputs[idNodeOrigin!].add(idNodeDestiny)
 		// Iniciar propiedades virtuales para manipulación de datos
 		if (this.el.isDev) {
 			this.el.virtualModule.virtualConnectionAdd({
 				id,
-				nodeOrigin,
-				nodeDestiny,
+				idNodeOrigin,
+				idNodeDestiny,
 				connectorType,
 				connectorName,
 				connectorDestinyType,

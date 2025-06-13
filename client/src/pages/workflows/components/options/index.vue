@@ -15,26 +15,25 @@
 </template>
 
 <script setup lang="ts">
-import type { IWorkflowProperties, IWorkflowWorkerEntity } from '@shared/interfaces/workflow.interface.js'
 import type { Canvas } from '../../utils/canvas'
 import { useSocket } from '../../../../stores/socket'
 import { toast } from 'vue-sonner'
 import { onMounted, ref } from 'vue'
 // biome-ignore lint/style/useImportType: <explanation>
 import Component_Config from './config.vue'
+import type { IWorkflow } from '@shared/interface/workflow.interface'
 
 const socket = useSocket()
 const props = defineProps<{
-  workflow: IWorkflowWorkerEntity
+  workflow: IWorkflow
   canvasInstance: Canvas
 }>()
 const config = ref<InstanceType<typeof Component_Config>>()
 const saveLoading = ref(false)
 const deployLoading = ref(false)
-const properties = ref<IWorkflowProperties>({
+const properties = ref<IWorkflow['properties']>({
   basic: {
-    router: '/',
-    variables: {}
+    router: '/'
   },
   deploy: null
 })
@@ -68,7 +67,7 @@ const loadDeploy = () => {
   })
 }
 
-const saveConfig = ({ data }: { data: IWorkflowProperties }) => {
+const saveConfig = ({ data }: { data: IWorkflow['properties'] }) => {
   properties.value.basic = data.basic
   properties.value.deploy = data.deploy
 
@@ -84,7 +83,7 @@ const saveConfig = ({ data }: { data: IWorkflowProperties }) => {
 const save = () => {
   if (!props.canvasInstance) return
   saveLoading.value = true
-
+  console.log(props.workflow)
   return new Promise((resolve) => {
     socket.socketEmit(
       'server/workflows/save',

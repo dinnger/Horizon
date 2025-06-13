@@ -16,7 +16,7 @@ export type ICommunicationTypes =
 	| 'dataNode'
 	| 'statsNode'
 	| 'virtualChangeProperties'
-	| 'addConnection'
+	| 'virtualAddConnection'
 	| 'removeConnection'
 	// Actions
 	| 'actionDebug'

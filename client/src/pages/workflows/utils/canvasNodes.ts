@@ -25,16 +25,7 @@ export class Nodes {
 		const newNode = this.nodes[node.id]
 		if (isManual) {
 			subscriberHelper().send('virtualAddNode', {
-				node: {
-					id: newNode.id,
-					type: newNode.type,
-					info: { ...newNode.info },
-					properties: newNode.properties,
-					design: {
-						x: newNode.design.x + this.canvasGrid * 2,
-						y: newNode.design.y + this.canvasGrid * 2
-					}
-				},
+				node: newNode.get(),
 				isManual
 			})
 		}
@@ -58,16 +49,8 @@ export class Nodes {
 		)
 	}
 	addConnection(connection: INodeConnections) {
-		const id = typeof connection.nodeOrigin === 'string' ? connection.nodeOrigin : connection.nodeOrigin?.id || ''
+		const id = connection.idNodeOrigin || ''
 		if (!this.nodes[id]) return console.error('No se encontró el nodo', id)
-
-		if (typeof connection.nodeOrigin === 'string') {
-			connection.nodeOrigin = this.nodes[connection.nodeOrigin]
-		}
-
-		if (typeof connection.nodeDestiny === 'string') {
-			connection.nodeDestiny = this.nodes[connection.nodeDestiny]
-		}
 
 		this.nodes[id].addConnection(connection)
 	}

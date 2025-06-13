@@ -8,7 +8,6 @@ import { v4 as uuidv4 } from 'uuid'
 import type { Nodes } from './canvasNodes'
 
 export class NewNode {
-	private el: Nodes
 	id: string
 	type: string
 	info: INodeCanvas['info']
@@ -20,6 +19,7 @@ export class NewNode {
 	relativePos = { x: 0, y: 0 }
 	isSelected = false
 	isMove = false
+	private el: Nodes
 	public isLockedProperty = false
 
 	constructor(value: INodeCanvas, el: Nodes) {
@@ -35,7 +35,7 @@ export class NewNode {
 		this.connections = value.connections || []
 		this.design.x = value.design.x || 0
 		this.design.y = value.design.y || 0
-		this.design.width = value.design.width || 90
+		this.design.width = value.design.width || 120
 		this.design.height = this.calculateNodeHeight() || 90
 		this.listeners()
 	}
@@ -57,7 +57,7 @@ export class NewNode {
 				for (const key in newValue) {
 					if (JSON.stringify(newValue[key]) !== JSON.stringify(this.oldProperties[key])) {
 						subscriberHelper().send('virtualChangeProperties', {
-							node: this,
+							node: this.get(),
 							key,
 							value: newValue[key].value
 						})
@@ -80,6 +80,17 @@ export class NewNode {
 		})
 	}
 
+	get() {
+		return {
+			id: this.id,
+			type: this.type,
+			info: this.info,
+			properties: this.properties,
+			design: this.design,
+			connections: this.connections
+		}
+	}
+
 	changeName(name: string): boolean {
 		const standardName = utilsStandardName(name)
 		const nodesWithoutMe = Object.values(this.el.nodes).filter((f) => f.id !== this.id)
@@ -90,29 +101,27 @@ export class NewNode {
 	}
 
 	addConnection(element: INodeConnections & { isManual?: boolean }) {
-		if ((typeof element.nodeDestiny === 'string' ? element.nodeDestiny : element.nodeDestiny.id) === this.id) {
+		if (element.idNodeDestiny === this.id) {
 			return this.connections.push(element)
 		}
 
-		let { id, nodeDestiny } = element
+		let { id, idNodeDestiny } = element
 		id = id || uuidv4()
 		const connection = new NewConnector({
 			...element,
 			id
 		})
-		if (!connection.nodeOrigin) connection.nodeOrigin = this
+		if (!connection.idNodeOrigin) connection.idNodeOrigin = this.id
 		this.connections.push(connection)
-		if (typeof connection.nodeOrigin === 'string' ? connection.nodeOrigin : connection.nodeOrigin.id === this.id) {
-			;(nodeDestiny as any).addConnection(connection)
+		if (connection.idNodeOrigin === this.id) {
+			this.el.nodes[idNodeDestiny].addConnection(connection)
 		}
 		if (element.isManual) {
 			const data = {
 				...connection,
-				nodeOrigin: typeof connection.nodeOrigin === 'string' ? connection.nodeOrigin : connection.nodeOrigin?.id,
-				nodeDestiny: typeof connection.nodeDestiny === 'string' ? connection.nodeDestiny : connection.nodeDestiny?.id,
 				isManual: undefined
 			}
-			subscriberHelper().send('addConnection', data)
+			subscriberHelper().send('virtualAddConnection', data)
 		}
 	}
 
@@ -125,16 +134,8 @@ export class NewNode {
 		const list = id ? this.connections.filter((f) => f.id === id) : this.connections
 		for (const connection of list) {
 			console.log(connection)
-			if (typeof connection.nodeOrigin === 'string') {
-				this.el.nodes[connection.nodeOrigin].deleteConnections({ id: connection.id })
-			} else {
-				if (connection.nodeOrigin) (connection.nodeOrigin as NewNode).deleteConnections({ id: connection.id })
-			}
-			if (typeof connection.nodeDestiny === 'string') {
-				this.el.nodes[connection.nodeDestiny].deleteConnections({ id: connection.id })
-			} else {
-				if (connection.nodeDestiny) (connection.nodeDestiny as NewNode).deleteConnections({ id: connection.id })
-			}
+			if (connection.idNodeOrigin) this.el.nodes[connection.idNodeOrigin].deleteConnections({ id: connection.id })
+			this.el.nodes[connection.idNodeDestiny].deleteConnections({ id: connection.id })
 		}
 	}
 
@@ -219,7 +220,7 @@ export class NewNode {
 		this.deleteAllConnections()
 		delete this.el.nodes[this.id]
 		this.isSelected = false
-		subscriberHelper().send('virtualRemoveNode', { node: this })
+		subscriberHelper().send('virtualRemoveNode', { node: this.get() })
 	}
 
 	duplicate() {
@@ -238,7 +239,7 @@ export class NewNode {
 
 	renderConnections({ ctx, nodes }: { ctx: CanvasRenderingContext2D; nodes: { [key: string]: INodeCanvas } }) {
 		for (const connection of this.connections) {
-			const nodeOrigin = typeof connection.nodeOrigin === 'string' ? connection.nodeOrigin : connection.nodeOrigin?.id
+			const nodeOrigin = connection.idNodeOrigin
 			if (nodeOrigin !== this.id) continue
 			renderConnectionNodes({
 				ctx,
@@ -253,8 +254,8 @@ class NewConnector implements INodeConnections {
 	id: string
 	connectorType: 'input' | 'output' | 'callback'
 	connectorName: string
-	nodeOrigin?: INodeCanvas | string
-	nodeDestiny: INodeCanvas | string
+	idNodeOrigin?: string
+	idNodeDestiny: string
 	connectorDestinyType: 'input' | 'output' | 'callback' // connector output
 	connectorDestinyName: string // connector input
 	isManual?: boolean
@@ -268,8 +269,8 @@ class NewConnector implements INodeConnections {
 		this.id = value.id || uuidv4()
 		this.connectorType = value.connectorType
 		this.connectorName = value.connectorName
-		this.nodeOrigin = value.nodeOrigin
-		this.nodeDestiny = value.nodeDestiny
+		this.idNodeOrigin = value.idNodeOrigin
+		this.idNodeDestiny = value.idNodeDestiny
 		this.connectorDestinyType = value.connectorDestinyType
 		this.connectorDestinyName = value.connectorDestinyName
 		this.pointers = value.pointers

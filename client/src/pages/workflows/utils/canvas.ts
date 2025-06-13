@@ -428,11 +428,10 @@ export class Canvas {
 		const nodeDestiny = this.nodes.addNode(data, isManual)
 
 		if (origin) {
-			console.log('origin', origin)
 			this.nodes.getNode({ id: origin.idNode }).addConnection({
 				connectorType: origin.connectorType,
 				connectorName: origin.connectorName,
-				nodeDestiny: nodeDestiny,
+				idNodeDestiny: nodeDestiny.id,
 				connectorDestinyType: 'output',
 				connectorDestinyName: nodeDestiny.info.connectors.inputs[0],
 				isManual: true
