@@ -27,15 +27,18 @@
         </div>
       </template>
     </div>
-    <div v-else>
-      {{ node }}
-      <span class="mdi mdi-book-multiple-outline"></span> Multiples Nodos
+    <div v-else class="text-sm">
+      <span class="mdi mdi-book-multiple-outline text-[20px]"></span>
+      <span class="ml-2 text-md">
+        Multiples Nodos
+      </span>
       <hr class="border-neutral-800 mt-1 mb-1" />
       <div class="flex gap-2 hover:bg-black/20 p-1 rounded-md cursor-pointer" @click="duplicateNodes">
         <span class="mdi mdi-content-copy"></span> Duplicar
       </div>
       <hr class="opacity-50 border-neutral-800 mt-1 mb-1" />
-      <div class="flex gap-2 hover:bg-black/20 p-1 rounded-md cursor-pointer" @click="deleteNodes">
+
+      <div class="flex gap-2 hover:bg-black/20 p-1 rounded-md cursor-pointer text-error" @click="deleteNodes">
         <span class="mdi mdi-delete"></span> Eliminar
       </div>
     </div>
@@ -53,11 +56,12 @@ import type { INodeCanvas } from "@shared/interface/node.interface";
 const props = defineProps<{
   selectedContext: ICanvasNodeNew[]
   selectedCanvasTranslate?: INodeCanvas['design']
-  refresh?: () => void
+  refresh: () => void
 }>();
 const contextual = ref<HTMLDivElement>();
 
 const node = computed<ICanvasNodeNew | ICanvasNodeNew[]>(() => {
+  console.log(props.selectedContext)
   if (props.selectedContext.length === 1) return props.selectedContext[0];
   return props.selectedContext;
 });
@@ -98,14 +102,23 @@ const duplicateNode = () => {
   if (!Array.isArray(node.value)) {
     node.value.duplicate()
   }
-  props.refresh?.()
+  props.refresh()
 };
 
 const deleteNodes = () => {
+  if (Array.isArray(node.value)) {
+    for (const item of node.value) {
+      item.delete()
+    }
+    props.refresh()
+  }
 };
 
 const duplicateNodes = () => {
-
+  if (Array.isArray(node.value)) {
+    node.value[0].duplicateMultiple()
+    props.refresh()
+  }
   toast.success("Nodo duplicado exitosamente");
 };
 

@@ -395,6 +395,7 @@ export function renderSelected({ canvasSelect, theme, ctx }: Render_Select_Inter
 export function drawNodeConnectionPreview({
 	node_connection_new,
 	index,
+	type,
 	canvasRelativePos,
 	nodes,
 	ctx
@@ -406,6 +407,7 @@ export function drawNodeConnectionPreview({
 	nodes: { [key: string]: INodeCanvas }
 	ctx: CanvasRenderingContext2D
 }) {
+	if (!['output', 'callback'].includes(type)) return
 	const node_origin = node_connection_new
 	const node_destiny = verifyNodeFocus({
 		x: canvasRelativePos.x,
@@ -413,23 +415,15 @@ export function drawNodeConnectionPreview({
 		margin: { x1: 10, y1: 0 },
 		nodes
 	})
-	// setTempConnection(null)
-	// if (node_destiny?.node && node_destiny.input_index !== null) {
-	// 	setTempConnection({
-	// 		id_node_origin: node_connection_new.node.id,
-	// 		output: node_connection_new.node.outputs[node_connection_new.output_index],
-	// 		id_node_destiny: node_destiny.node.id,
-	// 		input: node_destiny.node.inputs[node_destiny.input_index]
-	// 	})
-	// }
+
+	// Determinar si hay una conexión válida disponible
+	const hasValidConnection = node_destiny?.node && node_destiny.input_index !== null && node_destiny.node.id !== node_origin.id
+
 	const bezier_value = calcBezier({
 		node_origin,
 		destiny: {
-			x: node_destiny?.node && node_destiny.input_index !== null ? node_destiny?.node?.design.x : canvasRelativePos.x,
-			y:
-				node_destiny?.node && node_destiny.input_index !== null
-					? node_destiny.node.design.y + (30 + node_destiny.input_index * 20)
-					: canvasRelativePos.y
+			x: hasValidConnection ? node_destiny.node!.design.x : canvasRelativePos.x,
+			y: hasValidConnection ? node_destiny.node!.design.y + (30 + node_destiny.input_index! * 20) : canvasRelativePos.y
 		},
 		output_index: index
 	})
@@ -437,8 +431,24 @@ export function drawNodeConnectionPreview({
 		ctx,
 		color: node_origin.info.color,
 		bezier_value,
-		is_dashed: node_destiny?.input_index === null
+		is_dashed: !hasValidConnection,
+		destinyColor: hasValidConnection && node_destiny?.node ? node_destiny.node.info.color : undefined
 	})
+
+	// Resaltar el input de destino si hay una conexión válida
+	if (hasValidConnection && node_destiny?.node && node_destiny.input_index !== null) {
+		ctx.beginPath()
+		ctx.strokeStyle = node_destiny?.node ? node_destiny.node.info.color : node_origin.info.color
+		ctx.lineWidth = 5
+		ctx.shadowColor = node_destiny?.node ? node_destiny.node.info.color : node_origin.info.color
+		ctx.shadowBlur = 10
+		const inputX = node_destiny.node.design.x - 7
+		const inputY = node_destiny.node.design.y + 25 + node_destiny.input_index * 20 - 1
+		ctx.roundRect(inputX, inputY, 10, 12, 2)
+		ctx.stroke()
+		ctx.shadowColor = 'transparent'
+		ctx.closePath()
+	}
 }
 
 /**
@@ -570,16 +580,28 @@ function draw_bezier({
 	ctx,
 	color,
 	bezier_value,
-	is_dashed = false
+	is_dashed = false,
+	destinyColor
 }: {
 	ctx: CanvasRenderingContext2D
 	color: CanvasGradient | string
 	bezier_value: Interface_Bezier
 	is_dashed?: boolean
+	destinyColor?: string
 }) {
 	const { AX, AY, CX, CY, DX, DY, FX, FY } = bezier_value
 	ctx.beginPath()
-	ctx.strokeStyle = color
+
+	// Si hay un color de destino, crear un gradiente
+	if (destinyColor && typeof color === 'string') {
+		const gradient = ctx.createLinearGradient(AX, AY, FX, FY)
+		gradient.addColorStop(0, color)
+		gradient.addColorStop(1, destinyColor)
+		ctx.strokeStyle = gradient
+	} else {
+		ctx.strokeStyle = color
+	}
+
 	ctx.lineWidth = 3
 	ctx.moveTo(AX, AY)
 	ctx.lineCap = 'round'
@@ -592,7 +614,8 @@ function draw_bezier({
 	ctx.closePath()
 	if (bezier_value.POS_T) {
 		ctx.beginPath()
-		ctx.fillStyle = color
+		// Para el punto animado, usar el color original
+		ctx.fillStyle = typeof color === 'string' ? color : '#333'
 		ctx.strokeStyle = '#333'
 		ctx.arc(bezier_value.POS_T.x, bezier_value.POS_T.y, 3, 0, 2 * Math.PI)
 		ctx.stroke()
@@ -660,8 +683,8 @@ export function verifyNodeFocus({
 	nodes: { [key: string]: INodeCanvas }
 }) {
 	let nodes_selected: INodeCanvas | null = null
-	const input_index: number | null = null
-	const output_index: number | null = null
+	let input_index: number | null = null
+	let output_index: number | null = null
 
 	const x_margin = margin?.x1 || 0
 	const y_margin = margin?.y1 || 0
@@ -676,24 +699,28 @@ export function verifyNodeFocus({
 			node.design.y + node.design.height! + y_margin2 > y
 		) {
 			nodes_selected = node
-			// for (const input of Object.keys(node.inputs)) {
-			// 	if (
-			// 		node.design.x + x_margin > x &&
-			// 		node.design.y + 25 + Number.parseInt(input) * 20 - 5 < y &&
-			// 		node.design.y + 25 + Number.parseInt(input) * 20 + 15 > y
-			// 	) {
-			// 		input_index = Number(input)
-			// 	}
-			// }
-			// for (const output of Object.keys(node.outputs)) {
-			// 	if (
-			// 		node.design.x + node.design.width < x &&
-			// 		node.design.y + 25 + Number.parseInt(output) * 20 - 5 < y &&
-			// 		node.design.y + 25 + Number.parseInt(output) * 20 + 15 > y
-			// 	) {
-			// 		output_index = Number(output)
-			// 	}
-			// }
+			// Verificar inputs (lado izquierdo del nodo)
+			for (const input of Object.keys(node.info.connectors.inputs)) {
+				if (
+					x >= node.design.x - 8 &&
+					x <= node.design.x &&
+					y >= node.design.y + 25 + Number.parseInt(input) * 20 - 5 &&
+					y <= node.design.y + 25 + Number.parseInt(input) * 20 + 15
+				) {
+					input_index = Number(input)
+				}
+			}
+			// Verificar outputs (lado derecho del nodo)
+			for (const output of Object.keys(node.info.connectors.outputs)) {
+				if (
+					x >= node.design.x + node.design.width! &&
+					x <= node.design.x + node.design.width! + 8 &&
+					y >= node.design.y + 25 + Number.parseInt(output) * 20 - 5 &&
+					y <= node.design.y + 25 + Number.parseInt(output) * 20 + 15
+				) {
+					output_index = Number(output)
+				}
+			}
 		}
 	}
 	return { node: nodes_selected, input_index, output_index }

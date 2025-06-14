@@ -139,7 +139,38 @@ export class NewNode {
 		}
 	}
 
-	setSelected({ pos, relative }: { pos?: { x: number; y: number; x2?: number; y2?: number }; relative: { x: number; y: number } }) {
+	setRelativePos(pos: { x: number; y: number }) {
+		this.relativePos = {
+			x: pos.x - this.design.x,
+			y: pos.y - this.design.y
+		}
+	}
+
+	verifySelected({ pos }: { pos?: { x: number; y: number; x2?: number; y2?: number } }) {
+		if (!pos) return null
+		const marginX = 2
+		if (
+			(!pos.x2 &&
+				pos.x >= this.design.x + marginX &&
+				pos.x <= this.design.x + this.design.width! - marginX &&
+				pos.y >= this.design.y &&
+				pos.y <= this.design.y + this.design.height!) ||
+			(pos.x2 &&
+				pos.y2 &&
+				pos.x <= this.design.x &&
+				pos.y <= this.design.y &&
+				pos.x2 >= this.design.x + this.design.width! &&
+				pos.y2 >= this.design.y + this.design.height!)
+		) {
+			return true
+		}
+		return false
+	}
+
+	setSelected({ pos, relative }: { pos?: { x: number; y: number; x2?: number; y2?: number }; relative: { x: number; y: number } }): {
+		type: 'node' | 'connector'
+		value: any
+	} | null {
 		this.isSelected = false
 		this.isMove = false
 		this.relativePos = { x: 0, y: 0 }
@@ -159,17 +190,16 @@ export class NewNode {
 				pos.x2 >= this.design.x + this.design.width! &&
 				pos.y2 >= this.design.y + this.design.height!)
 		) {
-			this.relativePos = {
-				x: relative.x - this.design.x,
-				y: relative.y - this.design.y
-			}
+			this.setRelativePos(relative)
 			this.isSelected = true
 			this.isMove = true
-			return null
+			return { type: 'node', value: this.get() }
 		}
-		return this.getSelectedConnectors({ x: pos.x, y: pos.y })
-	}
 
+		const connector = this.getSelectedConnectors({ x: pos.x, y: pos.y })
+		if (!connector) return null
+		return { type: 'connector', value: connector }
+	}
 	getSelectedConnectors({ x, y }: { x: number; y: number }): {
 		node: INodeCanvas
 		type: 'output' | 'input' | 'callback'
@@ -178,6 +208,7 @@ export class NewNode {
 	} | null {
 		const marginX = 8
 
+		// Detectar outputs (lado derecho del nodo)
 		for (const output of Object.keys(this.info.connectors.outputs)) {
 			if (
 				x <= this.design.x + this.design.width! + marginX &&
@@ -187,7 +218,21 @@ export class NewNode {
 			) {
 				this.isMove = false
 				this.isSelected = true
-				return { node: this, type: 'output', index: Number(output), value: this.info.connectors.outputs[Number(output)] }
+				return { node: this.get(), type: 'output', index: Number(output), value: this.info.connectors.outputs[Number(output)] }
+			}
+		}
+
+		// Detectar inputs (lado izquierdo del nodo)
+		for (const input of Object.keys(this.info.connectors.inputs)) {
+			if (
+				x >= this.design.x - marginX &&
+				x <= this.design.x &&
+				y >= this.design.y + 25 + Number.parseInt(input) * 20 - 5 &&
+				y <= this.design.y + 25 + Number.parseInt(input) * 20 + 15
+			) {
+				this.isMove = false
+				this.isSelected = true
+				return { node: this.get(), type: 'input', index: Number(input), value: this.info.connectors.inputs[Number(input)] }
 			}
 		}
 
@@ -225,7 +270,11 @@ export class NewNode {
 
 	duplicate() {
 		this.isSelected = false
-		this.el.duplicateNode({ id: this.id })
+		return this.el.duplicateNode({ id: this.id })
+	}
+
+	duplicateMultiple() {
+		this.el.duplicateMultiple()
 	}
 
 	render({ ctx }: { ctx: CanvasRenderingContext2D }) {

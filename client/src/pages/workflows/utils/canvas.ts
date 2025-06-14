@@ -244,55 +244,77 @@ export class Canvas {
 		this.canvasTempPosY = y - this.canvasTranslate.y
 		this.newConnectionNode = this.nodes.selected({ relative: this.canvasRelativePos })
 
-		if (button === 0) {
-			// this.fn_node_connect_focus({
-			// 	x: this.canvasRelativePos.x,
-			// 	y: this.canvasRelativePos.y
-			// })
-			// this.fn_node_connect_property_focus({ openMenu: false })
-			if (this.events_show_properties) this.events_show_properties(null)
-		}
-		if (button === 2) {
-			if (this.events_show_connection_context) {
-				this.events_show_connection_context(null)
-			}
-			// this.fn_node_connect_property_focus({ openMenu: true })
-		}
+		// if (button === 0) {
+		// 	// this.fn_node_connect_focus({
+		// 	// 	x: this.canvasRelativePos.x,
+		// 	// 	y: this.canvasRelativePos.y
+		// 	// })
+		// 	// this.fn_node_connect_property_focus({ openMenu: false })
+		// 	if (this.events_show_properties) this.events_show_properties(null)
+		// }
+		// if (button === 2) {
+		// 	if (this.events_show_connection_context) {
+		// 		this.events_show_connection_context(null)
+		// 	}
+		// 	// this.fn_node_connect_property_focus({ openMenu: true })
+		// }
 
-		if (this.events_context_menu) {
-			this.events_context_menu(null)
-		}
+		// if (this.events_context_menu) {
+		// 	this.events_context_menu(null)
+		// }
 	}
-
 	event_mouse_end({ all }: { all?: boolean } = {}) {
 		this.canvasSelect.show = false
 
 		if (this.newConnectionNode && !getTempConnection()) {
-			if (!this.isNodeConnectionVisible) {
-				if (this.events_new_node_start) {
-					// this.newConnectionNode.temp_pos = { ...this.canvasRelativePos }
-					this.events_new_node_start({
-						design: this.canvasPosition,
-						relative_pos: { ...this.canvasRelativePos },
-						output_index: this.newConnectionNode.index,
-						node: this.newConnectionNode.node
-					})
-				}
-			} else {
+			// Verificar si se terminó el arrastre sobre un input de otro nodo
+			const targetInput = this.nodes.getInputAtPosition({
+				x: this.canvasRelativePos.x,
+				y: this.canvasRelativePos.y
+			})
+
+			if (targetInput && this.newConnectionNode.type === 'output' && targetInput.node.id !== this.newConnectionNode.node.id) {
+				// Crear conexión directa entre output e input
+				const originNode = this.nodes.getNode({ id: this.newConnectionNode.node.id! })
+				originNode.addConnection({
+					connectorType: 'output',
+					connectorName: this.newConnectionNode.value,
+					idNodeDestiny: targetInput.node.id!,
+					connectorDestinyType: 'input',
+					connectorDestinyName: targetInput.connectorName,
+					isManual: true
+				})
+
+				// Limpiar el estado de conexión
 				this.selectedNode.clear()
 				this.newConnectionNode = null
-				if (this.events_new_node_start) {
-					this.events_new_node_start({})
+				this.isNodeConnectionVisible = false
+			} else {
+				// Comportamiento original: mostrar menú de nuevos nodos
+				if (!this.isNodeConnectionVisible) {
+					if (this.events_new_node_start) {
+						// this.newConnectionNode.temp_pos = { ...this.canvasRelativePos }
+						this.events_new_node_start({
+							design: this.canvasPosition,
+							relative_pos: { ...this.canvasRelativePos },
+							output_index: this.newConnectionNode.index,
+							node: this.newConnectionNode.node
+						})
+					}
+				} else {
+					this.selectedNode.clear()
+					this.newConnectionNode = null
+					if (this.events_new_node_start) {
+						this.events_new_node_start({})
+					}
 				}
+				this.isNodeConnectionVisible = true
 			}
-			this.isNodeConnectionVisible = true
 		}
-
 		if (this.newConnectionNode) {
 			this.newConnectionNode.relative = this.canvasRelativePos
 		}
 
-		const tempConnection = getTempConnection()
 		// if (tempConnection) {
 		// 	this.nodes[tempConnection.nodeOrigin.id].addConnection({ ...tempConnection, isManual: true })
 		// 	this.selectedNode.clear()
@@ -352,8 +374,26 @@ export class Canvas {
 			this.events_show_properties({ selected })
 		}
 	}
-
 	event_context_menu() {
+		// Primero verificar si se hizo clic derecho sobre una conexión
+		const connectionAtPosition = this.nodes.getConnectionAtPosition({
+			x: this.canvasRelativePos.x,
+			y: this.canvasRelativePos.y
+		})
+
+		if (connectionAtPosition && this.events_show_connection_context) {
+			// Mostrar menú contextual de conexión
+			this.events_show_connection_context({
+				id: connectionAtPosition.connection.id!,
+				nodeOrigin: connectionAtPosition.nodeOrigin.get(),
+				nodeDestiny: connectionAtPosition.nodeDestiny.get(),
+				input: connectionAtPosition.connection.connectorDestinyName,
+				output: connectionAtPosition.connection.connectorName
+			})
+			return
+		}
+
+		// Si no hay conexión, mostrar menú contextual de nodos
 		if (this.events_context_menu) {
 			const selected = this.nodes.getSelected()
 			this.events_context_menu({ nodes: selected, canvasTranslate: this.nodes.canvasTranslate })
@@ -516,7 +556,6 @@ export class Canvas {
 
 		if (this.events_context_menu) this.events_context_menu(null)
 	}
-
 	/**
 	 * Deletes a connection node by its ID.
 	 *
@@ -525,15 +564,15 @@ export class Canvas {
 	 *
 	 * @returns {void}
 	 */
-	// actionDeleteConnectionById({ id }: { id: string }) {
-	// 	this.connectionNodes = this.connectionNodes.filter((value) => value.id !== id)
-	// 	subscriberHelper().send('removeConnection', {
-	// 		id
-	// 	})
-	// 	if (this.events_show_connection_context) {
-	// 		this.events_show_connection_context(null)
-	// 	}
-	// }
+	actionDeleteConnectionById({ id }: { id: string }) {
+		// Encontrar y eliminar la conexión de todos los nodos
+		for (const node of Object.values(this.nodes.nodes)) {
+			node.deleteConnections({ id })
+		}
+		if (this.events_show_connection_context) {
+			this.events_show_connection_context(null)
+		}
+	}
 
 	// actionSelectNodeById({ ids }: { ids: string[] }) {
 	// 	for (const id of ids) {

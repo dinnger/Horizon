@@ -347,15 +347,13 @@ export class CoreModule {
 				executeDateNode.set(node.id, { data, meta, time: getTime() })
 				executeMeta.accumulativeTime = Number.parseFloat((executeMeta.accumulativeTime + executeTime).toFixed(3))
 
-				const hasOutputs = this.el.nodeModule.connections[node.id] && this.el.nodeModule.connections[node.id][`output:${output_name}`]
+				const hasOutputs = this.el.nodeModule.connections[node.id]?.[`output:${output_name}`]
 				if (hasOutputs) {
 					// Console
 					this.consoleExecute({
 						uuid,
 						node,
-						destiny: this.el.nodeModule.connections[node.id][`output:${output_name}`].map(
-							(o: any) => this.el.nodeModule.nodes[o.id_node_destiny]?.info.name
-						),
+						destiny: hasOutputs.map((o: any) => this.el.nodeModule.nodes[o.idNodeDestiny]?.info.name),
 						executeTime,
 						executeMeta,
 						startTime: startTime || 0,
