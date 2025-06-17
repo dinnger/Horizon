@@ -1,595 +1,744 @@
-import type { IWorkflow } from '@shared/interface/workflow.interface.js'
-import type { Express } from 'express'
-import type { ISocket } from '@shared/interface/socket.interface.js'
-import { Status_Table } from '../database/entity/global.status.entity.js'
-import { ProjectsTable } from '../database/entity/projects.projects.entity.js'
-import { WorkflowsFlowTable } from '../database/entity/workflows.flows.entity.js'
-import { workerService, workersList } from './worker.service.js'
-import { virtualWorkflowService } from './workflowsVirtual.service.js'
-import { Users_Table } from '../database/entity/security.users.entity.js'
-import { WorkflowsHistoryTable } from '../database/entity/workflows.history.entity.js'
-import { securitySecretService } from './security/securitySecret.service.js'
-import { WorkflowsEnvsTable } from '../database/entity/workflows.envs.entity.js'
-import fs from 'node:fs'
+import type { IWorkflow } from '@shared/interface/workflow.interface.js';
+import type { Express } from 'express';
+import type { ISocket } from '@shared/interface/socket.interface.js';
+import { Status_Table as StatusTable } from '../database/entity/global.status.entity.js';
+import { ProjectsTable } from '../database/entity/projects.projects.entity.js';
+import { WorkflowsFlowTable } from '../database/entity/workflows.flows.entity.js';
+import { workerService, workersList, IWorker as IWorkerInfo } from './worker.service.js';
+import { virtualWorkflowService, VirtualWorkflowService } from './workflowsVirtual.service.js';
+import { Users_Table as UsersTable } from '../database/entity/security.users.entity.js';
+import { WorkflowsHistoryTable, IWorkflowsHistoryEntity } from '../database/entity/workflows.history.entity.js';
+import { securitySecretService } from './security/securitySecret.service.js'; // Used in commented out code
+import { WorkflowsEnvsTable } from '../database/entity/workflows.envs.entity.js';
+import fs from 'node:fs';
 
-const defaultProperties: IWorkflow['properties'] = {
-	basic: { router: '/' }
+/**
+ * @interface WorkflowOperationResult
+ * @description Standard result for workflow operations that primarily return a message or an error.
+ * @property {string} [msg] - Success message.
+ * @property {string} [error] - Error message, if any.
+ */
+interface WorkflowOperationResult {
+	msg?: string;
+	error?: string;
 }
 
-export function workflowsService() {
+/**
+ * @export
+ * @interface WorkflowBasicInfo
+ * @description Provides essential information about a workflow, typically for listings.
+ * Includes project, status, user details, and worker status.
+ * @property {number} id - The unique ID of the workflow.
+ * @property {string} name - The name of the workflow.
+ * @property {string} uid - The unique identifier (UID) of the workflow.
+ * @property {number} created_by - ID of the user who created the workflow.
+ * @property {Partial<ProjectsTable>} [project] - Associated project details.
+ * @property {Partial<StatusTable>} [status] - Current status details of the workflow.
+ * @property {Partial<UsersTable>} [user] - User details of the creator.
+ * @property {'Active' | 'Inactive'} worker_status - The current status of the associated worker.
+ * @property {any} [key] - Allows for additional properties from `workflow.dataValues`.
+ */
+export interface WorkflowBasicInfo {
+	id: number;
+	name: string;
+	uid: string;
+	created_by: number;
+	project?: Partial<ProjectsTable>;
+	status?: Partial<StatusTable>;
+	user?: Partial<UsersTable>;
+	worker_status: 'Active' | 'Inactive';
+	[key: string]: any;
+}
+
+/**
+ * @const defaultProperties
+ * @description Default properties for a new workflow, conforming to `IWorkflow['properties']`.
+ * Initializes with a basic router property.
+ */
+const defaultProperties: IWorkflow['properties'] = {
+	basic: { router: '/' },
+};
+
+// Parameter Interfaces for each method in WorkflowsService
+
+/** @interface NewWorkflowParams */
+interface NewWorkflowParams {
+	app: Express;
+	socket: ISocket;
+	idProject: number;
+	name: string;
+	description: string;
+	flow: Partial<IWorkflow>;
+	workspaceId?: number;
+}
+
+/** @interface GetWorkflowsParams */
+interface GetWorkflowsParams {
+	idProject?: number;
+	uidFlow?: string;
+	workspaceId?: number;
+}
+
+/** @interface InitializeWorkflowParams */
+interface InitializeWorkflowParams {
+	app: Express;
+	uid: string;
+	uidProject?: string;
+	workspaceId?: number;
+}
+
+/** @interface SaveWorkflowParams */
+interface SaveWorkflowParams {
+	app: Express;
+	uid: string;
+	properties?: IWorkflow['properties'];
+}
+
+// LoadWorkflowParams is implicitly { uid?: string } via its usage.
+
+/** @interface DebugWorkflowParams */
+interface DebugWorkflowParams {
+	flow: string;
+	action: 'on' | 'off';
+}
+
+/** @interface GetWorkflowVariablesParams */
+interface GetWorkflowVariablesParams {
+	uidFlow: string;
+}
+
+/** @interface EditWorkflowParams */
+interface EditWorkflowParams {
+	uid: string;
+	name: string;
+}
+
+/** @interface DeleteWorkflowParams */
+interface DeleteWorkflowParams {
+	uid: string;
+}
+
+// Interfaces for Dashboard method results
+
+/** @interface RecentHistoryItem */
+interface RecentHistoryItem {
+    name: string;
+    version: string;
+    workflow: IWorkflow;
+}
+/** @interface DashboardStats */
+interface DashboardStats {
+    totalWorkflows: number;
+    activeWorkers: number;
+    weeklyExecutions: number[];
+    recentHistory: RecentHistoryItem[];
+}
+/** @interface DashboardData */
+interface DashboardData {
+    stats: DashboardStats;
+    workflows: WorkflowBasicInfo[];
+}
+/** @interface DashboardResult */
+interface DashboardResult {
+    stats?: DashboardStats;
+    workflows?: WorkflowBasicInfo[];
+    error?: string;
+}
+
+
+/**
+ * @export
+ * @interface WorkflowsService
+ * @description Defines the contract for the Workflows Service.
+ * This service handles comprehensive management of workflows, including CRUD, lifecycle,
+ * state persistence, interaction with workers, and data retrieval for dashboards.
+ */
+export interface WorkflowsService {
+	/** Creates a new workflow. */
+	new: (params: NewWorkflowParams) => Promise<WorkflowOperationResult>;
+	/** Retrieves workflows based on provided filters, returning basic information. */
+	get: (params: GetWorkflowsParams) => Promise<WorkflowBasicInfo[] | { error: string }>;
+	/** Initializes a workflow, preparing it for execution by a worker and retrieving its full definition. */
+	initialize: (params: InitializeWorkflowParams) => Promise<IWorkflow | null | { error: string }>;
+	/** Saves the current state of a workflow, including its structure and properties. */
+	save: (params: SaveWorkflowParams) => Promise<WorkflowOperationResult>;
+	/** Loads workflow configurations from the database and writes them to the file system. */
+	load: (uid?: string) => Promise<WorkflowOperationResult>;
+	/** Lists all active workflows with basic information. */
+	list: () => Promise<WorkflowBasicInfo[]>;
+	/** Toggles debug mode for a specific workflow worker. */
+	debug: (params: DebugWorkflowParams) => Promise<WorkflowOperationResult>;
+	/** Provides access to workflow environment variable management. */
+	variables: () => { get: (params: GetWorkflowVariablesParams) => Promise<any | undefined>; };
+	/** Provides access to virtual workflow operations (interacting with worker state). */
+	virtual: VirtualWorkflowService;
+	/** Edits basic properties (like name) of a workflow. */
+	edit: (params: EditWorkflowParams) => Promise<WorkflowOperationResult>;
+	/** Retrieves data for the workflows dashboard. */
+	dashboard: () => Promise<DashboardResult>;
+	/** Marks a workflow as inactive (soft delete). */
+	delete: (params: DeleteWorkflowParams) => Promise<WorkflowOperationResult>;
+}
+
+/**
+ * @function workflowsService
+ * @description Factory function for the Workflows Service.
+ * Provides a comprehensive set of methods for managing and interacting with workflows.
+ * @returns {WorkflowsService} An instance of the Workflows Service.
+ */
+export function workflowsService(): WorkflowsService {
 	return {
-		// workflows/new
+		/**
+		 * @async
+		 * @function new
+		 * @description Creates a new workflow, associates it with a project, saves its initial state, and loads it.
+		 * @param {NewWorkflowParams} params - Parameters for creating the new workflow.
+		 * @returns {Promise<WorkflowOperationResult>} Result of the operation.
+		 */
 		new: async ({
 			app,
 			socket,
-			id_project,
+			idProject,
 			name,
 			description,
 			flow,
-			workspace_id
-		}: {
-			app: Express
-			socket: ISocket
-			id_project: number
-			name: string
-			description: string
-			flow: any
-			workspace_id?: number
-		}) => {
+			workspaceId,
+		}: NewWorkflowParams): Promise<WorkflowOperationResult> => {
 			try {
-				// Verificar que el proyecto pertenece al workspace si se especifica
-				if (workspace_id) {
+				// Validate project ownership if workspaceId is provided
+				if (workspaceId) {
 					const project = await ProjectsTable.findOne({
-						where: {
-							id: id_project,
-							id_workspace: workspace_id,
-							id_status: 1
-						}
-					})
+						where: { id: idProject, id_workspace: workspaceId, id_status: 1 },
+					});
 					if (!project) {
-						return { error: 'Project not found in specified workspace' }
+						return { error: 'Project not found in specified workspace' };
 					}
 				}
 
-				const workflow = await WorkflowsFlowTable.create({
-					id_project,
+				// Create the workflow entry in the database
+				const workflowInstance = await WorkflowsFlowTable.create({
+					id_project: idProject,
 					name,
 					description,
-					flow: flow as IWorkflow,
-					created_by: socket.session.id
-				})
+					flow: flow as IWorkflow, // Assert type for 'flow'
+					created_by: socket.session.id, // User from session
+				});
+
+				// Perform initial save and load operations for the new workflow
+				// Note: Calling other methods of the same service like this can be problematic
+				// if the service relies on being a fully constructed singleton with internal state.
+				// Prefer direct function calls or ensure proper service architecture.
 				await workflowsService().save({
 					app,
-					uid: workflow.uid
-				})
-				await workflowsService().load(workflow.uid)
-				return { msg: 'Workflow created' }
-			} catch (error) {
-				let message = 'Error'
-				if (error instanceof Error) message = error.toString()
-				return { error: message }
+					uid: workflowInstance.uid,
+				});
+				await workflowsService().load(workflowInstance.uid);
+				return { msg: 'Workflow created' };
+			} catch (error: unknown) {
+				const message = error instanceof Error ? error.message : 'Failed to create workflow';
+				return { error: message };
 			}
 		},
-		// workflows/get
+		/**
+		 * @async
+		 * @function get
+		 * @description Retrieves a list of workflows based on specified filters.
+		 * Includes project, status, and user information for each workflow.
+		 * @param {GetWorkflowsParams} params - Filtering parameters.
+		 * @returns {Promise<WorkflowBasicInfo[] | { error: string }>} An array of workflow information or an error object.
+		 */
 		get: async ({
-			id_project,
+			idProject,
 			uidFlow,
-			workspace_id
-		}: {
-			id_project?: number
-			uidFlow?: string
-			workspace_id?: number
-		}): Promise<(typeof WorkflowsFlowTable)[] | { error: string }> => {
+			workspaceId,
+		}: GetWorkflowsParams): Promise<WorkflowBasicInfo[] | { error: string }> => {
 			try {
-				const where: { [key: string]: any } = {
-					id_status: 1
-				}
-				if (id_project) where.id_project = id_project
-				if (uidFlow) where.uid = uidFlow
+				const whereCondition: { [key: string]: any } = { id_status: 1 };
+				if (idProject) whereCondition.id_project = idProject;
+				if (uidFlow) whereCondition.uid = uidFlow;
 
-				const projectWhere: any = { id_status: 1 }
-				if (workspace_id) {
-					projectWhere.id_workspace = workspace_id
+				const projectWhereCondition: any = { id_status: 1 };
+				if (workspaceId) {
+					projectWhereCondition.id_workspace = workspaceId;
 				}
 
-				const workflows = await WorkflowsFlowTable.findAll({
+				const workflowInstances = await WorkflowsFlowTable.findAll({
 					attributes: ['id', 'name', 'uid', 'created_by'],
 					include: [
-						{
-							model: ProjectsTable,
-							required: true,
-							where: projectWhere
-						},
-						{
-							model: Status_Table,
-							required: true
-						},
-						{
-							model: Users_Table,
-							required: true
-						}
+						{ model: ProjectsTable, required: true, where: projectWhereCondition },
+						{ model: StatusTable, required: true },
+						{ model: UsersTable, required: true },
 					],
-					where,
-					order: [['name', 'ASC']]
-				})
-				return workflows.map((workflow) => {
-					const workerStatus = workersList.get(workflow.uid)
+					where: whereCondition,
+					order: [['name', 'ASC']],
+				});
+
+				// Map database instances to the WorkflowBasicInfo structure
+				return workflowInstances.map((workflow) => {
+					const workerInstance = workersList.get(workflow.uid);
 					return {
-						...workflow.dataValues,
-						worker_status: workerStatus?.active ? 'Active' : 'Inactive'
-					}
-				}) as unknown as (typeof WorkflowsFlowTable)[]
-			} catch (error) {
-				console.log(error)
-				let message = 'Error'
-				if (error instanceof Error) message = error.toString()
-				return { error: message }
+						...workflow.get({ plain: true }),
+						worker_status: workerInstance?.active ? 'Active' : 'Inactive',
+					} as WorkflowBasicInfo;
+				});
+			} catch (error: unknown) {
+				const message = error instanceof Error ? error.message : 'Failed to retrieve workflows';
+				return { error: message };
 			}
 		},
-		// workflows/initialize
+		/**
+		 * @async
+		 * @function initialize
+		 * @description Initializes a workflow for execution.
+		 * Fetches workflow details, starts a worker if not already running,
+		 * and retrieves the virtual (runtime) state of the workflow from the worker.
+		 * @param {InitializeWorkflowParams} params - Parameters for initialization.
+		 * @returns {Promise<IWorkflow | null | { error: string }>} The full workflow definition, null if not found, or an error.
+		 */
 		initialize: async ({
 			app,
 			uid,
-			uid_project,
-			workspace_id
-		}: {
-			app: Express
-			uid: string
-			uid_project?: string
-			workspace_id?: number
-		}): Promise<IWorkflow | null | { error: string }> => {
+			uidProject,
+			workspaceId,
+		}: InitializeWorkflowParams): Promise<IWorkflow | null | { error: string }> => {
 			try {
-				const projectWhere: any = { id_status: 1 }
-				if (workspace_id) {
-					projectWhere.id_workspace = workspace_id
-				}
+				const projectWhereCondition: any = { id_status: 1 };
+				if (workspaceId) projectWhereCondition.id_workspace = workspaceId;
 
-				const workflows = await WorkflowsFlowTable.findOne({
-					attributes: {
-						exclude: ['id_envs', 'id_project', 'id_status', 'id_deploy', 'created_by', 'shared_with']
-					},
-					where: {
-						uid,
-						id_status: 1
-					},
+				// Fetch the workflow definition
+				const workflowInstance = await WorkflowsFlowTable.findOne({
+					attributes: { exclude: ['id_envs', 'id_project', 'id_status', 'id_deploy', 'created_by', 'shared_with'] },
+					where: {	uid, id_status: 1 }, // Active workflow by UID
 					include: [
-						{
-							attributes: ['uid', 'name', 'description'],
-							model: ProjectsTable,
-							required: true,
-							where: projectWhere
-						},
-						{
-							attributes: ['name', 'color'],
-							model: Status_Table,
-							required: true
-						}
+						{ model: ProjectsTable, attributes: ['uid', 'name', 'description'], required: true, where: projectWhereCondition },
+						{ model: StatusTable, attributes: ['name', 'color'], required: true },
 					],
-					order: [['name', 'ASC']]
-				})
+					order: [['name', 'ASC']],
+				});
 
-				if (!workflows) return null
+				if (!workflowInstance) return null; // Workflow not found
 
-				if (uid_project && workflows && workflows?.project?.uid !== uid_project) {
-					return null
+				// Validate project UID if provided
+				if (uidProject && workflowInstance?.project?.uid !== uidProject) {
+					return null; // Belongs to a different project
 				}
 
-				const worker = await workerService({ app }).init({ uidFlow: uid })
-
-				// Solicitando propiedades del workflow virtual
-				const properties: any = await worker?.worker.getDataWorker({
-					type: 'getVirtualProperties',
-					data: null
-				})
-				const nodes: any = await worker?.worker.getDataWorker({
-					type: 'getVirtualNodes',
-					data: null
-				})
-				const connections: any = await worker?.worker.getDataWorker({
-					type: 'getVirtualConnections',
-					data: null
-				})
-
-				if (workflows?.flow || nodes) {
-					if (!workflows.flow) (workflows as any).flow = {}
-					workflows.flow.properties = Object.keys(properties).length > 0 ? properties : defaultProperties
-					workflows.flow.nodes = nodes
-					workflows.flow.connections = connections
+				// Initialize or get existing worker for this flow
+				const workerOperation = await workerService({ app }).init({ uidFlow: uid });
+				if (workerOperation && 'error' in workerOperation) { // Handle worker error
+					return { error: `Worker initialization failed: ${workerOperation.error}` };
 				}
-				return {
-					...workflows.dataValues.flow
+				const worker = workerOperation as IWorkerInfo | null;
+
+				// Retrieve virtual state from worker
+				const properties: IWorkflow['properties'] | null = await worker?.worker.getDataWorker({ type: 'getVirtualProperties', data: null }) || null;
+				const nodes: IWorkflow['nodes'] | null = await worker?.worker.getDataWorker({ type: 'getVirtualNodes', data: null }) || null;
+				const connections: IWorkflow['connections'] | null = await worker?.worker.getDataWorker({ type: 'getVirtualConnections', data: null }) || null;
+
+				// Merge persisted flow with virtual state
+				if (workflowInstance?.flow || nodes) {
+					if (!workflowInstance.flow) (workflowInstance as any).flow = {}; // Ensure flow object exists
+					workflowInstance.flow.properties = (properties && Object.keys(properties).length > 0) ? properties : defaultProperties;
+					workflowInstance.flow.nodes = nodes || {};
+					workflowInstance.flow.connections = connections || [];
 				}
-			} catch (error) {
-				let message = 'Error'
-				if (error instanceof Error) message = error.toString()
-				return { error: message }
+
+				const finalFlowData = workflowInstance.get({ plain: true }).flow as IWorkflow;
+				return finalFlowData;
+
+			} catch (error: unknown) {
+				const message = error instanceof Error ? error.message : 'Failed to initialize workflow';
+				return { error: message };
 			}
 		},
-		// workflows/save
+		/**
+		 * @async
+		 * @function save
+		 * @description Saves the current state of a workflow, including its structure (nodes, connections) and properties.
+		 * It retrieves the virtual state from the worker, creates a history record, versions the workflow,
+		 * updates the database, and writes the flow to a JSON file.
+		 * @param {SaveWorkflowParams} params - Parameters for saving the workflow.
+		 * @returns {Promise<WorkflowOperationResult>} Result of the save operation.
+		 */
 		save: async ({
 			app,
 			uid,
-			properties
-		}: {
-			app: Express
-			uid: string
-			properties?: IWorkflow['properties']
-		}) => {
-			const worker = workersList.get(uid)
-			if (!worker) return { error: 'No se encontró el worker' }
+			properties,
+		}: SaveWorkflowParams): Promise<WorkflowOperationResult> => {
+			const worker = workersList.get(uid);
+			if (!worker || !worker.active) return { error: 'No se encontró el worker o no está activo' };
+
 			try {
-				const data = await worker.worker.getDataWorker({
-					type: 'statusWorkflow'
-				})
-				const status = Array.isArray(data) ? data[0] : data
+				// Check if there are any changes in the worker before proceeding
+				const statusData = await worker.worker.getDataWorker({ type: 'statusWorkflow' });
+				const status = Array.isArray(statusData) ? statusData[0] : statusData;
 				if (status === false) {
-					return { error: 'No se han realizado ningún cambio' }
+					return { error: 'No se han realizado ningún cambio' };
 				}
-			} catch (error) {}
+			} catch (e: unknown) {
+				console.warn(`Could not get worker status for ${uid}:`, e); // Log and continue if status check fails
+			}
 
-			// Solicitando propiedades del workflow virtual
-			const flowProject: any = await worker.worker.getDataWorker({
-				type: 'getVirtualProject',
-				data: null
-			})
-			const flowNodes: any = await worker.worker.getDataWorker({
-				type: 'getVirtualNodes',
-				data: null
-			})
-			const flowConnections: any = await worker.worker.getDataWorker({
-				type: 'getVirtualConnections',
-				data: null
-			})
+			// Retrieve current state from the virtual worker
+			const flowProject: IWorkflow['project'] = await worker.worker.getDataWorker({ type: 'getVirtualProject', data: null });
+			const flowNodes: IWorkflow['nodes'] = await worker.worker.getDataWorker({ type: 'getVirtualNodes', data: null });
+			const flowConnections: IWorkflow['connections'] = await worker.worker.getDataWorker({ type: 'getVirtualConnections', data: null });
 
-			// =========================================================================
-			// FLOW
-			// =========================================================================
-			const flow: IWorkflow = {
+			const currentFlow: IWorkflow = {
 				uid: worker.uidFlow,
 				name: worker.nameFlow,
 				version: '0.0.1',
 				project: flowProject,
 				properties: properties || defaultProperties,
-				nodes: flowNodes,
-				connections: flowConnections,
-				env: {
-					secrets: {},
-					variables: {}
-				}
-			}
+				nodes: flowNodes || {},
+				connections: flowConnections || [],
+				env: {	secrets: {}, variables: {} },
+			};
 
-			const beforeWorkflow = await WorkflowsFlowTable.findOne({
-				where: { uid }
-			})
+			const beforeWorkflow = await WorkflowsFlowTable.findOne({ where: { uid } });
 
-			const envs = {}
-			let id_envs = undefined
-			let version = '0.0.1'
+			let workflowEnvs: any = {};
+			let idEnvs: number | undefined = undefined;
+			let version = beforeWorkflow?.version || '0.0.1';
+
 			if (beforeWorkflow) {
-				// Crear env
-				if (envs && typeof envs === 'object' && Object.keys(envs).length > 0) {
-					// Verify if the env exists
-					const env = await WorkflowsEnvsTable.findOne({
-						where: { id_flow: beforeWorkflow.id, data: envs, id_status: 1 }
-					})
-
-					if (env) {
-						id_envs = env.id
-					}
+				// Handle environment variables (currently 'workflowEnvs' is empty object)
+				if (workflowEnvs && typeof workflowEnvs === 'object' && Object.keys(workflowEnvs).length > 0) {
+					const envInstance = await WorkflowsEnvsTable.findOne({
+						where: { id_flow: beforeWorkflow.id, data: workflowEnvs, id_status: 1 },
+					});
+					if (envInstance) idEnvs = envInstance.id;
 				}
 
-				// Secrets
-				// for (const node of Object.values(flow.nodes)) {
-				// 	if (node.properties) {
-				// 		for (const property of Object.values(node.properties)) {
-				// 			if (property.type === 'secret') {
-				// 				if (property.secretType === 'VARIABLES') {
-				// 					const [type, name] = property.value.toString().split('_')
-				// 					const secrets = await securitySecretService().getByName({
-				// 						type,
-				// 						name
-				// 					})
-				// 					if (secrets) {
-				// 						flow.secrets = Object.keys(secrets)
-				// 					}
-				// 				} else if (property.secretType === 'DATABASE') {
-				// 					const [type, subType, name] = property.value.toString().split('_')
-				// 					const secrets = await securitySecretService().getByName({
-				// 						type,
-				// 						subType,
-				// 						name
-				// 					})
-				// 					if (secrets) {
-				// 						flow.secrets = [...flow.secrets, ...Object.keys(secrets)]
-				// 					}
-				// 				}
-				// 			}
-				// 		}
-				// 	}
-				// }
+				// TODO: Implement or re-evaluate secrets extraction logic if it's required.
+				// The original commented code for secrets processing is omitted here for brevity but should be reviewed.
 
-				// Limpiando
-				const nodes: { [key: string]: any } = {}
-				for (const [key, item] of Object.entries(flow.nodes)) {
-					nodes[key] = {
-						...item,
-						properties: item.properties
-							? Object.fromEntries(
-									Object.entries(item.properties).map(([key, item]) => {
-										return [key, { value: (item as { value: object }).value }]
-									})
-								)
-							: null
-					}
-					nodes[key].height = undefined
-					nodes[key].width = undefined
-				}
-				flow.nodes = nodes
+				currentFlow.nodes = cleanNodesForStorage(currentFlow.nodes);
 
-				// Crear historial
+				// Create a history record of the workflow state before this save
 				await WorkflowsHistoryTable.create({
 					id_flow: beforeWorkflow.id,
 					name: beforeWorkflow.name || '',
 					description: beforeWorkflow.description,
-					flow: beforeWorkflow.flow,
+					flow: beforeWorkflow.flow as IWorkflow,
 					version: beforeWorkflow.version,
 					id_status: beforeWorkflow.id_status,
-					created_by: beforeWorkflow.created_by
-				})
+					created_by: beforeWorkflow.created_by,
+				} as IWorkflowsHistoryEntity );
 
-				let [major, minor, patch] = beforeWorkflow.version.split('.')
-				if (
-					Object.keys(flow.nodes).length !== Object.keys(beforeWorkflow.flow?.nodes || {}).length ||
-					Object.keys(flow.connections).length !== Object.keys(beforeWorkflow.flow?.connections || []).length
-				) {
-					minor = (Number.parseInt(minor || '0') + 1).toString()
-					if (Number.parseInt(minor) === 10) {
-						minor = '0'
-						major = (Number.parseInt(major || '0') + 1).toString()
-					}
-					patch = '0'
-				} else {
-					patch = (Number.parseInt(patch || '0') + 1).toString()
-				}
-				version = `${major}.${minor}.${patch}`
+				// Determine new version based on changes
+				const structuralChange =
+					Object.keys(currentFlow.nodes).length !== Object.keys(beforeWorkflow.flow?.nodes || {}).length ||
+					Object.keys(currentFlow.connections).length !== Object.keys(beforeWorkflow.flow?.connections || []).length;
+				version = calculateNewVersion(beforeWorkflow.version, structuralChange);
 			}
+			currentFlow.version = version;
+
+			// Update the main workflow record
 			await WorkflowsFlowTable.update(
 				{
-					flow,
+					flow: currentFlow,
 					version,
 					id_deploy: properties?.deploy || undefined,
-					id_envs
+					id_envs: idEnvs,
 				},
 				{ where: { uid } }
-			)
+			);
 
+			// Ensure directory exists and write the flow to a JSON file
+			const flowFilePath = `./data/workflows/${uid}/flow.json`;
 			if (!fs.existsSync(`./data/workflows/${uid}`)) {
-				fs.mkdirSync(`./data/workflows/${uid}`, { recursive: true })
+				fs.mkdirSync(`./data/workflows/${uid}`, { recursive: true });
 			}
+			fs.writeFileSync(flowFilePath, JSON.stringify(currentFlow, null, 2));
 
-			// Validar si existen cambios en el archivo
-			fs.writeFileSync(`./data/workflows/${uid}/flow.json`, JSON.stringify(flow, null, 2))
-
-			await workerService({ app }).restart({ uidFlow: uid })
-			return { msg: 'Workflow saved' }
+			// Restart the worker to apply changes
+			await workerService({ app }).restart({ uidFlow: uid });
+			return { msg: 'Workflow saved' };
 		},
-		// workflows/load
-		load: async (uid?: string) => {
-			console.log('Cargando workflows')
-			const where: { [key: string]: any } = {
-				id_status: 1
-			}
-			if (uid) where.uid = uid
-			const workflows = await WorkflowsFlowTable.findAll({
+		/**
+		 * @async
+		 * @function load
+		 * @description Loads workflow configurations from the database and writes them to the local file system.
+		 * This is typically used during application startup or when needing to refresh local caches.
+		 * @param {string} [uidInput] - Optional UID of a specific workflow to load. If not provided, all active workflows are loaded.
+		 * @returns {Promise<WorkflowOperationResult>} Result of the load operation.
+		 */
+		load: async (uidInput?: string): Promise<WorkflowOperationResult> => {
+			console.log('Cargando workflows...'); // Informative log
+			const whereCondition: { [key: string]: any } = { id_status: 1 };
+			if (uidInput) whereCondition.uid = uidInput;
+
+			const workflowInstances = await WorkflowsFlowTable.findAll({
 				include: [
-					{
-						model: WorkflowsEnvsTable,
-						as: 'variables',
-						required: false,
-						where: {
-							id_status: 1
-						}
-					},
-					{
-						model: ProjectsTable,
-						required: true
-					}
+					{ model: WorkflowsEnvsTable, as: 'variables', required: false, where: { id_status: 1 } },
+					{ model: ProjectsTable, required: true },
 				],
-				where
-			})
-			if (!workflows || workflows.length === 0) return { error: 'No workflows found' }
-			for (const workflow of workflows) {
-				const uid = workflow.uid
-				const project: { [key: string]: any } = {}
-				if (workflow.project) project[String(workflow.project.transport_type)] = workflow.project.transport_config || {}
-				const flow: IWorkflow = (workflow.flow as IWorkflow) || {
-					info: { uid: '', name: '' },
-					properties: {},
-					nodes: {},
-					connections: [],
-					secrets: []
+				where: whereCondition,
+			});
+
+			if (!workflowInstances || workflowInstances.length === 0) return { error: 'No workflows found to load.' };
+
+			for (const workflow of workflowInstances) {
+				const currentUid = workflow.uid;
+				const projectData: { [key: string]: any } = {};
+				if (workflow.project) { // Ensure project data exists
+					projectData[String(workflow.project.transport_type)] = workflow.project.transport_config || {};
 				}
-				flow.project = project as IWorkflow['project']
+				// Reconstruct the flow object, ensuring defaults if parts are missing
+				const flowData: IWorkflow = (workflow.flow as IWorkflow) || {
+					uid: currentUid, name: workflow.name, version: workflow.version,
+					properties: defaultProperties, nodes: {}, connections: [], project: {}, env: { secrets: {}, variables: {} }
+				};
+				flowData.project = projectData as IWorkflow['project']; // Assign constructed project data
 
-				if (!fs.existsSync(`./data/workflows/${uid}`)) {
-					fs.mkdirSync(`./data/workflows/${uid}`, { recursive: true })
+				const workflowDir = `./data/workflows/${currentUid}`;
+				if (!fs.existsSync(workflowDir)) {
+					fs.mkdirSync(workflowDir, { recursive: true });
 				}
-
-				// if (workflow.project) {
-				// 	fs.writeFileSync(
-				// 		`./data/workflows/${uid}/project.config.json`,
-				// 		JSON.stringify(
-				// 			{
-				// 				type: workflow.project.transport_type,
-				// 				config: workflow.project.transport_config
-				// 			},
-				// 			null,
-				// 			2
-				// 		)
-				// 	)
-				// }
-
-				fs.writeFileSync(`./data/workflows/${uid}/flow.json`, JSON.stringify(flow, null, 2))
+				// Write the reconstructed flow data to its JSON file
+				fs.writeFileSync(`${workflowDir}/flow.json`, JSON.stringify(flowData, null, 2));
 			}
-			return { msg: 'Workflow saved' }
+			return { msg: 'Workflows loaded and saved to file system.' };
 		},
-		// workflows/list
-		list: async () => {
-			const workflows = await WorkflowsFlowTable.findAll({
+		/**
+		 * @async
+		 * @function list
+		 * @description Retrieves a list of all active workflows with basic information, including project details and worker status.
+		 * @returns {Promise<WorkflowBasicInfo[]>} An array of workflow basic information.
+		 */
+		list: async (): Promise<WorkflowBasicInfo[]> => {
+			const workflowInstances = await WorkflowsFlowTable.findAll({
 				attributes: ['uid', 'name', 'created_by'],
 				include: [
 					{
 						attributes: ['uid', 'name', 'description'],
 						model: ProjectsTable,
 						required: true,
-						where: {
-							id_status: 1
-						}
-					}
+						where: { id_status: 1 },
+					},
 				],
-				where: {
-					id_status: 1
-				},
-				order: [['name', 'ASC']]
-			})
-			return workflows.map((workflow) => {
-				const workerStatus = workersList.get(workflow.uid)
+				where: { id_status: 1 },
+				order: [['name', 'ASC']],
+			});
+			return workflowInstances.map((workflow) => {
+				const workerInstance = workersList.get(workflow.uid);
 				return {
-					...workflow.dataValues,
-					worker_status: workerStatus?.active ? 'Active' : 'Inactive'
-				}
-			})
+					...workflow.get({ plain: true }),
+					worker_status: workerInstance?.active ? 'Active' : 'Inactive',
+				} as WorkflowBasicInfo;
+			});
 		},
-		// workflows/debug
-		debug: async ({ flow, action }: { flow: string; action: 'on' | 'off' }) => {
-			const worker = workersList.get(flow.toLocaleLowerCase().trim())
-			if (!worker) return { error: 'No se encontró el worker' }
+		/**
+		 * @async
+		 * @function debug
+		 * @description Sends a debug action ('on' or 'off') to the specified workflow's worker.
+		 * @param {DebugWorkflowParams} params - Parameters for the debug action.
+		 * @returns {Promise<WorkflowOperationResult>} Result of sending the debug command.
+		 */
+		debug: async ({ flow, action }: DebugWorkflowParams): Promise<WorkflowOperationResult> => {
+			const worker = workersList.get(flow.toLocaleLowerCase().trim());
+			if (!worker || !worker.active) {
+				return { error: 'No se encontró el worker o no está activo' };
+			}
+			// Send message to worker, assumes no direct response needed beyond acknowledgement
 			worker.worker.postMessage({
 				type: 'actionDebug',
-				data: action === 'on'
-			})
-			return { msg: 'Workflow debug' }
+				data: action === 'on',
+			});
+			return { msg: 'Workflow debug action sent' };
 		},
-		// workflows/variables
+		/**
+		 * @function variables
+		 * @description Returns a sub-service for managing workflow environment variables.
+		 * @returns {{ get: (params: GetWorkflowVariablesParams) => Promise<any | undefined> }} The variables sub-service.
+		 */
 		variables: () => {
 			return {
-				// workflows/variables/get
-				get: async ({ uidFlow }: { uidFlow: string }) => {
-					const variables = await WorkflowsEnvsTable.findOne({
+				/**
+				 * @async
+				 * @function get
+				 * @description Retrieves environment variables for a specific workflow.
+				 * @param {GetWorkflowVariablesParams} params - Parameters containing the workflow UID.
+				 * @returns {Promise<any | undefined>} The environment variables data, or undefined if not found.
+				 * @todo Define a specific type for the returned variables data instead of `any`.
+				 */
+				get: async ({ uidFlow }: GetWorkflowVariablesParams): Promise<any | undefined> => {
+					const variablesInstance = await WorkflowsEnvsTable.findOne({
 						include: [
-							{
-								model: WorkflowsFlowTable,
-								required: true,
-								where: {
-									uid: uidFlow,
-									id_status: 1
-								}
-							}
+							{ model: WorkflowsFlowTable, required: true, where: { uid: uidFlow, id_status: 1 }},
 						],
-						where: {
-							id_status: 1
-						}
-					})
-					return variables?.data
-				}
-			}
+						where: { id_status: 1 },
+					});
+					return variablesInstance?.data;
+				},
+			};
 		},
-		// workflows/virtual
+		/** Provides access to virtual workflow operations. */
 		virtual: virtualWorkflowService,
-		// workflows/edit
-		edit: async ({ uid, name }: { uid: string; name: string }) => {
+		/**
+		 * @async
+		 * @function edit
+		 * @description Edits the name of an existing workflow.
+		 * @param {EditWorkflowParams} params - Parameters for editing the workflow.
+		 * @returns {Promise<WorkflowOperationResult>} Result of the edit operation.
+		 */
+		edit: async ({ uid, name }: EditWorkflowParams): Promise<WorkflowOperationResult> => {
 			try {
-				const workflow = await WorkflowsFlowTable.findOne({ where: { uid, id_status: 1 } })
-				if (!workflow) return { error: 'Workflow no encontrado' }
-				await workflow.update({ name })
-				return { msg: 'Workflow actualizado exitosamente' }
-			} catch (error) {
-				let message = 'Error'
-				if (error instanceof Error) message = error.toString()
-				return { error: message }
+				const workflow = await WorkflowsFlowTable.findOne({ where: { uid, id_status: 1 } });
+				if (!workflow) {
+					return { error: 'Workflow no encontrado' };
+				}
+				await workflow.update({ name });
+				return { msg: 'Workflow actualizado exitosamente' };
+			} catch (error: unknown) {
+				const message = error instanceof Error ? error.message : 'Error updating workflow';
+				return { error: message };
 			}
 		},
-		// workflows/dashboard
-		dashboard: async () => {
+		/**
+		 * @async
+		 * @function dashboard
+		 * @description Retrieves data for the workflows dashboard, including statistics and recent activity.
+		 * @returns {Promise<DashboardResult>} Data for the dashboard or an error object.
+		 */
+		dashboard: async (): Promise<DashboardResult> => {
 			try {
-				// Obtener todos los workflows activos para estadísticas
-				const workflows = await WorkflowsFlowTable.findAll({
+				// Fetch all active workflows for general stats
+				const activeWorkflows = await WorkflowsFlowTable.findAll({
 					include: [
-						{
-							model: ProjectsTable,
-							required: true
-						},
-						{
-							model: Status_Table,
-							required: true
-						}
+						{ model: ProjectsTable, required: true },
+						{ model: StatusTable, required: true },
 					],
-					where: {
-						id_status: 1
-					}
-				})
+					where: { id_status: 1 },
+				});
 
-				// Obtener historial de workflows para tendencias (últimos 7 días)
-				const weeklyHistory = await WorkflowsHistoryTable.findAll({
-					include: [
-						{
-							model: WorkflowsFlowTable,
-							required: true,
-							where: {
-								id_status: 1
-							}
-						}
-					],
-					where: {
-						id_status: 1
-					},
+				// Fetch recent workflow history for trend analysis
+				const recentHistoryRaw = await WorkflowsHistoryTable.findAll({
+					include: [ { model: WorkflowsFlowTable, required: true, where: { id_status: 1 } } ],
+					where: { id_status: 1 },
 					order: [['id', 'DESC']],
-					limit: 50 // Últimas 50 ejecuciones para análisis
-				})
+					limit: 50, // Limit to last 50 for performance
+				});
 
-				// Calcular estadísticas por día de la semana
-				const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-				const weeklyStats = daysOfWeek.map(() => 0)
+				const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+				const weeklyStats: number[] = daysOfWeek.map(() => 0);
 
-				// Simular distribución de workflows por día (ya que no tenemos timestamps)
-				// En un entorno real, usarías createdAt o updatedAt
-				weeklyHistory.forEach((_, index) => {
-					const dayIndex = index % 7
-					weeklyStats[dayIndex] += Math.floor(Math.random() * 10) + 1
-				}) // Obtener estadísticas de workers activos
-				const stats = {
-					totalWorkflows: workflows.length,
+				// Aggregate history by day of the week
+				recentHistoryRaw.forEach((entry) => {
+					const dayIndex = new Date(entry.created_at || Date.now()).getDay();
+					weeklyStats[dayIndex] = (weeklyStats[dayIndex] || 0) + 1;
+				});
+
+				const stats: DashboardStats = {
+					totalWorkflows: activeWorkflows.length,
 					activeWorkers: Array.from(workersList.values()).filter((w) => w.active).length,
 					weeklyExecutions: weeklyStats,
-					recentHistory: weeklyHistory.slice(0, 10).map((h) => ({
+					recentHistory: recentHistoryRaw.slice(0, 10).map(h => ({ // Top 10 recent history items
 						name: h.name,
 						version: h.version,
-						workflow: h.flow
-					}))
-				}
+						workflow: h.flow as IWorkflow,
+					})),
+				};
 
-				return {
-					stats,
-					workflows: workflows.slice(0, 10) // Últimos 10 workflows
-				}
-			} catch (error) {
-				let message = 'Error'
-				if (error instanceof Error) message = error.toString()
-				return { error: message }
+				// Prepare top 10 workflows for dashboard display
+				const dashboardWorkflows: WorkflowBasicInfo[] = activeWorkflows.slice(0, 10).map(wf => ({
+                    ...wf.get({ plain: true }),
+                    worker_status: workersList.get(wf.uid)?.active ? 'Active' : 'Inactive',
+                } as WorkflowBasicInfo ));
+
+				return { stats, workflows: dashboardWorkflows };
+			} catch (error: unknown) {
+				const message = error instanceof Error ? error.message : 'Error fetching dashboard data';
+				return { error: message };
 			}
 		},
-		// workflows/delete
-		delete: async ({ uid }: { uid: string }) => {
+		/**
+		 * @async
+		 * @function delete
+		 * @description Marks a workflow as inactive (soft delete).
+		 * @param {DeleteWorkflowParams} params - Parameters containing UID of the workflow to delete.
+		 * @returns {Promise<WorkflowOperationResult>} Result of the delete operation.
+		 */
+		delete: async ({ uid }: DeleteWorkflowParams): Promise<WorkflowOperationResult> => {
 			try {
-				const workflow = await WorkflowsFlowTable.findOne({ where: { uid, id_status: 1 } })
-				if (!workflow) return { error: 'Workflow no encontrado' }
-				await workflow.update({ id_status: 2 })
-				return { msg: 'Workflow eliminado exitosamente' }
-			} catch (error) {
-				let message = 'Error'
-				if (error instanceof Error) message = error.toString()
-				return { error: message }
+				const workflow = await WorkflowsFlowTable.findOne({ where: { uid, id_status: 1 } });
+				if (!workflow) {
+					return { error: 'Workflow no encontrado o ya inactivo' };
+				}
+				await workflow.update({ id_status: 2 }); // Assuming 2 means 'inactive'
+				// TODO: Consider stopping the associated worker if it's active.
+				// Example: await workerService({ app: null }).close({ uidFlow: uid });
+				return { msg: 'Workflow eliminado exitosamente' };
+			} catch (error: unknown) {
+				const message = error instanceof Error ? error.message : 'Error deleting workflow';
+				return { error: message };
 			}
-		}
+		},
+	};
+}
+
+/**
+ * @function cleanNodesForStorage
+ * @description Simplifies node properties for storage, typically keeping only essential 'value' fields.
+ * Also removes transient layout properties like height and width.
+ * @param {IWorkflow['nodes']} nodes - The nodes object from a workflow.
+ * @returns {IWorkflow['nodes']} A new nodes object with cleaned properties.
+ */
+function cleanNodesForStorage(nodes: IWorkflow['nodes']): IWorkflow['nodes'] {
+	const cleanedNodes: IWorkflow['nodes'] = {};
+	if (!nodes) return cleanedNodes; // Handle case where nodes might be null or undefined
+
+	for (const [key, item] of Object.entries(nodes)) {
+		cleanedNodes[key] = {
+			...item, // Spread the original item
+			properties: item.properties // Process properties if they exist
+				? Object.fromEntries(
+						Object.entries(item.properties).map(([propKey, propItem]) => {
+							// Ensure propItem is an object and has a 'value' property before accessing it
+							if (typeof propItem === 'object' && propItem !== null && 'value' in propItem) {
+								return [propKey, { value: (propItem as { value: any }).value }];
+							}
+							// If propItem is not in the expected shape, decide how to handle it.
+							// Option 1: Keep it as is (might store more than needed)
+							// return [propKey, propItem];
+							// Option 2: Omit it or set to a default (as done by original logic implicitly if no 'value')
+							return [propKey, {}]; // Or some other default like { value: undefined }
+						})
+					)
+				: {}, // Default to empty object if item.properties is null/undefined
+		};
+		// Remove transient properties that are not part of the stored schema
+		delete (cleanedNodes[key] as any).height;
+		delete (cleanedNodes[key] as any).width;
 	}
+	return cleanedNodes;
+}
+
+/**
+ * @function calculateNewVersion
+ * @description Calculates a new version string based on the previous version and whether a structural change occurred.
+ * Increments minor version for structural changes (rolling over to major if minor reaches 10),
+ * otherwise increments patch version.
+ * @param {string | undefined} currentVersionStr - The current version string (e.g., "1.0.0") or undefined if no previous version.
+ * @param {boolean} structuralChange - True if a structural change (nodes/connections count) occurred, false otherwise.
+ * @returns {string} The new version string.
+ */
+function calculateNewVersion(currentVersionStr: string | undefined, structuralChange: boolean): string {
+	let [majorStr, minorStr, patchStr] = (currentVersionStr || '0.0.0').split('.');
+	let major = Number.parseInt(majorStr || '0');
+	let minor = Number.parseInt(minorStr || '0');
+	let patch = Number.parseInt(patchStr || '0');
+
+	if (structuralChange) {
+		minor++;
+		if (minor >= 10) { // Assuming minor rolls over at 10 to major
+			minor = 0;
+			major++;
+		}
+		patch = 0; // Reset patch on minor/major change
+	} else {
+		patch++;
+	}
+	return `${major}.${minor}.${patch}`;
 }
