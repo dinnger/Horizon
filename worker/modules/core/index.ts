@@ -312,7 +312,8 @@ export class CoreModule {
 			execute,
 			environment: {
 				SERVER_URL: envs.SERVER_URL,
-				SERVER_BASE: envs.SERVER_BASE
+				SERVER_BASE: envs.SERVER_BASE,
+				isDev: this.el.isDev
 			},
 			context: {
 				...this.el.context,

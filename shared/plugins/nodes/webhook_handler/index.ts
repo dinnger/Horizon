@@ -358,7 +358,7 @@ export default class implements INodeClass {
 			}
 			const timeout = this.properties.timeout.value || 50
 			const serverBase = environment.SERVER_BASE || ''
-			const baseUrl = serverBase.slice(-1) !== '/' ? `${serverBase}/` : serverBase.slice(0, -1)
+			const baseUrl = serverBase.slice(-1) !== '/' ? `${serverBase}/` : serverBase
 			const endpointValue: string = (this.properties.endpoint.value as string) || ''
 			const endpoint = endpointValue[0] === '/' ? endpointValue.slice(1) : endpointValue
 			const url = `${environment.isDev ? prefix : base}${baseUrl}${endpoint}`

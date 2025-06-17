@@ -83,7 +83,7 @@ export default class implements INodeClass {
 	}
 
 	async onExecute({ execute, outputData }: Parameters<INodeClass['onExecute']>[0]) {
-		let node = execute.getNodeByType('integration/webhook')
+		let node = execute.getNodeByType('webhook_handler')
 		if (!node) node = execute.getNodeByType('integration/crud')
 		if (!node) node = execute.getNodeByType('integration/soap')
 		if (!node) return outputData('error', { error: 'No se encontró el nodo' })
