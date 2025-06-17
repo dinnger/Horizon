@@ -10,7 +10,7 @@ export default class implements INodeClass {
 	info = {
 		name: 'Iniciador',
 		desc: 'Nodo que permite iniciar un flujo',
-		icon: '󱈎',
+		icon: '󰐍',
 		group: 'Triggers',
 		color: '#3498DB',
 		connectors: {

@@ -31,6 +31,8 @@ const props = defineProps<{
   data_nodes: INodeCanvas[]
   canvasInstance: Canvas
 }>()
+const emit = defineEmits(['nodeCreated'])
+
 const search = ref('')
 const input_search = ref<HTMLInputElement | null>(null)
 
@@ -78,7 +80,7 @@ const canvasAddNode = (item: INodeCanvas) => {
   if (item.info.connectors.inputs && item.info.connectors.inputs.length === 0) return
   if (!props.new_node_start.node.connections) return
   const outputName = props.new_node_start.node.info.connectors.outputs[props.new_node_start.output_index]
-  props.canvasInstance.actionAddNode({
+  const newNode = props.canvasInstance.actionAddNode({
     origin: {
       idNode: props.new_node_start.node.id!,
       connectorType: 'output',
@@ -97,9 +99,7 @@ const canvasAddNode = (item: INodeCanvas) => {
     },
     isManual: true,
   })
-
-
-  props.canvasInstance.event_mouse_end()
+  emit('nodeCreated', newNode)
 }
 
 onMounted(() => {

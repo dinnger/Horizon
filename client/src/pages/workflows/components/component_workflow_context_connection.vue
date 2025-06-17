@@ -47,9 +47,11 @@ const props = defineProps<{
     output: string;
   }
 }>()
+
+const emit = defineEmits(['onRefresh'])
+
 const contextual = ref<HTMLDivElement>()
 const canvas_position = ref<{ x: number; y: number }>({ x: 0, y: 0 })
-
 const node_origin = ref(props.connection_properties_context?.nodeOrigin)
 const node_destiny = ref(props.connection_properties_context?.nodeDestiny)
 
@@ -79,7 +81,7 @@ watch(() => props.connection_properties_context, (value) => {
 
 const delete_connect = () => {
   props.canvasInstance.actionDeleteConnectionById({ id: props.connection_properties_context.id })
-
+  emit('onRefresh')
 }
 
 onMounted(() => {

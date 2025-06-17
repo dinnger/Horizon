@@ -5,17 +5,17 @@
       <component_canvas_tools :canvasInstance="canvasInstance" :select_type="select_type" :workflow="data_workflow"
         @select_type="(value: 'cursor' | 'move') => select_type = value">
       </component_canvas_tools>
-      <component_canvas_new v-if="new_node_start" :new_node_start="new_node_start" :data_nodes="data_nodes"
-        :canvasInstance="canvasInstance">
+      <component_canvas_new v-if="newNode" :new_node_start="newNode" :data_nodes="data_nodes"
+        :canvasInstance="canvasInstance" @nodeCreated="() => newNode = null">
       </component_canvas_new>
-      <component_workflow_context v-if="selectedContext && selectedContext.length > 0"
-        :selectedContext="selectedContext" :selectedCanvasTranslate="selectedCanvasTranslate" :refresh="context_menu">
+      <component_workflow_context v-if="nodeContext && nodeContext.length > 0" :selectedContext="nodeContext"
+        :selectedCanvasTranslate="selectedCanvasTranslate" @onRefresh="() => nodeContext = null">
       </component_workflow_context>
-      <component_workflow_context_connection v-if="connection_properties_context" :canvasInstance="canvasInstance"
-        :connection_properties_context="connection_properties_context">
+      <component_workflow_context_connection v-if="connectionContext" :canvasInstance="canvasInstance"
+        :connection_properties_context="connectionContext" @onRefresh="() => connectionContext = null">
       </component_workflow_context_connection>
 
-      <component_workflow_properties v-if="selected" :selected="selected">
+      <component_workflow_properties v-if="nodeProperties" :selected="nodeProperties">
       </component_workflow_properties>
     </template>
   </div>
@@ -52,17 +52,11 @@ const canvas = ref<HTMLCanvasElement | null>(null);
 const theme = ref<string>(main.theme);
 const canvasInstance = ref<Canvas>();
 const select_type = ref<"cursor" | "move">("cursor");
-const selected = ref<ICanvasNodeNew[]>();
-const selectedContext = ref<ICanvasNodeNew[]>();
+const nodeProperties = ref<ICanvasNodeNew[] | null>();
+const nodeContext = ref();
 const selectedCanvasTranslate = ref<INodeCanvas['design']>();
-const connection_properties_context = ref<{
-  id: string;
-  nodeOrigin: INodeCanvas;
-  nodeDestiny: INodeCanvas;
-  input: string;
-  output: string;
-} | null>();
-const new_node_start = ref<{
+const connectionContext = ref();
+const newNode = ref<{
   node: INodeCanvas;
   output_index: number;
   design: INodeCanvas['design'];
@@ -94,44 +88,61 @@ onMounted(() => {
 
 
   canvasInstance.value.listener('node_added', ({ node, output_index, design, relative_pos }: any) => {
+    console.log('add')
     if (node && output_index !== null && design && relative_pos) {
-      new_node_start.value = {
+      newNode.value = {
         node,
         output_index: output_index || 0,
         design,
         relative_pos,
       };
     } else {
-      new_node_start.value = null;
+      newNode.value = null;
     }
   })
 
-  canvasInstance.value.listener('node_properties_context', ({ selected, canvasTranslate }: any) => {
-    selected.value = selected
+  canvasInstance.value.listener('node_selected', (data: any) => {
+    if (!data) {
+      nodeProperties.value = null
+      return
+    }
+    const { selected, canvasTranslate } = data
+    nodeProperties.value = selected
     selectedCanvasTranslate.value = canvasTranslate
   })
 
-  canvasInstance.value.listener('context_menu', (data: any) => {
+
+
+  canvasInstance.value.listener('node_context', (data: any) => {
     if (!data) return
-
-    const { nodes, canvasTranslate } = data
-    selectedContext.value = nodes as ICanvasNodeNew[];
+    console.log(data)
+    const { selected, canvasTranslate } = data
     selectedCanvasTranslate.value = canvasTranslate
+    nodeContext.value = selected;
   })
-  canvasInstance.value.listener('node_connection_context', (data) => {
-    if (data) {
-      const { id, nodeOrigin, nodeDestiny, input, output } = data;
-      connection_properties_context.value = {
-        id,
-        nodeOrigin,
-        nodeDestiny,
-        input,
-        output,
-      };
-    } else {
-      connection_properties_context.value = null;
+
+  canvasInstance.value.listener('node_connection_selected', (data) => {
+    if (!data) {
+      connectionContext.value = null
+      return
     }
+    const { id, nodeOrigin, nodeDestiny, input, output } = data;
+    connectionContext.value = {
+      id,
+      nodeOrigin,
+      nodeDestiny,
+      input,
+      output,
+    };
   })
+
+  canvasInstance.value.listener('clear', () => {
+    console.log('clear')
+    nodeContext.value = null
+    connectionContext.value = null
+    newNode.value = null
+  })
+
 
   const virtualServer = ({ event, data }: { event: ICommunicationTypes, data: any }) => {
     socket.socketEmit("server/workflows/virtual/actions", {
@@ -164,7 +175,7 @@ onMounted(() => {
   canvasInstance.value.event_subscriber("virtualChangeProperties", ({ data }) => {
     const flow = props.uid
     const { node, key, value } = data
-    const arr = selected.value
+    const arr = nodeProperties.value
     if (!arr || !Array.isArray(arr) || arr.length === 0) return
     const selectedNode = arr[0]
     socket.socketEmit(

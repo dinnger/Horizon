@@ -3,7 +3,7 @@ import type { INodePropertiesType } from '@shared/interface/node.properties.inte
 import type { Point } from './canvas_connector'
 import { utilsStandardName, utilsValidateName } from '../../../shared/utils'
 import { render_node, renderConnectionNodes, subscriberHelper } from './canvas_helpers'
-import { watch } from 'vue'
+import { ref, watch } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 import type { Nodes } from './canvasNodes'
 
@@ -31,10 +31,9 @@ export class NewNode {
 		this.properties = value.properties
 		this.oldProperties = JSON.parse(JSON.stringify(value.properties))
 		this.meta = value.meta
-		this.design = value.design
+		this.design = ref(value.design).value
 		this.connections = value.connections || []
-		this.design.x = value.design.x || 0
-		this.design.y = value.design.y || 0
+
 		this.design.width = value.design.width || 120
 		this.design.height = this.calculateNodeHeight() || 90
 		this.listeners()
@@ -102,6 +101,8 @@ export class NewNode {
 
 	addConnection(element: INodeConnections & { isManual?: boolean }) {
 		if (element.idNodeDestiny === this.id) {
+			this.isMove = false
+			this.isSelected = false
 			return this.connections.push(element)
 		}
 
@@ -115,6 +116,7 @@ export class NewNode {
 		this.connections.push(connection)
 		if (connection.idNodeOrigin === this.id) {
 			this.el.nodes[idNodeDestiny].addConnection(connection)
+			this.isMove = true
 		}
 		if (element.isManual) {
 			const data = {
@@ -133,7 +135,6 @@ export class NewNode {
 	deleteAllConnections({ id }: { id?: string } = {}) {
 		const list = id ? this.connections.filter((f) => f.id === id) : this.connections
 		for (const connection of list) {
-			console.log(connection)
 			if (connection.idNodeOrigin) this.el.nodes[connection.idNodeOrigin].deleteConnections({ id: connection.id })
 			this.el.nodes[connection.idNodeDestiny].deleteConnections({ id: connection.id })
 		}

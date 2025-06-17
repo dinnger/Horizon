@@ -56,8 +56,10 @@ import type { INodeCanvas } from "@shared/interface/node.interface";
 const props = defineProps<{
   selectedContext: ICanvasNodeNew[]
   selectedCanvasTranslate?: INodeCanvas['design']
-  refresh: () => void
 }>();
+
+const emit = defineEmits(['onRefresh'])
+
 const contextual = ref<HTMLDivElement>();
 
 const node = computed<ICanvasNodeNew | ICanvasNodeNew[]>(() => {
@@ -95,14 +97,14 @@ const deleteNode = () => {
   if (!Array.isArray(node.value)) {
     node.value.delete()
   }
-  props.refresh?.()
+  emit('onRefresh')
 };
 
 const duplicateNode = () => {
   if (!Array.isArray(node.value)) {
     node.value.duplicate()
   }
-  props.refresh()
+  emit('onRefresh')
 };
 
 const deleteNodes = () => {
@@ -110,14 +112,14 @@ const deleteNodes = () => {
     for (const item of node.value) {
       item.delete()
     }
-    props.refresh()
+    emit('onRefresh')
   }
 };
 
 const duplicateNodes = () => {
   if (Array.isArray(node.value)) {
     node.value[0].duplicateMultiple()
-    props.refresh()
+    emit('onRefresh')
   }
   toast.success("Nodo duplicado exitosamente");
 };

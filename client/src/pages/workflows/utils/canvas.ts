@@ -18,17 +18,14 @@ export interface ILog {
 }
 
 type EventsCanvas =
-	| 'context_menu'
+	| 'node_context'
 	| 'node_selected'
 	| 'node_deselected'
 	| 'node_moved'
 	| 'node_added'
 	| 'node_removed'
-	| 'node_properties_context'
-	| 'node_property_changed'
-	| 'node_connection_context'
-	| 'node_connection_added'
-	| 'node_connection_removed'
+	| 'node_connection_selected'
+	| 'clear'
 
 export class Canvas {
 	canvas: HTMLCanvasElement
@@ -129,102 +126,6 @@ export class Canvas {
 		}
 	}
 
-	events({ event, e }: { event: string; e: any }) {
-		switch (event) {
-			case 'mousedown':
-				this.eventMouseDown(e)
-				break
-			case 'mouseup':
-				this.eventMouseUp(e)
-				break
-			case 'mousemove':
-				this.eventMouseMove(e)
-				break
-			case 'wheel':
-				this.eventWheel(e)
-				break
-			case 'dblclick':
-				this.eventDbClick(e)
-				break
-			case 'contextmenu':
-				this.eventContextMenu(e)
-				break
-		}
-	}
-
-	eventMouseDown = (e: MouseEvent) => {
-		this.event_mouse_init({
-			x: e.clientX,
-			y: e.clientY
-		})
-		this.isDragging = true
-		// Si se pulsa botón central
-		if (e.button === 1) {
-			this.eventMouseUp(e)
-			this.eventsType = 'move'
-		}
-	}
-
-	eventMouseUp = (e: MouseEvent) => {
-		this.isDragging = false
-		if (e.button === 1) this.eventsType = 'cursor'
-		if (e.button === 0) this.event_mouse_end()
-	}
-
-	eventMouseMove = (e: MouseEvent) => {
-		this.event_mouse_relative({ x: e.offsetX, y: e.offsetY })
-		if (this.eventsType === 'cursor' && e.buttons === 1 && this.isDragging) {
-			// Selected
-
-			if (this.selectedNode.length === 0 || this.canvasSelect.show) {
-				return this.fn_selected()
-			}
-			// Move Node
-			if (this.selectedNode.length > 0 && !this.newConnectionNode) {
-				this.nodes.move({ relative: this.canvasRelativePos })
-				this.emit('node_moved', { selected: this.selectedNode })
-			}
-		}
-		if ((this.eventsType === 'move' && e.buttons === 1) || e.buttons === 4) {
-			if (e.buttons === 4) this.eventsType = 'move'
-			this.event_mouse_move({ x: e.clientX, y: e.clientY })
-		}
-	}
-
-	eventDbClick = (_e: MouseEvent) => {
-		const selected = this.nodes.getSelected()
-		this.emit('node_selected', { selected })
-	}
-
-	eventWheel = (e: WheelEvent) => {
-		this.event_scroll_zoom({ deltaY: e.deltaY })
-	}
-
-	eventContextMenu = (_e: MouseEvent) => {
-		// Primero verificar si se hizo clic derecho sobre una conexión
-		const connectionAtPosition = this.nodes.getConnectionAtPosition({
-			x: this.canvasRelativePos.x,
-			y: this.canvasRelativePos.y
-		})
-
-		if (connectionAtPosition) {
-			// Mostrar menú contextual de conexión
-			this.emit('node_connection_context', {
-				id: connectionAtPosition.connection.id!,
-				nodeOrigin: connectionAtPosition.nodeOrigin.get(),
-				nodeDestiny: connectionAtPosition.nodeDestiny.get(),
-				input: connectionAtPosition.connection.connectorDestinyName,
-				output: connectionAtPosition.connection.connectorName
-			})
-			return
-		}
-
-		// Si no hay conexión, mostrar menú contextual de nodos
-		const selected = this.nodes.getSelected()
-		if (selected.length === 0) return
-		this.emit('node_properties_context', { selected, canvasTranslate: this.nodes.canvasTranslate })
-	}
-
 	listener = (event: EventsCanvas | EventsCanvas[], callback: (e: any) => any) => {
 		if (Array.isArray(event)) {
 			for (const e of event) {
@@ -236,15 +137,11 @@ export class Canvas {
 	}
 
 	emit = (event: EventsCanvas | EventsCanvas[], e: any) => {
-		console.log({ event })
-		if (Array.isArray(event)) {
-			for (const e of event) {
-				this.emit(e, e)
-			}
-			return
+		const events = !Array.isArray(event) ? [event] : event
+		for (const event of events) {
+			const callback = this.subscribers.get(event)
+			if (callback) callback(e)
 		}
-		const callback = this.subscribers.get(event)
-		if (callback) callback(e)
 	}
 
 	change_theme(theme: string) {
@@ -327,31 +224,118 @@ export class Canvas {
 	// ============================================================================
 	// Events
 	// ============================================================================
-	event_mouse_init({ x, y }: INodeCanvas['design']) {
-		this.canvasTempPosX = x - this.canvasTranslate.x
-		this.canvasTempPosY = y - this.canvasTranslate.y
-		this.newConnectionNode = this.nodes.selected({ relative: this.canvasRelativePos })
-		this.selectedNode = this.nodes.getSelected()
 
-		// if (button === 0) {
-		// 	// this.fn_node_connect_focus({
-		// 	// 	x: this.canvasRelativePos.x,
-		// 	// 	y: this.canvasRelativePos.y
-		// 	// })
-		// 	// this.fn_node_connect_property_focus({ openMenu: false })
-		// 	if (this.events_show_properties) this.events_show_properties(null)
-		// }
-		// if (button === 2) {
-		// 	if (this.events_show_connection_context) {
-		// 		this.events_show_connection_context(null)
-		// 	}
-		// 	// this.fn_node_connect_property_focus({ openMenu: true })
-		// }
-
-		// if (this.events_context_menu) {
-		// 	this.events_context_menu(null)
-		// }
+	events({ event, e }: { event: string; e: any }) {
+		switch (event) {
+			case 'mousedown':
+				this.eventMouseDown(e)
+				break
+			case 'mouseup':
+				this.eventMouseUp(e)
+				break
+			case 'mousemove':
+				this.eventMouseMove(e)
+				break
+			case 'wheel':
+				this.eventWheel(e)
+				break
+			case 'dblclick':
+				this.eventDbClick(e)
+				break
+			case 'contextmenu':
+				this.eventContextMenu(e)
+				break
+		}
 	}
+
+	eventMouseDown = (e: MouseEvent) => {
+		this.canvasTempPosX = e.clientX - this.canvasTranslate.x
+		this.canvasTempPosY = e.clientY - this.canvasTranslate.y
+		if (e.button === 0 || e.button === 2) {
+			this.newConnectionNode = this.nodes.selected({ relative: this.canvasRelativePos })
+			this.selectedNode = this.nodes.getSelected()
+			this.isDragging = true
+
+			if (this.selectedNode.length === 0) {
+				this.emit('node_selected', null)
+			}
+			if (!this.newConnectionNode) {
+				this.emit('node_connection_selected', null)
+			}
+			if (this.selectedNode.length === 0 && !this.newConnectionNode) {
+				this.isNodeConnectionVisible = false
+				this.emit('clear', null)
+			}
+		}
+
+		// Si se pulsa botón central
+		if (e.button === 1) {
+			this.eventMouseUp(e)
+			this.eventsType = 'move'
+		}
+	}
+
+	eventMouseUp = (e: MouseEvent) => {
+		this.isDragging = false
+		if (e.button === 1) this.eventsType = 'cursor'
+		if (e.button === 0) this.event_mouse_end()
+	}
+
+	eventMouseMove = (e: MouseEvent) => {
+		this.event_mouse_relative({ x: e.offsetX, y: e.offsetY })
+		if (this.eventsType === 'cursor' && e.buttons === 1 && this.isDragging) {
+			// Selected
+
+			if (this.selectedNode.length === 0 || this.canvasSelect.show) {
+				return this.fn_selected()
+			}
+			// Move Node
+			if (this.selectedNode.length > 0 && !this.newConnectionNode) {
+				this.nodes.move({ relative: this.canvasRelativePos })
+				this.emit('node_moved', { selected: this.selectedNode })
+			}
+		}
+		if ((this.eventsType === 'move' && e.buttons === 1) || e.buttons === 4) {
+			if (e.buttons === 4) this.eventsType = 'move'
+			this.canvasTranslate.x = e.clientX - this.canvasTempPosX
+			this.canvasTranslate.y = e.clientY - this.canvasTempPosY
+		}
+	}
+
+	eventDbClick = (_e: MouseEvent) => {
+		const selected = this.nodes.getSelected()
+		this.emit('node_selected', { selected })
+	}
+
+	eventWheel = (e: WheelEvent) => {
+		this.event_scroll_zoom({ deltaY: e.deltaY })
+	}
+
+	eventContextMenu = (_e: MouseEvent) => {
+		// Primero verificar si se hizo clic derecho sobre una conexión
+		const connectionAtPosition = this.nodes.getConnectionAtPosition({
+			x: this.canvasRelativePos.x,
+			y: this.canvasRelativePos.y
+		})
+
+		if (connectionAtPosition) {
+			// Mostrar menú contextual de conexión
+			this.emit('node_connection_selected', {
+				id: connectionAtPosition.connection.id!,
+				nodeOrigin: connectionAtPosition.nodeOrigin.get(),
+				nodeDestiny: connectionAtPosition.nodeDestiny.get(),
+				input: connectionAtPosition.connection.connectorDestinyName,
+				output: connectionAtPosition.connection.connectorName
+			})
+			return
+		}
+
+		// Si no hay conexión, mostrar menú contextual de nodos
+		const selected = this.nodes.getSelected()
+		if (selected.length === 0) return
+		this.emit('node_context', { selected, canvasTranslate: this.nodes.canvasTranslate })
+	}
+
 	event_mouse_end({ all }: { all?: boolean } = {}) {
 		this.canvasSelect.show = false
 
@@ -375,37 +359,26 @@ export class Canvas {
 				})
 
 				// Limpiar el estado de conexión
-				this.selectedNode = []
 				this.newConnectionNode = null
 				this.isNodeConnectionVisible = false
 			} else {
 				// Comportamiento original: mostrar menú de nuevos nodos
-				if (!this.isNodeConnectionVisible) {
-					this.emit('node_added', {
-						design: this.canvasPosition,
-						relative_pos: { ...this.canvasRelativePos },
-						output_index: this.newConnectionNode.index,
-						node: this.newConnectionNode.node
-					})
-				} else {
-					this.selectedNode = []
-					this.newConnectionNode = null
-				}
-				this.isNodeConnectionVisible = true
+				// if (!this.isNodeConnectionVisible) {
+				this.emit('node_added', {
+					design: this.canvasPosition,
+					relative_pos: { ...this.canvasRelativePos },
+					output_index: this.newConnectionNode.index,
+					node: this.newConnectionNode.node
+				})
+				// } else {
+				// 	this.selectedNode = []
+				// 	this.newConnectionNode = null
+				// }
 			}
 		}
 		if (this.newConnectionNode) {
 			this.newConnectionNode.relative = this.canvasRelativePos
 		}
-
-		// if (tempConnection) {
-		// 	this.nodes[tempConnection.nodeOrigin.id].addConnection({ ...tempConnection, isManual: true })
-		// 	this.selectedNode=[]
-		// 	setTempConnection(null)
-		// 	this.newConnectionNode = null
-		// 	this.isNodeConnectionVisible = false
-		// }
-		// Enviar cambios de posición
 
 		if (all) {
 			this.nodes.clear()
@@ -413,11 +386,6 @@ export class Canvas {
 			this.newConnectionNode = null
 			this.isNodeConnectionVisible = false
 		}
-	}
-
-	event_mouse_move({ x, y }: INodeCanvas['design']) {
-		this.canvasTranslate.x = x - this.canvasTempPosX
-		this.canvasTranslate.y = y - this.canvasTempPosY
 	}
 
 	event_mouse_relative({ x, y }: INodeCanvas['design']) {
@@ -481,8 +449,9 @@ export class Canvas {
 		isManual?: boolean
 	}) {
 		const id = uuidv4()
+		this.newConnectionNode = null
 		const data: INodeCanvas = {
-			...node,
+			...JSON.parse(JSON.stringify(node)),
 			id: node.id || id,
 			design: {
 				x: Math.round((node.design.x || 0) / this.canvasGrid) * this.canvasGrid,
