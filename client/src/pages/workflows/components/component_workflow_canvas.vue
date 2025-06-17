@@ -1,7 +1,6 @@
 <template>
   <div class="relative w-full h-full box-content overflow-hidden">
-    <canvas ref="canvas" :style="{ cursor: select_type === 'move' ? 'move' : 'default' }"
-      @contextmenu.prevent="context_menu" />
+    <canvas ref="canvas" :style="{ cursor: select_type === 'move' ? 'move' : 'default' }" />
     <template v-if="canvasInstance">
       <component_canvas_tools :canvasInstance="canvasInstance" :select_type="select_type" :workflow="data_workflow"
         @select_type="(value: 'cursor' | 'move') => select_type = value">
@@ -49,7 +48,6 @@ const props = defineProps<{
 }>();
 const emit = defineEmits(["canvasInstance"]);
 
-const canvas_drag = ref(false);
 const canvas = ref<HTMLCanvasElement | null>(null);
 const theme = ref<string>(main.theme);
 const canvasInstance = ref<Canvas>();
@@ -80,69 +78,7 @@ watch(
   }
 );
 
-const windowListenerResize = () => {
-  if (!canvasInstance.value) return;
-  canvasInstance.value.event_resize();
-};
 
-const canvas_listener_mouse_down = (e: MouseEvent) => {
-  if (!canvasInstance.value) return;
-  e.preventDefault();
-  canvasInstance.value.event_mouse_init({
-    x: e.clientX,
-    y: e.clientY,
-    button: e.button,
-  });
-  canvas_drag.value = true;
-  // Si se pulsa botón central
-  if (e.button === 1) {
-    document_listener_mouse_up(e);
-    select_type.value = "move";
-  }
-};
-
-const canvas_listener_mouse_up = (e: MouseEvent) => {
-  if (!canvasInstance.value) return;
-  e.preventDefault();
-  e.stopPropagation();
-  canvas_drag.value = false;
-  if (e.button === 1) select_type.value = "cursor";
-  if (e.button === 0) canvasInstance.value.event_mouse_end();
-};
-
-const canvas_listener_mouse_move = (e: MouseEvent) => {
-  if (!canvasInstance.value) return;
-  canvasInstance.value.event_mouse_relative({ x: e.offsetX, y: e.offsetY });
-  if (select_type.value === "cursor" && e.buttons === 1 && canvas_drag.value) {
-    canvasInstance.value.event_mouse_cursor();
-  }
-  if ((select_type.value === "move" && e.buttons === 1) || e.buttons === 4) {
-    if (e.buttons === 4) select_type.value = "move";
-    canvasInstance.value.event_mouse_move({ x: e.clientX, y: e.clientY });
-  }
-};
-
-const canvas_listener_double_click = () => {
-  if (!canvasInstance.value) return;
-  canvasInstance.value.event_mouse_double_click();
-};
-
-const canvas_listener_wheel = (e: WheelEvent) => {
-  if (!canvasInstance.value) return;
-  canvasInstance.value.event_scroll_zoom({ deltaY: e.deltaY });
-};
-
-const document_listener_mouse_up = (e: MouseEvent) => {
-  if (!canvasInstance.value || selected.value) return;
-  e.preventDefault();
-  if (e.button === 1) select_type.value = "cursor";
-  canvasInstance.value.event_mouse_end({ all: true });
-};
-
-const context_menu = () => {
-  if (!canvasInstance.value) return;
-  canvasInstance.value.event_context_menu();
-};
 
 onMounted(() => {
   if (!canvas.value) return;
@@ -156,22 +92,8 @@ onMounted(() => {
     connections: workflow?.connections
   });
 
-  canvasInstance.value.event_resize();
 
-  canvas.value.addEventListener("mousedown", canvas_listener_mouse_down);
-  canvas.value.addEventListener("mouseup", canvas_listener_mouse_up);
-  canvas.value.addEventListener("mousemove", canvas_listener_mouse_move);
-  canvas.value.addEventListener("wheel", canvas_listener_wheel);
-  canvas.value.addEventListener("dblclick", canvas_listener_double_click);
-  window.addEventListener("resize", windowListenerResize);
-  document.addEventListener("mouseup", document_listener_mouse_up);
-
-  canvasInstance.value.events_new_node_start = ({
-    node,
-    output_index,
-    design,
-    relative_pos,
-  }) => {
+  canvasInstance.value.listener('node_added', ({ node, output_index, design, relative_pos }: any) => {
     if (node && output_index !== null && design && relative_pos) {
       new_node_start.value = {
         node,
@@ -182,23 +104,21 @@ onMounted(() => {
     } else {
       new_node_start.value = null;
     }
-  };
+  })
 
-  canvasInstance.value.events_show_properties = (data: { selected: ICanvasNodeNew[] }) => {
-    selected.value = data?.selected;
-  };
+  canvasInstance.value.listener('node_properties_context', ({ selected, canvasTranslate }: any) => {
+    selected.value = selected
+    selectedCanvasTranslate.value = canvasTranslate
+  })
 
-  canvasInstance.value.events_context_menu = (data) => {
-    if (!data) {
-      (selectedContext.value as any) = null
-      return
-    }
+  canvasInstance.value.listener('context_menu', (data: any) => {
+    if (!data) return
+
     const { nodes, canvasTranslate } = data
     selectedContext.value = nodes as ICanvasNodeNew[];
     selectedCanvasTranslate.value = canvasTranslate
-  };
-
-  canvasInstance.value.events_show_connection_context = (data) => {
+  })
+  canvasInstance.value.listener('node_connection_context', (data) => {
     if (data) {
       const { id, nodeOrigin, nodeDestiny, input, output } = data;
       connection_properties_context.value = {
@@ -211,7 +131,7 @@ onMounted(() => {
     } else {
       connection_properties_context.value = null;
     }
-  };
+  })
 
   const virtualServer = ({ event, data }: { event: ICommunicationTypes, data: any }) => {
     socket.socketEmit("server/workflows/virtual/actions", {
@@ -349,15 +269,7 @@ onUnmounted(() => {
   }
   // remove events
   if (!canvas.value) return;
-  canvas.value.removeEventListener("mousedown", canvas_listener_mouse_down);
-  canvas.value.removeEventListener("mouseup", canvas_listener_mouse_up);
-  canvas.value.removeEventListener("mousemove", canvas_listener_mouse_move);
-  canvas.value.removeEventListener("wheel", canvas_listener_wheel);
-  canvas.value.removeEventListener("dblclick", canvas_listener_double_click);
-  window.removeEventListener("resize", windowListenerResize);
-  document.removeEventListener("mouseup", document_listener_mouse_up);
   socket.socketOff("trace");
 });
 
-defineExpose({ windowListenerResize });
 </script>
