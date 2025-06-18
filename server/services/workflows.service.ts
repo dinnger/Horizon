@@ -197,7 +197,10 @@ export function workflowsService() {
 					workflows.flow.connections = connections
 				}
 				return {
-					...workflows.dataValues.flow
+					...workflows.dataValues.flow,
+					uid: workflows.uid,
+					name: workflows.name,
+					version: workflows.version
 				}
 			} catch (error) {
 				let message = 'Error'

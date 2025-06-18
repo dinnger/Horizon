@@ -1,7 +1,7 @@
 import type { INodeClass, INodeClassProperty, INodeClassPropertyType } from '@shared/interface/node.interface.js'
 
 interface IProperties extends INodeClassProperty {
-	inputPath: Extract<INodeClassPropertyType, { type: 'string' }>
+	inputValue: Extract<INodeClassPropertyType, { type: 'string' }>
 	validationSchema: Extract<INodeClassPropertyType, { type: 'code' }>
 	customKeywords: Extract<INodeClassPropertyType, { type: 'code' }>
 	advancedOptions: Extract<INodeClassPropertyType, { type: 'switch' }>
@@ -26,11 +26,10 @@ export default class implements INodeClass {
 	}
 
 	properties: IProperties = {
-		inputPath: {
-			name: 'Ruta de datos de entrada:',
+		inputValue: {
+			name: 'Valor a validar:',
 			type: 'string',
-			value: '',
-			placeholder: 'Ej: data (vacío para usar todo)'
+			value: '{{input.data}}'
 		},
 		validationSchema: {
 			name: 'Esquema de validación (AJV):',
@@ -104,10 +103,6 @@ export default class implements INodeClass {
 
 	async onExecute({ inputData, outputData, dependency }: Parameters<INodeClass['onExecute']>[0]): Promise<void> {
 		try {
-			if (!inputData || !inputData.data) {
-				throw new Error('No se encontraron datos en la entrada')
-			}
-
 			// Obtener dependencias
 			const Ajv = await dependency.getRequire('ajv')
 			const ajvErrors = await dependency.getRequire('ajv-errors')
@@ -117,6 +112,7 @@ export default class implements INodeClass {
 			// Crear instancia de AJV con opciones
 			const ajv = new Ajv({
 				allErrors: true,
+				coerceTypes: true,
 				verbose: this.properties.errorDetails.value === true
 			})
 
@@ -125,21 +121,7 @@ export default class implements INodeClass {
 			ajvErrors(ajv)
 
 			// Obtener los datos de entrada desde la ruta especificada o usar todos los datos
-			let inputValue: any = inputData.data
-			if (this.properties.inputPath.value) {
-				const path = String(this.properties.inputPath.value).split('.')
-				let currentValue: any = inputData.data
-
-				for (const key of path) {
-					if (currentValue && typeof currentValue === 'object' && key in currentValue) {
-						currentValue = currentValue[key]
-					} else {
-						throw new Error(`Ruta de entrada inválida: ${this.properties.inputPath.value}`)
-					}
-				}
-
-				inputValue = currentValue
-			}
+			const inputValue: any = this.properties.inputValue.value
 
 			// Parsear el esquema de validación
 			let validationSchema: any
@@ -191,10 +173,24 @@ export default class implements INodeClass {
 			} else {
 				// Datos inválidos
 
-				const errors = localize.es(validate.errors) || []
+				if (this.properties.advancedOptions.value === false || this.properties.customErrorMessages.value === false) {
+					localize.es(validate.errors)
+				} else {
+					// Mensajes personalizados
+					for (const error of validate.errors) {
+						if (error.keyword === 'errorMessage') {
+							// Remplazar todos los $$ con el valor correspondiente
+							error.message = error.message.replace(
+								/\$\$/g,
+								(error.params.errors || []).map((m: any) => Object.values(m.params)?.[0]).join(', ')
+							)
+							error.params.errors = error.params.errors.map((m: any) => m.params)
+						}
+					}
+				}
 
 				// Formatear errores para mejor legibilidad
-				const formattedErrors = errors.map(
+				const formattedErrors = validate.errors.map(
 					(err: {
 						message: any
 						instancePath: any
@@ -202,7 +198,6 @@ export default class implements INodeClass {
 						params: any
 					}) => ({
 						message: err.message,
-						path: err.instancePath || '/',
 						keyword: err.keyword,
 						params: err.params
 					})
@@ -210,9 +205,7 @@ export default class implements INodeClass {
 
 				outputData('invalid', {
 					valid: false,
-					errors: formattedErrors,
-					originalErrors: this.properties.errorDetails.value ? errors : undefined,
-					data: inputValue
+					errors: formattedErrors
 				})
 			}
 		} catch (error) {
