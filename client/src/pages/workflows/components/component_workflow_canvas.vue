@@ -68,7 +68,7 @@ watch(
   (value) => {
     if (!canvasInstance.value) return;
     theme.value = value;
-    canvasInstance.value.change_theme(main.theme);
+    canvasInstance.value.theme = main.theme
   }
 );
 
@@ -152,11 +152,11 @@ onMounted(() => {
     });
   }
 
-  canvasInstance.value.event_subscriber(["dataNode", 'statsNode', 'virtualAddNode', 'virtualRemoveNode'], ({ event, data }) => {
+  canvasInstance.value.actionSubscriber(["dataNode", 'statsNode', 'virtualAddNode', 'virtualRemoveNode'], ({ event, data }) => {
     virtualServer({ event, data })
   });
 
-  canvasInstance.value.event_subscriber("virtualChangePosition", ({ data }) => {
+  canvasInstance.value.actionSubscriber("virtualChangePosition", ({ data }) => {
     socket.socketEmit("server/workflows/virtual/nodeUpdate", {
       flow: props.uid,
       type: "virtualChangePosition",
@@ -164,7 +164,7 @@ onMounted(() => {
     });
   });
 
-  canvasInstance.value.event_subscriber("virtualChangeMeta", ({ data }) => {
+  canvasInstance.value.actionSubscriber("virtualChangeMeta", ({ data }) => {
     socket.socketEmit("server/workflows/virtual/nodeUpdate", {
       flow: props.uid,
       type: "virtualChangeMeta",
@@ -172,7 +172,7 @@ onMounted(() => {
     });
   });
 
-  canvasInstance.value.event_subscriber("virtualChangeProperties", ({ data }) => {
+  canvasInstance.value.actionSubscriber("virtualChangeProperties", ({ data }) => {
     const flow = props.uid
     const { node, key, value } = data
     const arr = nodeProperties.value
@@ -220,21 +220,21 @@ onMounted(() => {
     )
   });
 
-  canvasInstance.value.event_subscriber("virtualAddConnection", ({ data }) => {
+  canvasInstance.value.actionSubscriber("virtualAddConnection", ({ data }) => {
     socket.socketEmit("server/workflows/virtual/connectionAdd", {
       flow: props.uid,
       data
     });
   });
 
-  canvasInstance.value.event_subscriber("removeConnection", ({ data }) => {
+  canvasInstance.value.actionSubscriber("virtualRemoveConnection", ({ data }) => {
     socket.socketEmit("server/workflows/virtual/connectionRemove", {
       flow: props.uid,
       id: data.id,
     });
   });
 
-  canvasInstance.value.event_subscriber(
+  canvasInstance.value.actionSubscriber(
     "connectionError",
     ({ data }: { data: { type: "info" | "error"; msg: string } }) => {
       toast[data.type](data.msg);
@@ -242,7 +242,6 @@ onMounted(() => {
   );
 
 
-  console.log({ flow: workflow })
   // Nodes
   if (!workflow?.nodes || Object.entries(workflow.nodes).length === 0) {
     const node: INodeCanvas | null =
@@ -262,7 +261,7 @@ onMounted(() => {
   emit("canvasInstance", canvasInstance.value);
 
   // Trace
-  socket.socketOn("trace", (value) => {
+  socket.socketOn("getTrace", (value) => {
     const data: {
       [id: string]: {
         inputs: { data: { [key: string]: number }; length: number };
@@ -275,7 +274,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (canvasInstance.value) {
-    canvasInstance.value.event_mouse_end();
     canvasInstance.value.destroy();
   }
   // remove events

@@ -2,7 +2,7 @@ import type { INodeCanvas, INodeConnections } from '@shared/interface/node.inter
 import type { INodePropertiesType } from '@shared/interface/node.properties.interface'
 import type { Point } from './canvas_connector'
 import { utilsStandardName, utilsValidateName } from '../../../shared/utils'
-import { render_node, renderConnectionNodes, subscriberHelper } from './canvas_helpers'
+import { addAnimation, render_node, renderConnectionNodes, subscriberHelper } from './canvas_helpers'
 import { ref, watch } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 import type { Nodes } from './canvasNodes'
@@ -21,6 +21,10 @@ export class NewNode {
 	isMove = false
 	private el: Nodes
 	public isLockedProperty = false
+	private infoTrace = {
+		inputs: 0,
+		outputs: 0
+	}
 
 	constructor(value: INodeCanvas, el: Nodes) {
 		this.el = el
@@ -128,7 +132,7 @@ export class NewNode {
 	}
 
 	deleteConnections({ id }: { id?: string }) {
-		subscriberHelper().send('removeConnection', { id })
+		subscriberHelper().send('virtualRemoveConnection', { id })
 		this.connections = this.connections.filter((f) => f.id !== id)
 	}
 
@@ -278,12 +282,26 @@ export class NewNode {
 		this.el.duplicateMultiple()
 	}
 
+	trace(data: {
+		inputs: { data: { [key: string]: number }; length: number }
+		outputs: { data: { [key: string]: number }; length: number }
+	}) {
+		if (this.infoTrace.outputs !== data.outputs.length && this.el.ctx) {
+			addAnimation({
+				node: this
+			})
+		}
+		this.infoTrace.inputs = data.inputs.length
+		this.infoTrace.outputs = data.outputs.length
+	}
+
 	render({ ctx }: { ctx: CanvasRenderingContext2D }) {
 		render_node({
 			ctx,
 			theme: 'dark',
 			node: this,
-			selected: this.isSelected
+			selected: this.isSelected,
+			infoTrace: this.infoTrace
 		})
 	}
 

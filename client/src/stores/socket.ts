@@ -2,18 +2,13 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { io, type Socket } from 'socket.io-client'
 import { useSession } from './session'
-import type { SubscriberType } from '@shared/interfaces/class.interface';
+import type { ICommunicationTypes } from '@shared/interface/connect.interface'
 
-function socketExternal({
-	type,
-	data
-}: { type: string; data: any; token: string }) {
+function socketExternal({ type, data }: { type: string; data: any; token: string }) {
 	return new Promise((resolve) => {
 		if (type === 'openUrl') {
 			const { token } = data
-			const url = new URL(
-				`${process.env.SERVER_URL}/api/credential/open?token=${token}` || ''
-			)
+			const url = new URL(`${process.env.SERVER_URL}/api/credential/open?token=${token}` || '')
 			const windowFeatures = 'left=100,top=100,width=320,height=320'
 			const newWindow = window.open(url, '_blank', windowFeatures)
 			if (newWindow) {
@@ -39,22 +34,16 @@ export const useSocket = defineStore('socket', () => {
 			// session
 			socket.value.emit('server/security/session', { token: session.token })
 			// external
-			socket.value.on(
-				'external',
-				async (
-					{ type, data }: { type: string; data: object },
-					callback: any
-				) => {
-					if (!callback) return
-					const resp = await socketExternal({
-						type,
-						data,
-						token: session.token
-					})
-					console.log(resp)
-					callback(resp)
-				}
-			)
+			socket.value.on('external', async ({ type, data }: { type: string; data: object }, callback: any) => {
+				if (!callback) return
+				const resp = await socketExternal({
+					type,
+					data,
+					token: session.token
+				})
+				console.log(resp)
+				callback(resp)
+			})
 		}
 		console.log('Connected to server')
 	})
@@ -72,7 +61,7 @@ export const useSocket = defineStore('socket', () => {
 			socket.value.emit(event, data, callback)
 		}
 	}
-	function socketOn(event: SubscriberType, callback: (value: string) => void) {
+	function socketOn(event: ICommunicationTypes, callback: (value: string) => void) {
 		if (socket_connect.value && socket.value) {
 			socketOff(event)
 			socket.value.on(event, callback)

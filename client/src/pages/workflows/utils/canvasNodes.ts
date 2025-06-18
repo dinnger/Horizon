@@ -4,22 +4,39 @@ import { subscriberHelper } from './canvas_helpers'
 import { NewNode } from './canvasNode'
 import { ref } from 'vue'
 
-// (moved and fixed below after NewNode class)
-
+/**
+ * Gestiona la colección de nodos en el canvas y sus operaciones.
+ * Proporciona métodos para crear, modificar, conectar y renderizar nodos.
+ */
 export class Nodes {
 	public canvasGrid = 20
 	canvasTranslate: { x: number; y: number }
 	nodes: { [key: string]: NewNode } = {}
+	ctx: CanvasRenderingContext2D | null = null
 
-	constructor({ canvasTranslate }: { canvasTranslate: { x: number; y: number } }) {
+	constructor({ canvasTranslate, ctx }: { canvasTranslate: { x: number; y: number }; ctx: CanvasRenderingContext2D }) {
 		this.canvasTranslate = canvasTranslate
+		this.ctx = ctx
 	}
+
+	/**
+	 * Obtiene un nodo por su ID.
+	 * @param data - Objeto con el ID del nodo
+	 * @returns El nodo solicitado
+	 * @throws Error si el nodo no existe
+	 */
 	getNode(data: { id: string }) {
 		const node = this.nodes[data.id]
 		if (!node) throw new Error('No se encontró el nodo')
 		return this.nodes[data.id]
 	}
 
+	/**
+	 * Añade un nuevo nodo al canvas.
+	 * @param node - Datos del nodo a añadir
+	 * @param isManual - Indica si el nodo se añade manualmente
+	 * @returns El nodo creado
+	 */
 	addNode(node: INodeCanvas, isManual?: boolean) {
 		node.id = node.id || uuidv4()
 		this.nodes[node.id] = new NewNode(node, this)
@@ -33,6 +50,11 @@ export class Nodes {
 		return this.nodes[node.id]
 	}
 
+	/**
+	 * Duplica un nodo existente en una nueva posición.
+	 * @param id - ID del nodo a duplicar
+	 * @returns El nodo duplicado o undefined si no existe
+	 */
 	duplicateNode({ id }: { id: string }) {
 		const node = this.nodes[id]
 		if (!node) return
@@ -50,35 +72,32 @@ export class Nodes {
 			true
 		)
 	}
+
+	/**
+	 * Duplica múltiples nodos seleccionados manteniendo sus conexiones internas.
+	 * Crea copias de los nodos y recrea las conexiones entre ellos.
+	 */
 	duplicateMultiple() {
 		const selectedNodes = this.getSelected()
 		const originalToNewIdMap = new Map<string, string>()
 		const duplicatedNodes: NewNode[] = []
 
-		// Primero duplicar todos los nodos seleccionados y crear el mapeo de IDs
 		for (const node of selectedNodes) {
 			const newNode = node.duplicate()
 			if (newNode && node.id) {
 				originalToNewIdMap.set(node.id, newNode.id!)
 				duplicatedNodes.push(newNode)
-				newNode.isSelected = true
-				newNode.isMove = true
 			}
 		}
 
-		// Luego crear las conexiones entre los nodos duplicados
 		for (const originalNode of selectedNodes) {
 			if (!originalNode.id) continue
-
-			// Buscar todas las conexiones donde este nodo es el origen
 			for (const connection of originalNode.connections) {
-				// Solo crear conexiones si tanto el nodo origen como el destino fueron duplicados
 				if (connection.idNodeOrigin === originalNode.id && connection.idNodeDestiny && originalToNewIdMap.has(connection.idNodeDestiny)) {
 					const newOriginId = originalToNewIdMap.get(originalNode.id)
 					const newDestinyId = originalToNewIdMap.get(connection.idNodeDestiny)
 
 					if (newOriginId && newDestinyId) {
-						// Crear la nueva conexión entre los nodos duplicados
 						this.addConnection({
 							id: uuidv4(),
 							connectorType: connection.connectorType,
@@ -93,8 +112,17 @@ export class Nodes {
 				}
 			}
 		}
+
+		for (const node of duplicatedNodes) {
+			node.isSelected = true
+			node.isMove = true
+		}
 	}
 
+	/**
+	 * Añade una conexión entre dos nodos.
+	 * @param connection - Datos de la conexión a crear
+	 */
 	addConnection(connection: INodeConnections & { isManual?: boolean }) {
 		const id = connection.idNodeOrigin || ''
 		if (!this.nodes[id]) return console.error('No se encontró el nodo', id)
@@ -102,16 +130,24 @@ export class Nodes {
 		this.nodes[id].addConnection(connection)
 	}
 
+	/**
+	 * Elimina un nodo del canvas.
+	 * @param id - ID del nodo a eliminar
+	 */
 	removeNode(id: string) {
 		delete this.nodes[id]
 	}
 
+	/**
+	 * Maneja la selección de nodos en una posición específica.
+	 * @param relative - Posición relativa del click
+	 * @returns Nueva conexión si se selecciona un conector
+	 */
 	selected({ relative }: { relative: { x: number; y: number } }) {
 		const x = relative.x
 		const y = relative.y
 		const selected = this.getSelected()
 		let newConnection = null
-		// Si se pulsa botón derecho
 		let verifyMulti = false
 		for (const node of selected) {
 			if (selected.length > 0 && node.verifySelected({ pos: { x, y } }) && selected.includes(node)) {
@@ -140,6 +176,11 @@ export class Nodes {
 		return newConnection
 	}
 
+	/**
+	 * Selecciona múltiples nodos dentro de un área rectangular.
+	 * @param range - Área de selección definida por dos puntos
+	 * @param relative - Posición relativa del cursor
+	 */
 	selectedMultiple({ range, relative }: { range: { x1: number; y1: number; x2: number; y2: number }; relative: { x: number; y: number } }) {
 		const xMin = Math.min(range.x1, range.x2)
 		const xMax = Math.max(range.x1, range.x2)
@@ -150,41 +191,44 @@ export class Nodes {
 		}
 	}
 
+	/**
+	 * Obtiene todos los nodos actualmente seleccionados.
+	 * @returns Array de nodos seleccionados
+	 */
 	getSelected() {
 		return Object.values(this.nodes).filter((f) => f.getSelected())
 	}
 
+	/**
+	 * Obtiene todos los nodos del canvas.
+	 * @returns Objeto con todos los nodos indexados por ID
+	 */
 	getNodes() {
 		return this.nodes
 	}
 
+	/**
+	 * Mueve todos los nodos seleccionados a una nueva posición relativa.
+	 * @param relative - Desplazamiento relativo
+	 */
 	move({ relative }: { relative: { x: number; y: number } }) {
 		for (const node of this.getSelected()) {
 			this.nodes[node.id || -1].move({ relative })
 		}
 	}
 
-	clear() {
-		for (const node of Object.values(this.nodes)) {
-			node.setSelected({ relative: { x: 0, y: 0 } })
-		}
-	}
-
-	render({ ctx }: { ctx: CanvasRenderingContext2D }) {
-		for (const node of Object.values(this.nodes)) {
-			// const selected = this.selectedNode.has(node.id)
-			node.renderConnections({ ctx, nodes: this.nodes })
-			node.render({ ctx })
-		}
-	}
-
+	/**
+	 * Busca un conector de entrada en una posición específica.
+	 * @param x - Coordenada X
+	 * @param y - Coordenada Y
+	 * @returns Información del input encontrado o null si no existe
+	 */
 	getInputAtPosition({ x, y }: { x: number; y: number }): {
 		node: NewNode
 		type: 'input'
 		index: number
 		connectorName: string
 	} | null {
-		// Buscar en todos los nodos si hay un input en la posición dada
 		for (const node of Object.values(this.nodes)) {
 			const connector = node.getSelectedConnectors({ x, y })
 			if (connector && connector.type === 'input') {
@@ -200,14 +244,17 @@ export class Nodes {
 	}
 
 	/**
-	 * Encuentra una conexión en la posición específica del mouse
+	 * Encuentra una conexión en la posición específica del cursor.
+	 * @param x - Coordenada X
+	 * @param y - Coordenada Y
+	 * @returns Información de la conexión encontrada o null si no existe
 	 */
 	getConnectionAtPosition({ x, y }: { x: number; y: number }): {
 		connection: INodeConnections
 		nodeOrigin: NewNode
 		nodeDestiny: NewNode
 	} | null {
-		const tolerance = 10 // Tolerancia en píxeles para detectar la conexión
+		const tolerance = 10
 
 		for (const node of Object.values(this.nodes)) {
 			for (const connection of node.connections) {
@@ -216,7 +263,6 @@ export class Nodes {
 				const nodeDestiny = this.nodes[connection.idNodeDestiny]
 				if (!nodeDestiny) continue
 
-				// Si la conexión tiene pointers (puntos calculados), verificar proximidad
 				if (connection.pointers && connection.pointers.length > 1) {
 					if (this.isPointNearPath(x, y, connection.pointers, tolerance)) {
 						return {
@@ -226,7 +272,6 @@ export class Nodes {
 						}
 					}
 				} else {
-					// Si no tiene pointers, calcular una línea directa
 					const originPoint = this.getNodeOutputPosition(node, connection.connectorName)
 					const destinyPoint = this.getNodeInputPosition(nodeDestiny, connection.connectorDestinyName)
 
@@ -246,7 +291,12 @@ export class Nodes {
 	}
 
 	/**
-	 * Verifica si un punto está cerca de un path definido por una serie de puntos
+	 * Verifica si un punto está cerca de un path definido por múltiples puntos.
+	 * @param x - Coordenada X del punto
+	 * @param y - Coordenada Y del punto
+	 * @param points - Array de puntos que definen el path
+	 * @param tolerance - Tolerancia en píxeles
+	 * @returns true si el punto está cerca del path
 	 */
 	private isPointNearPath(x: number, y: number, points: { x: number; y: number }[], tolerance: number): boolean {
 		for (let i = 0; i < points.length - 1; i++) {
@@ -258,8 +308,15 @@ export class Nodes {
 		}
 		return false
 	}
+
 	/**
-	 * Verifica si un punto está cerca de una línea entre dos puntos
+	 * Verifica si un punto está cerca de una línea entre dos puntos.
+	 * @param x - Coordenada X del punto
+	 * @param y - Coordenada Y del punto
+	 * @param p1 - Primer punto de la línea
+	 * @param p2 - Segundo punto de la línea
+	 * @param tolerance - Tolerancia en píxeles
+	 * @returns true si el punto está cerca de la línea
 	 */
 	private isPointNearLine(x: number, y: number, p1: { x: number; y: number }, p2: { x: number; y: number }, tolerance: number): boolean {
 		const A = x - p1.x
@@ -271,7 +328,6 @@ export class Nodes {
 		const lenSq = C * C + D * D
 
 		if (lenSq === 0) {
-			// Los puntos son iguales
 			return Math.sqrt(A * A + B * B) <= tolerance
 		}
 
@@ -295,8 +351,12 @@ export class Nodes {
 		const dy = y - yy
 		return Math.sqrt(dx * dx + dy * dy) <= tolerance
 	}
+
 	/**
-	 * Obtiene la posición del output de un nodo
+	 * Obtiene la posición visual del conector de salida de un nodo.
+	 * @param node - Nodo del cual obtener la posición del output
+	 * @param outputName - Nombre del conector de salida
+	 * @returns Coordenadas del output o null si no existe
 	 */
 	private getNodeOutputPosition(node: NewNode, outputName: string): { x: number; y: number } | null {
 		const outputIndex = Object.keys(node.info.connectors.outputs).findIndex(
@@ -311,7 +371,10 @@ export class Nodes {
 	}
 
 	/**
-	 * Obtiene la posición del input de un nodo
+	 * Obtiene la posición visual del conector de entrada de un nodo.
+	 * @param node - Nodo del cual obtener la posición del input
+	 * @param inputName - Nombre del conector de entrada
+	 * @returns Coordenadas del input o null si no existe
 	 */
 	private getNodeInputPosition(node: NewNode, inputName: string): { x: number; y: number } | null {
 		const inputIndex = Object.keys(node.info.connectors.inputs).findIndex(
@@ -322,6 +385,39 @@ export class Nodes {
 		return {
 			x: node.design.x,
 			y: node.design.y + 25 + inputIndex * 20 + 10
+		}
+	}
+
+	trace(data: {
+		[id: string]: {
+			inputs: { data: { [key: string]: number }; length: number }
+			outputs: { data: { [key: string]: number }; length: number }
+		}
+	}) {
+		for (const id of Object.keys(data)) {
+			const node = this.nodes[id]
+			if (!node) continue
+			node.trace({ inputs: data[id].inputs, outputs: data[id].outputs })
+		}
+	}
+
+	/**
+	 * Deselecciona todos los nodos del canvas.
+	 */
+	clear() {
+		for (const node of Object.values(this.nodes)) {
+			node.setSelected({ relative: { x: 0, y: 0 } })
+		}
+	}
+
+	/**
+	 * Renderiza todos los nodos y sus conexiones en el canvas.
+	 * @param ctx - Contexto de renderizado del canvas
+	 */
+	render({ ctx }: { ctx: CanvasRenderingContext2D }) {
+		for (const node of Object.values(this.nodes)) {
+			node.renderConnections({ ctx, nodes: this.nodes })
+			node.render({ ctx })
 		}
 	}
 }

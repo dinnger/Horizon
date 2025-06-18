@@ -127,8 +127,8 @@ export class CommunicationModule {
 			const data = this.el.coreModule.trace.get()
 			if (data) {
 				this.postMessage({
-					target: 'trace',
-					data
+					data,
+					target: 'getTrace'
 				})
 			}
 
@@ -272,7 +272,7 @@ export class CommunicationModule {
 			return Promise.resolve({ data: changes })
 		})
 
-		this.subscriberMessage('actionNode', async ({ data }: any) => {
+		this.subscriberMessage('virtualActionNode', async ({ data }: any) => {
 			const { node, action, event } = data
 			const changes = await this.el.virtualModule.virtualAction({
 				node,
@@ -289,7 +289,7 @@ export class CommunicationModule {
 			return Promise.resolve(changes)
 		})
 
-		this.subscriberMessage('removeConnection', ({ data }: any) => {
+		this.subscriberMessage('virtualRemoveConnection', ({ data }: any) => {
 			const { id } = data
 			this.el.virtualModule.virtualConnectionRemove({
 				id
@@ -438,7 +438,7 @@ export class CommunicationModule {
 		parent?.postMessage({
 			type: 'emit',
 			room: flow,
-			value: data,
+			data,
 			target: target
 		})
 	}

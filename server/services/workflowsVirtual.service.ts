@@ -138,7 +138,7 @@ export function virtualWorkflowService() {
 			const worker = workersList.get(flow.toLocaleLowerCase().trim())
 			if (!worker) return { error: 'No se encontró el worker' }
 			const data = await worker.worker.getDataWorker({
-				type: 'actionNode',
+				type: 'virtualActionNode',
 				data: { node, action, event }
 			})
 			return data
@@ -174,7 +174,7 @@ export function virtualWorkflowService() {
 			const worker = workersList.get(flow.toLocaleLowerCase().trim())
 			if (!worker) return { error: 'No se encontró el worker' }
 			const changes = await worker.worker.getDataWorker({
-				type: 'removeConnection',
+				type: 'virtualRemoveConnection',
 				data: { id }
 			})
 			return { changes }

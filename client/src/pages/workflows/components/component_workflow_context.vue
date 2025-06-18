@@ -21,7 +21,6 @@
         <div class="flex gap-2 hover:bg-black/20 p-1 rounded-md cursor-pointer" @click="duplicateNode">
           <span class="mdi mdi-content-copy"></span> Duplicar
         </div>
-
         <div class="flex gap-2 hover:bg-black/20 p-1 rounded-md cursor-pointer text-error" @click="deleteNode">
           <span class="mdi mdi-delete"></span> Eliminar
         </div>

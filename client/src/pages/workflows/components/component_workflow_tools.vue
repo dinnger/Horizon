@@ -5,13 +5,13 @@
         canvas_relative_pos.y.toFixed(0) }}
     </span>
     <div class="join">
-      <CustomButton soft size="sm" @click="zoom_in">
+      <CustomButton soft size="sm" @click="zoomIn">
         <span class="mdi mdi-plus"></span>
       </CustomButton>
-      <CustomButton soft size="sm" @click="zoom_center">
+      <CustomButton soft size="sm" @click="zoomCenter">
         <span class="mdi mdi-arrow-expand-all"></span>
       </CustomButton>
-      <CustomButton soft size="sm" @click="zoom_out">
+      <CustomButton soft size="sm" @click="zoomOut">
         <span class="mdi mdi-minus"></span>
       </CustomButton>
     </div>
@@ -28,13 +28,13 @@
 </template>
 
 <script setup lang="ts">
-import type { IWorkflowWorkerEntity } from '@shared/interfaces/workflow.interface.js';
+import type { IWorkflow } from '@shared/interface/workflow.interface.js';
 import type { Canvas } from '../utils/canvas';
 import { ref, watch } from 'vue';
 import CustomButton from '../../../shared/components/customButton.vue';
 
 const props = defineProps<{
-  workflow: IWorkflowWorkerEntity
+  workflow: IWorkflow
   canvasInstance: Canvas,
   select_type: 'cursor' | 'move'
 }>()
@@ -62,17 +62,17 @@ watch(() => props.select_type, (value) => {
   local_select_type.value = value
 })
 
-const zoom_in = () => {
+const zoomIn = () => {
   if (!props.canvasInstance) return
-  props.canvasInstance.event_zoom({ value: 0.1 })
+  props.canvasInstance.actionZoomIn()
 }
-const zoom_center = () => {
+const zoomCenter = () => {
   if (!props.canvasInstance) return
   zoom.value = 1
-  props.canvasInstance.event_zoom({ zoom: 1 })
+  props.canvasInstance.actionZoomCenter()
 }
-const zoom_out = () => {
+const zoomOut = () => {
   if (!props.canvasInstance) return
-  props.canvasInstance.event_zoom({ value: -0.1 })
+  props.canvasInstance.actionZoomOut
 }
 </script>

@@ -6,8 +6,8 @@ import {
 	renderSelected,
 	getTempConnection,
 	subscriberHelper,
-	setIndexTime
-	// renderAnimation
+	setIndexTime,
+	renderAnimation
 } from './canvas_helpers'
 import { pattern_dark, pattern_light } from './canvas_pattern'
 import { v4 as uuidv4 } from 'uuid'
@@ -27,6 +27,10 @@ type EventsCanvas =
 	| 'node_connection_selected'
 	| 'clear'
 
+/**
+ * Clase principal que maneja el canvas de flujo de trabajo.
+ * Gestiona la renderización, eventos, y operaciones de nodos y conexiones.
+ */
 export class Canvas {
 	canvas: HTMLCanvasElement
 	context: CanvasRenderingContext2D
@@ -85,19 +89,24 @@ export class Canvas {
 		this.canvas = canvas
 		this.context = canvas.getContext('2d') as CanvasRenderingContext2D
 		this.ctx = this.context
-		this.nodes = new Nodes({ canvasTranslate: this.canvasTranslate })
+		this.nodes = new Nodes({ canvasTranslate: this.canvasTranslate, ctx: this.ctx })
 		this.theme = theme
 	}
 
+	/**
+	 * Inicializa el canvas configurando eventos y cargando datos iniciales.
+	 * @param nodes - Nodos iniciales a cargar
+	 * @param connections - Conexiones iniciales a establecer
+	 */
 	init({ nodes, connections }: { nodes?: { [key: string]: INodeCanvas }; connections?: INodeConnections[] }) {
-		this.event_resize()
+		this.eventResize()
 		for (const event of this.eventsCanvas) {
 			this.canvas.addEventListener(event as any, (e) => {
 				e.preventDefault()
 				this.events({ event: event as string, e })
 			})
 		}
-		window.addEventListener('resize', () => this.event_resize())
+		window.addEventListener('resize', () => this.eventResize())
 		document.addEventListener('mouseup', this.eventMouseUp)
 
 		this.addImageProcess(this.theme === 'dark' ? pattern_dark : pattern_light).then((img) => {
@@ -117,7 +126,12 @@ export class Canvas {
 		})
 	}
 
-	load({ nodes, connections }: { nodes: { [key: string]: INodeCanvas }; connections: INodeConnections[] }) {
+	/**
+	 * Carga nodos y conexiones en el canvas.
+	 * @param nodes - Diccionario de nodos indexados por ID
+	 * @param connections - Array de conexiones entre nodos
+	 */
+	private load({ nodes, connections }: { nodes: { [key: string]: INodeCanvas }; connections: INodeConnections[] }) {
 		for (const [key, node] of Object.entries(nodes)) {
 			this.nodes.addNode({ ...node, id: key })
 		}
@@ -126,17 +140,12 @@ export class Canvas {
 		}
 	}
 
-	listener = (event: EventsCanvas | EventsCanvas[], callback: (e: any) => any) => {
-		if (Array.isArray(event)) {
-			for (const e of event) {
-				this.listener(e, callback)
-			}
-			return
-		}
-		this.subscribers.set(event, callback)
-	}
-
-	emit = (event: EventsCanvas | EventsCanvas[], e: any) => {
+	/**
+	 * Emite eventos a los suscriptores registrados.
+	 * @param event - Tipo de evento o array de tipos
+	 * @param e - Datos del evento
+	 */
+	private emit = (event: EventsCanvas | EventsCanvas[], e: any) => {
 		const events = !Array.isArray(event) ? [event] : event
 		for (const event of events) {
 			const callback = this.subscribers.get(event)
@@ -144,12 +153,12 @@ export class Canvas {
 		}
 	}
 
-	change_theme(theme: string) {
-		this.theme = theme
-		this.init({})
-	}
-
-	addImageProcess(src: string): Promise<HTMLImageElement> {
+	/**
+	 * Carga una imagen de forma asíncrona.
+	 * @param src - URL de la imagen a cargar
+	 * @returns Promise que resuelve con la imagen cargada
+	 */
+	private addImageProcess(src: string): Promise<HTMLImageElement> {
 		return new Promise((resolve, reject) => {
 			const img = new Image()
 			img.onload = () => resolve(img)
@@ -158,11 +167,13 @@ export class Canvas {
 		})
 	}
 
-	background() {
+	/**
+	 * Renderiza el fondo del canvas y todos los elementos visuales.
+	 */
+	private background() {
 		if (!this.canvas || !this.ctx || !this.canvasPattern) return
 		const x = this.canvasTranslate.x
 		const y = this.canvasTranslate.y
-		// Relativas
 		const x_ = -x / this.canvasFactor
 		const y_ = -y / this.canvasFactor
 		const w_ = this.canvasWidth / this.canvasFactor
@@ -176,11 +187,10 @@ export class Canvas {
 		this.ctx.fillStyle = this.canvasPattern
 		this.ctx.fillRect(x_, y_, w_, h_)
 		this.ctx.globalAlpha = 1.0
-		this.ctx.imageSmoothingEnabled = this.ctx.imageSmoothingEnabled = true //= ctx.mozImageSmoothingEnabled
+		this.ctx.imageSmoothingEnabled = this.ctx.imageSmoothingEnabled = true
 
 		this.nodes.render({ ctx: this.ctx })
 
-		// Render selected
 		if (this.canvasSelect.show) {
 			this.nodes.selectedMultiple({ range: this.canvasSelect, relative: this.canvasRelativePos })
 			renderSelected({
@@ -189,6 +199,8 @@ export class Canvas {
 				ctx: this.ctx
 			})
 		}
+
+		renderAnimation({ ctx: this.ctx })
 
 		if (this.newConnectionNode) {
 			drawNodeConnectionPreview({
@@ -201,31 +213,30 @@ export class Canvas {
 			})
 		}
 
-		// Animation
-		// renderAnimation(this.nodes, this.ctx)
-
 		this.ctx.restore()
 	}
 
-	fn_get_nodes_array() {
-		return Object.values(this.nodes)
-	}
-
-	fn_selected() {
-		if (!this.canvasSelect.show) {
-			this.canvasSelect.x1 = this.canvasRelativePos.x
-			this.canvasSelect.y1 = this.canvasRelativePos.y
+	/**
+	 * Registra un callback para eventos específicos del canvas.
+	 * @param event - Tipo de evento o array de tipos
+	 * @param callback - Función a ejecutar cuando ocurra el evento
+	 */
+	listener = (event: EventsCanvas | EventsCanvas[], callback: (e: any) => any) => {
+		if (Array.isArray(event)) {
+			for (const e of event) {
+				this.listener(e, callback)
+			}
+			return
 		}
-		this.canvasSelect.x2 = this.canvasRelativePos.x
-		this.canvasSelect.y2 = this.canvasRelativePos.y
-		this.canvasSelect.show = true
+		this.subscribers.set(event, callback)
 	}
 
-	// ============================================================================
-	// Events
-	// ============================================================================
-
-	events({ event, e }: { event: string; e: any }) {
+	/**
+	 * Dispatcher principal de eventos del canvas.
+	 * @param event - Nombre del evento
+	 * @param e - Objeto del evento
+	 */
+	private events({ event, e }: { event: string; e: any }) {
 		switch (event) {
 			case 'mousedown':
 				this.eventMouseDown(e)
@@ -248,7 +259,11 @@ export class Canvas {
 		}
 	}
 
-	eventMouseDown = (e: MouseEvent) => {
+	/**
+	 * Maneja el evento de mouse down para iniciar arrastre y selección.
+	 * @param e - Evento del mouse
+	 */
+	private eventMouseDown = (e: MouseEvent) => {
 		this.canvasTempPosX = e.clientX - this.canvasTranslate.x
 		this.canvasTempPosY = e.clientY - this.canvasTranslate.y
 		if (e.button === 0 || e.button === 2) {
@@ -268,28 +283,44 @@ export class Canvas {
 			}
 		}
 
-		// Si se pulsa botón central
 		if (e.button === 1) {
 			this.eventMouseUp(e)
 			this.eventsType = 'move'
 		}
 	}
 
-	eventMouseUp = (e: MouseEvent) => {
+	/**
+	 * Maneja el evento de mouse up para finalizar arrastre.
+	 * @param e - Evento del mouse
+	 */
+	private eventMouseUp = (e: MouseEvent) => {
 		this.isDragging = false
 		if (e.button === 1) this.eventsType = 'cursor'
-		if (e.button === 0) this.event_mouse_end()
+		if (e.button === 0) this.eventMouseEnd()
 	}
 
-	eventMouseMove = (e: MouseEvent) => {
-		this.event_mouse_relative({ x: e.offsetX, y: e.offsetY })
+	/**
+	 * Maneja el movimiento del mouse para arrastre y selección múltiple.
+	 * @param e - Evento del mouse
+	 */
+	private eventMouseMove = (e: MouseEvent) => {
+		const { offsetX: x, offsetY: y } = e
+		this.canvasPosition = { x, y }
+		this.canvasRelativePos = {
+			x: Number.parseFloat(((x - this.canvasTranslate.x) / this.canvasFactor).toFixed(2)),
+			y: Number.parseFloat(((y - this.canvasTranslate.y) / this.canvasFactor).toFixed(2))
+		}
 		if (this.eventsType === 'cursor' && e.buttons === 1 && this.isDragging) {
-			// Selected
-
 			if (this.selectedNode.length === 0 || this.canvasSelect.show) {
-				return this.fn_selected()
+				if (!this.canvasSelect.show) {
+					this.canvasSelect.x1 = this.canvasRelativePos.x
+					this.canvasSelect.y1 = this.canvasRelativePos.y
+				}
+				this.canvasSelect.x2 = this.canvasRelativePos.x
+				this.canvasSelect.y2 = this.canvasRelativePos.y
+				this.canvasSelect.show = true
+				return
 			}
-			// Move Node
 			if (this.selectedNode.length > 0 && !this.newConnectionNode) {
 				this.nodes.move({ relative: this.canvasRelativePos })
 				this.emit('node_moved', { selected: this.selectedNode })
@@ -302,24 +333,34 @@ export class Canvas {
 		}
 	}
 
-	eventDbClick = (_e: MouseEvent) => {
+	/**
+	 * Maneja el doble click para seleccionar nodos.
+	 * @param _e - Evento del mouse
+	 */
+	private eventDbClick = (_e: MouseEvent) => {
 		const selected = this.nodes.getSelected()
 		this.emit('node_selected', { selected })
 	}
 
-	eventWheel = (e: WheelEvent) => {
-		this.event_scroll_zoom({ deltaY: e.deltaY })
+	/**
+	 * Maneja el evento de rueda del mouse para zoom.
+	 * @param e - Evento de rueda
+	 */
+	private eventWheel = (e: WheelEvent) => {
+		this.eventScrollZoom({ deltaY: e.deltaY })
 	}
 
-	eventContextMenu = (_e: MouseEvent) => {
-		// Primero verificar si se hizo clic derecho sobre una conexión
+	/**
+	 * Maneja el menú contextual del canvas.
+	 * @param _e - Evento del mouse
+	 */
+	private eventContextMenu = (_e: MouseEvent) => {
 		const connectionAtPosition = this.nodes.getConnectionAtPosition({
 			x: this.canvasRelativePos.x,
 			y: this.canvasRelativePos.y
 		})
 
 		if (connectionAtPosition) {
-			// Mostrar menú contextual de conexión
 			this.emit('node_connection_selected', {
 				id: connectionAtPosition.connection.id!,
 				nodeOrigin: connectionAtPosition.nodeOrigin.get(),
@@ -330,24 +371,24 @@ export class Canvas {
 			return
 		}
 
-		// Si no hay conexión, mostrar menú contextual de nodos
 		const selected = this.nodes.getSelected()
 		if (selected.length === 0) return
 		this.emit('node_context', { selected, canvasTranslate: this.nodes.canvasTranslate })
 	}
 
-	event_mouse_end({ all }: { all?: boolean } = {}) {
+	/**
+	 * Finaliza operaciones de arrastre y crea conexiones automáticas.
+	 */
+	private eventMouseEnd() {
 		this.canvasSelect.show = false
 
 		if (this.newConnectionNode && !getTempConnection()) {
-			// Verificar si se terminó el arrastre sobre un input de otro nodo
 			const targetInput = this.nodes.getInputAtPosition({
 				x: this.canvasRelativePos.x,
 				y: this.canvasRelativePos.y
 			})
 
 			if (targetInput && this.newConnectionNode.type === 'output' && targetInput.node.id !== this.newConnectionNode.node.id) {
-				// Crear conexión directa entre output e input
 				const originNode = this.nodes.getNode({ id: this.newConnectionNode.node.id! })
 				originNode.addConnection({
 					connectorType: 'output',
@@ -358,75 +399,63 @@ export class Canvas {
 					isManual: true
 				})
 
-				// Limpiar el estado de conexión
 				this.newConnectionNode = null
 				this.isNodeConnectionVisible = false
 			} else {
-				// Comportamiento original: mostrar menú de nuevos nodos
-				// if (!this.isNodeConnectionVisible) {
 				this.emit('node_added', {
 					design: this.canvasPosition,
 					relative_pos: { ...this.canvasRelativePos },
 					output_index: this.newConnectionNode.index,
 					node: this.newConnectionNode.node
 				})
-				// } else {
-				// 	this.selectedNode = []
-				// 	this.newConnectionNode = null
-				// }
 			}
 		}
 		if (this.newConnectionNode) {
 			this.newConnectionNode.relative = this.canvasRelativePos
 		}
-
-		if (all) {
-			this.nodes.clear()
-			this.selectedNode = []
-			this.newConnectionNode = null
-			this.isNodeConnectionVisible = false
-		}
 	}
 
-	event_mouse_relative({ x, y }: INodeCanvas['design']) {
-		this.canvasPosition = { x, y }
-		this.canvasRelativePos = {
-			x: Number.parseFloat(((x - this.canvasTranslate.x) / this.canvasFactor).toFixed(2)),
-			y: Number.parseFloat(((y - this.canvasTranslate.y) / this.canvasFactor).toFixed(2))
-		}
-	}
-
-	event_resize() {
+	/**
+	 * Ajusta el tamaño del canvas al contenedor padre.
+	 */
+	private eventResize() {
 		const parent = this.canvas.parentElement
 		if (parent) {
 			this.canvasWidth = parent.clientWidth
 			this.canvasHeight = parent.clientHeight
 			this.canvas.width = this.canvasWidth
 			this.canvas.height = this.canvasHeight
-			// this.canvasFactor = this.canvasWidth / this.canvasHeight
 		}
 	}
 
-	event_zoom({ zoom, value }: { zoom?: number; value?: number }) {
+	/**
+	 * Aplica zoom al canvas con límites establecidos.
+	 * @param zoom - Nuevo factor de zoom
+	 * @param value - Incremento del zoom
+	 */
+	private eventZoom({ zoom, value }: { zoom?: number; value?: number }) {
 		this.canvasFactor = zoom || this.canvasFactor + (value || 0)
 		if (this.canvasFactor < 0.5) this.canvasFactor = 0.5
 		if (this.canvasFactor > 2) this.canvasFactor = 2
 	}
 
-	event_scroll_zoom({ deltaY }: { deltaY: number }) {
+	/**
+	 * Maneja el zoom con rueda del mouse manteniendo el punto focal.
+	 * @param deltaY - Dirección del scroll
+	 */
+	private eventScrollZoom({ deltaY }: { deltaY: number }) {
 		const tempFactor = this.canvasFactor
-		this.event_zoom({ value: deltaY > 0 ? -0.1 : 0.1 })
+		this.eventZoom({ value: deltaY > 0 ? -0.1 : 0.1 })
 		this.canvasTranslate.x -= this.canvasRelativePos.x * (this.canvasFactor - tempFactor)
 		this.canvasTranslate.y -= this.canvasRelativePos.y * (this.canvasFactor - tempFactor)
 	}
 
-	event_node_position(fn: (data: { id: string; x: number; y: number }) => void) {
-		for (const node of Object.values(this.nodes)) {
-			fn({ id: node.id, x: node.design.x, y: node.design.y })
-		}
-	}
-
-	event_subscriber(
+	/**
+	 * Suscribe a eventos de comunicación externa.
+	 * @param type - Tipo o tipos de comunicación
+	 * @param fn - Función callback para manejar eventos
+	 */
+	actionSubscriber(
 		type: ICommunicationTypes | ICommunicationTypes[],
 		fn: ({ event, data }: { event: ICommunicationTypes; data: any }) => void
 	) {
@@ -439,6 +468,34 @@ export class Canvas {
 		}
 	}
 
+	/**
+	 * Aumenta el zoom del canvas.
+	 */
+	actionZoomIn() {
+		this.eventZoom({ value: 0.1 })
+	}
+
+	/**
+	 * Disminuye el zoom del canvas.
+	 */
+	actionZoomOut() {
+		this.eventZoom({ value: -0.1 })
+	}
+
+	/**
+	 * Restaura el zoom al 100%.
+	 */
+	actionZoomCenter() {
+		this.eventZoom({ zoom: 1 })
+	}
+
+	/**
+	 * Añade un nuevo nodo al canvas y opcionalmente lo conecta a otro nodo.
+	 * @param origin - Información del nodo origen para conexión automática
+	 * @param node - Datos del nodo a crear
+	 * @param isManual - Indica si es una acción manual del usuario
+	 * @returns ID del nodo creado
+	 */
 	actionAddNode({
 		origin,
 		node,
@@ -474,144 +531,35 @@ export class Canvas {
 				isManual: true
 			})
 		}
-
 		return id
 	}
 
 	/**
-	 * Adds a connection between two nodes in the workflow.
-	 *
-	 * @param {Object} params - The parameters for adding a connection.
-	 * @param {string} params.id_node_origin - The ID of the origin node.
-	 * @param {string} params.id_node_destiny - The ID of the destination node.
-	 * @param {string} params.input - The input identifier for the connection.
-	 * @param {string} params.output - The output identifier for the connection.
-	 *
-	 * @returns {void}
-	 */
-
-	/**
-	 * Nodes
-	 */
-	actionNode(action: ICommunicationTypes, node: INodeCanvas | INodeCanvas[]) {
-		if (!Array.isArray(node)) {
-			// subscriberHelper().send(action, {
-			// 	node: {
-			// 		id: node.id
-			// 	}
-			// })
-		}
-		if (action === 'virtualRemoveNode' && !Array.isArray(node)) {
-			// this.selectedNode.delete(node.id)
-			// const listConnection = this.connectionNodes.filter((value) => value.id_node_origin === node.id || value.id_node_destiny === node.id)
-			// for (const connection of listConnection) {
-			// 	this.actionDeleteConnectionById({ id: connection.id })
-			// }
-			this.nodes.removeNode(String(node.id))
-			// if (this.events_context_menu) {
-			// 	this.events_context_menu(null)
-			// }
-		}
-		if (action === 'duplicateNode') {
-			const ids: string[] = []
-			const tempIds = []
-			const tempConnections = []
-			const nodes = Array.isArray(node) ? node : [node]
-			for (const node of nodes) {
-				const name = node.info.name.split('_').length > 1 ? node.info.name.split('_').slice(0, -1).join('_') : node.info.name
-				const ICanvasNodeNew = {
-					...node,
-					properties: JSON.parse(JSON.stringify(node.properties)),
-					connections: []
-				}
-				ICanvasNodeNew.info.name = name
-				const id = this.actionAddNode({
-					node: ICanvasNodeNew,
-					isManual: true
-				})
-				tempConnections.push(...JSON.parse(JSON.stringify(node.connections)))
-				tempIds.push({ beforeId: node.id, afterId: id })
-				ids.push(id)
-			}
-
-			for (const temp of tempConnections) {
-				temp.id_node_origin = tempIds.find((f) => f.beforeId === temp.id_node_origin)?.afterId || temp.id_node_origin
-				temp.id_node_destiny = tempIds.find((f) => f.beforeId === temp.id_node_destiny)?.afterId || temp.id_node_destiny
-			}
-			// for (const connection of tempConnections.filter((f) => ids.includes(f.id_node_origin) && ids.includes(f.id_node_destiny))) {
-			// 	this.addConnection({
-			// 		id_node_origin: connection.id_node_origin,
-			// 		id_node_destiny: connection.id_node_destiny,
-			// 		input: connection.input,
-			// 		output: connection.output,
-			// 		isManual: true
-			// 	})
-			// }
-			this.selectedNode = []
-			// this.actionSelectNodeById({ ids })
-		}
-
-		// if (this.events_context_menu) this.events_context_menu(null)
-	}
-	/**
-	 * Deletes a connection node by its ID.
-	 *
-	 * @param {Object} param - The parameter object.
-	 * @param {string} param.id - The ID of the connection node to delete.
-	 *
-	 * @returns {void}
+	 * Elimina una conexión específica por su ID.
+	 * @param id - ID de la conexión a eliminar
 	 */
 	actionDeleteConnectionById({ id }: { id: string }) {
-		// Encontrar y eliminar la conexión de todos los nodos
 		for (const node of Object.values(this.nodes.nodes)) {
 			node.deleteConnections({ id })
 		}
-		// if (this.events_show_connection_context) {
-		// 	this.events_show_connection_context(null)
-		// }
 	}
 
-	// actionSelectNodeById({ ids }: { ids: string[] }) {
-	// 	for (const id of ids) {
-	// 		const node = this.nodes[id]
-
-	// 		this.selectedNode.set(node.id, {
-	// 			node: node,
-	// 			relative_pos: {
-	// 				x: this.canvasRelativePos.x - node.x,
-	// 				y: this.canvasRelativePos.y - node.y
-	// 			},
-	// 			isMove: false
-	// 		})
-	// 	}
-	// }
-
+	/**
+	 * Procesa datos de trazado de ejecución de nodos.
+	 * @param data - Datos de entrada y salida de cada nodo
+	 */
 	actionTrace(data: {
 		[id: string]: {
 			inputs: { data: { [key: string]: number }; length: number }
 			outputs: { data: { [key: string]: number }; length: number }
 		}
 	}) {
-		// for (const [id, item] of Object.entries(data)) {
-		// 	const node = this.nodes[id]
-		// 	if (!node) continue
-		// 	const data: { [key: string]: { value: number; changes: number } } = {}
-		// for (const [key, value] of Object.entries(item.outputs.data)) {
-		// 	data[key] = {
-		// 		value,
-		// 		changes: value - (node.info?.outputs.data[key]?.value || value - 1)
-		// 	}
-		// }
-		// node.info = {
-		// 	inputs: item.inputs,
-		// 	outputs: {
-		// 		data,
-		// 		length: item.outputs.length
-		// 	}
-		// }
-		// }
+		this.nodes.trace(data)
 	}
 
+	/**
+	 * Limpia recursos y remueve event listeners.
+	 */
 	destroy() {
 		for (const event of this.eventsCanvas) {
 			this.canvas.removeEventListener(event as any, (e) => {
@@ -619,9 +567,10 @@ export class Canvas {
 				this.events({ event: event as string, e })
 			})
 		}
-		window.removeEventListener('resize', () => this.event_resize())
+		window.removeEventListener('resize', () => this.eventResize())
 		document.removeEventListener('mouseup', this.eventMouseUp)
 		subscriberHelper().clear()
+		this.eventMouseEnd()
 		if (this.backgroundUpdateInterval) {
 			clearInterval(this.backgroundUpdateInterval)
 		}

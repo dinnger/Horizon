@@ -1,7 +1,9 @@
 import type { INodeCanvas, INodeConnections } from '@shared/interface/node.interface.js'
 import type { Point } from './canvas_connector'
 import type { ICommunicationTypes } from '@shared/interface/connect.interface'
+import type { NewNode } from './canvasNode'
 import { OrthogonalConnector } from './canvas_connector'
+import { v4 as uuidv4 } from 'uuid'
 interface Canvas_Interface {
 	x1: number
 	y1: number
@@ -36,7 +38,7 @@ interface Interface_Bezier {
 }
 
 // Animation List
-let animationList: { id: string; outputName: string; time: number }[] = []
+let animationList: { id: string; outputName: string; colorGradient: any; pointers: Point[]; time: number }[] = []
 
 let indexTime = 0
 
@@ -115,12 +117,14 @@ export function render_node({
 	ctx,
 	node,
 	theme,
-	selected
+	selected,
+	infoTrace
 }: {
 	ctx: CanvasRenderingContext2D
 	theme: string
 	node: INodeCanvas
 	selected: boolean
+	infoTrace: { inputs: number; outputs: number }
 }) {
 	const background = theme === 'dark' ? '#333' : '#ECF0F1'
 	const invert_background = theme === 'dark' ? '#ECF0F1' : '#ECF0F1'
@@ -157,6 +161,12 @@ export function render_node({
 	ctx.textAlign = 'center'
 	ctx.fillText(node.info.name, node.design.x + node.design.width! / 2, node.design.y + 65, 700)
 	// info
+	if (infoTrace.inputs > 0 || infoTrace.outputs > 0) {
+		ctx.textAlign = 'right'
+		ctx.font = '9px "Comfortaa Variable"'
+		ctx.fillText(`${infoTrace.inputs}/${infoTrace.outputs}`, node.design.x + node.design.width! - 10, node.design.y + 18)
+	}
+
 	// if (node.info) {
 	// 	ctx.textAlign = 'right'
 	// 	ctx.font = '9px "Comfortaa Variable"'
@@ -295,24 +305,35 @@ function drawCircle(ctx: CanvasRenderingContext2D, position: Point, radius: numb
  *
  * @param {CanvasRenderingContext2D} ctx - The canvas rendering context to draw on.
  */
-export function renderAnimation(nodes: { [key: string]: INodeCanvas }, ctx: CanvasRenderingContext2D) {
+export function addAnimation({ node }: { node: NewNode }) {
 	// console.log(connectionNodes)
-	for (const item of animationList) {
-		const node = nodes[item.id]
-		if (!node || !node.connections) return
-		for (const connection of node.connections.filter((f) => f.connectorName === item.outputName && f.idNodeOrigin === item.id)) {
-			if (!connection.pointers) return
-
-			const percentage = 1 - (item.time * 1) / 60
-			// console.log(percentage)
-			const position = getPointAtPercentage(connection.pointers, percentage)
-			if (connection.colorGradient) {
-				drawCircle(ctx, position, 5, connection.colorGradient)
-			}
-		}
-		item.time--
+	if (!node || !node.connections) return
+	for (const connection of node.connections.filter((f) => f.idNodeOrigin === node.id)) {
+		if (!connection.pointers) return
+		animationList.push({
+			id: uuidv4(),
+			outputName: connection.connectorName,
+			pointers: connection.pointers,
+			colorGradient: connection.colorGradient,
+			time: 60
+		})
 	}
-	animationList = animationList.filter((f) => f.time > 0)
+}
+
+export function renderAnimation({ ctx }: { ctx: CanvasRenderingContext2D }) {
+	if (!ctx) return
+	for (const connection of animationList) {
+		if (!connection.pointers) return
+		const percentage = 1 - (connection.time * 1) / 60
+		const position = getPointAtPercentage(connection.pointers, percentage)
+		if (connection.colorGradient) {
+			drawCircle(ctx, position, 5, connection.colorGradient)
+		}
+		connection.time--
+		if (connection.time <= 0) {
+			animationList = animationList.filter((f) => f.id !== connection.id)
+		}
+	}
 }
 
 /**
