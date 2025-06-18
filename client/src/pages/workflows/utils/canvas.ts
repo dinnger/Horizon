@@ -8,7 +8,7 @@ import {
 	subscriberHelper,
 	setIndexTime,
 	renderAnimation
-} from './canvas_helpers'
+} from './canvasHelpers'
 import { pattern_dark, pattern_light } from './canvas_pattern'
 import { v4 as uuidv4 } from 'uuid'
 import { Nodes, type ICanvasNodeNew } from './canvasNodes'
@@ -550,8 +550,9 @@ export class Canvas {
 	 */
 	actionTrace(data: {
 		[id: string]: {
-			inputs: { data: { [key: string]: number }; length: number }
-			outputs: { data: { [key: string]: number }; length: number }
+			input: { data: { [key: string]: number }; length: number }
+			output: { data: { [key: string]: number }; length: number }
+			callback: { data: { [key: string]: number }; length: number }
 		}
 	}) {
 		this.nodes.trace(data)

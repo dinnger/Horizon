@@ -242,7 +242,7 @@ export class CoreModule {
 		// Observer
 		if (this.el.isDev) {
 			if (this.trace.dataNode.has(node.id)) this.trace.dataNode.set(node.id, classExecute)
-			this.trace.traceExecute({ id: node.id, type: 'inputs' })
+			this.trace.traceExecute({ id: node.id, type: 'input' })
 		}
 
 		// remplazando propiedades que se hayan definido en el nodo
@@ -332,7 +332,7 @@ export class CoreModule {
 				if (this.el.isDev) {
 					if (!node.id) return
 					if (this.trace.dataNode.has(node.id)) this.trace.dataNode.set(node.id, classExecute)
-					this.trace.traceExecute({ id: node.id, type: 'outputs', connectName: output_name, executeTime })
+					this.trace.traceExecute({ id: node.id, type: 'output', connectName: output_name, executeTime })
 				}
 
 				// Registrando logs

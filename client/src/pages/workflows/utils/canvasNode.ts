@@ -2,7 +2,7 @@ import type { INodeCanvas, INodeConnections } from '@shared/interface/node.inter
 import type { INodePropertiesType } from '@shared/interface/node.properties.interface'
 import type { Point } from './canvas_connector'
 import { utilsStandardName, utilsValidateName } from '../../../shared/utils'
-import { addAnimation, render_node, renderConnectionNodes, subscriberHelper } from './canvas_helpers'
+import { addAnimation, render_node, renderConnectionNodes, subscriberHelper } from './canvasHelpers'
 import { ref, watch } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
 import type { Nodes } from './canvasNodes'
@@ -283,16 +283,18 @@ export class NewNode {
 	}
 
 	trace(data: {
-		inputs: { data: { [key: string]: number }; length: number }
-		outputs: { data: { [key: string]: number }; length: number }
+		input: { data: { [key: string]: number }; length: number }
+		output: { data: { [key: string]: number }; length: number }
+		callback: { data: { [key: string]: number }; length: number }
 	}) {
-		if (this.infoTrace.outputs !== data.outputs.length && this.el.ctx) {
+		console.log('trace', data)
+		if (this.infoTrace.outputs !== data.output.length && this.el.ctx) {
 			addAnimation({
 				node: this
 			})
 		}
-		this.infoTrace.inputs = data.inputs.length
-		this.infoTrace.outputs = data.outputs.length
+		this.infoTrace.inputs = data.input.length
+		this.infoTrace.outputs = data.output.length
 	}
 
 	render({ ctx }: { ctx: CanvasRenderingContext2D }) {

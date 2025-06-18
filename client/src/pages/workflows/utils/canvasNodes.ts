@@ -1,6 +1,6 @@
 import type { INodeCanvas, INodeConnections } from '@shared/interface/node.interface'
 import { v4 as uuidv4 } from 'uuid'
-import { subscriberHelper } from './canvas_helpers'
+import { subscriberHelper } from './canvasHelpers'
 import { NewNode } from './canvasNode'
 import { ref } from 'vue'
 
@@ -390,14 +390,15 @@ export class Nodes {
 
 	trace(data: {
 		[id: string]: {
-			inputs: { data: { [key: string]: number }; length: number }
-			outputs: { data: { [key: string]: number }; length: number }
+			input: { data: { [key: string]: number }; length: number }
+			output: { data: { [key: string]: number }; length: number }
+			callback: { data: { [key: string]: number }; length: number }
 		}
 	}) {
 		for (const id of Object.keys(data)) {
 			const node = this.nodes[id]
 			if (!node) continue
-			node.trace({ inputs: data[id].inputs, outputs: data[id].outputs })
+			node.trace({ ...data[id] })
 		}
 	}
 
