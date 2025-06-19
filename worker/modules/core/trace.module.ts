@@ -7,7 +7,7 @@ export interface ITrace {
 	input: ITraceData
 	output: ITraceData
 	callback: ITraceData
-	connections: Set<{ type: 'input' | 'output' | 'callback'; name: string }>
+	connections: { type: 'input' | 'output' | 'callback'; name: string }[]
 }
 
 interface ITraceExecute {
@@ -37,7 +37,7 @@ export class CoreTrace {
 				input: { length: 0, data: {} },
 				output: { length: 0, data: {} },
 				callback: { length: 0, data: {} },
-				connections: new Set()
+				connections: []
 			})
 		}
 		const item = this.data.get(id)
@@ -47,7 +47,7 @@ export class CoreTrace {
 		}
 		if (connectName) {
 			item[type].data[connectName]++
-			item.connections.add({ type, name: connectName })
+			item.connections.push({ type, name: connectName })
 		}
 		item[type].length++
 
@@ -72,7 +72,7 @@ export class CoreTrace {
 				.filter(([key]) => this.changeNode.has(key))
 				.map(([key, value]) => {
 					const temp: [string, ITrace] = [key, JSON.parse(JSON.stringify(value))]
-					value.connections.clear()
+          value.connections = []
 					return temp
 				})
 		)

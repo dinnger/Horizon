@@ -286,11 +286,12 @@ export class NewNode {
 		input: { data: { [key: string]: number }; length: number }
 		output: { data: { [key: string]: number }; length: number }
 		callback: { data: { [key: string]: number }; length: number }
+    connections: { type: 'input' | 'output' | 'callback'; name: string }[]
 	}) {
-		console.log('trace', data)
 		if (this.infoTrace.outputs !== data.output.length && this.el.ctx) {
 			addAnimation({
-				node: this
+				node: this,
+        connections:data.connections
 			})
 		}
 		this.infoTrace.inputs = data.input.length

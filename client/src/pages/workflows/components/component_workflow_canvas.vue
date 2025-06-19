@@ -264,8 +264,9 @@ onMounted(() => {
   socket.socketOn("getTrace", (value) => {
     const data: {
       [id: string]: {
-        inputs: { data: { [key: string]: number }; length: number };
-        outputs: { data: { [key: string]: number }; length: number };
+        input: { data: { [key: string]: number }; length: number };
+        output: { data: { [key: string]: number }; length: number };
+        callback: { data: { [key: string]: number }; length: number };
       };
     } = value as any;
     canvasInstance?.value?.actionTrace(data);

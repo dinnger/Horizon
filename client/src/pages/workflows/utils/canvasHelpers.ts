@@ -305,10 +305,12 @@ function drawCircle(ctx: CanvasRenderingContext2D, position: Point, radius: numb
  *
  * @param {CanvasRenderingContext2D} ctx - The canvas rendering context to draw on.
  */
-export function addAnimation({ node }: { node: NewNode }) {
+export function addAnimation({ node, connections }: { node: NewNode, connections: { type: 'input' | 'output' | 'callback'; name: string }[] }) {
 	// console.log(connectionNodes)
 	if (!node || !node.connections) return
-	for (const connection of node.connections.filter((f) => f.idNodeOrigin === node.id)) {
+  if (!connections) return 
+  const conn = connections[0]
+	for (const connection of node.connections.filter((f) => f.idNodeOrigin === node.id && f.connectorType === conn.type && f.connectorName === conn.name)) {
 		if (!connection.pointers) return
 		animationList.push({
 			id: uuidv4(),
