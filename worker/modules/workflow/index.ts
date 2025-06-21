@@ -7,7 +7,7 @@ import { getNodeClass } from '@shared/maps/nodes.map.js'
 export class NodeModule {
 	el: Worker
 	nodesInit: INodeCanvas | null = null
-	nodes: { [key: string]: INodeCanvas & { class: any } } = {}
+	nodes: { [key: string]: INodeCanvas } = {}
 	nodesType = new Map<string, Set<string>>()
 	nodesClass = getNodeClass()
 	connections: {
@@ -63,9 +63,11 @@ export class NodeModule {
 		}
 		id = id || uuidv4()
 
+		const classNode = new (this.nodesClass[type].class as any)()
+
 		const prop: { [key: string]: any } = {}
-		if (this.nodesClass[type]?.properties) {
-			for (const [key, value] of Object.entries(this.nodesClass[type].properties) as [string, any][]) {
+		if (classNode?.properties) {
+			for (const [key, value] of Object.entries(classNode.properties) as [string, any][]) {
 				prop[key] = JSON.parse(JSON.stringify(value))
 				if (value.onTransform) prop[key].onTransform = value.onTransform
 				if (value.type === 'list') {
@@ -108,7 +110,6 @@ export class NodeModule {
 			meta,
 			design,
 			type,
-			class: this.nodesClass[type]?.class,
 			connections: []
 		}
 

@@ -254,6 +254,14 @@ export class VirtualModule {
 		if (!data.node.id) return { error: 'No se encontró el nodo' }
 		const node = virtualNode.get(data.node.id)
 
+		console.log('Cambio en --------------->', data.node.id)
+		for (const node of virtualNode.values()) {
+			const nodeProperty: INodePropertiesType | undefined = node.properties
+			if (nodeProperty?.endpoint?.value) {
+				console.log(node.id, nodeProperty?.endpoint?.value)
+			}
+		}
+
 		if (!node) return { error: 'No se encontró el nodo' }
 
 		// Si se llama desde init se toman las propiedades directas como referencia de memoria

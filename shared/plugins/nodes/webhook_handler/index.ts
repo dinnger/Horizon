@@ -23,7 +23,12 @@ export default class implements INodeClass {
 		}
 	}
 
-	properties: IProperties = nodeProperties
+	properties: IProperties
+
+	constructor() {
+		this.properties = nodeProperties()
+	}
+
 	async onCreate({ context, environment }: Parameters<NonNullable<INodeClass['onCreate']>>[0]) {
 		configurePropertiesVisibility(this.properties)
 		generateWebhookURL(context, environment, this.properties)
