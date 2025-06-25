@@ -4,7 +4,8 @@
   "description": "Proyecto principal",
   "main": "index.js",
   "workspaces": [
-    "client"
+    "client",
+    "client/canvas"
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
