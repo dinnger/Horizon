@@ -7,3 +7,6 @@
 [submodule "server"]
 	path = server
 	url = https://github.com/dinnger/Horizon-Server.git
+[submodule "worker"]
+	path = worker
+	url = https://github.com/dinnger/Horizon-Worker.git
