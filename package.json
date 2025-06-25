@@ -1,0 +1,14 @@
+{
+  "name": "horizon",
+  "version": "1.0.0",
+  "description": "Proyecto principal",
+  "main": "index.js",
+  "workspaces": [
+    "client"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
