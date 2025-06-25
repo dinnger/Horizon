@@ -1,0 +1,9 @@
+[submodule "client"]
+	path = client
+	url = https://github.com/dinnger/Horizon-Client.git
+[submodule "shared"]
+	path = shared
+	url = https://github.com/dinnger/Horizon-Shared.git
+[submodule "server"]
+	path = server
+	url = https://github.com/dinnger/Horizon-Server.git
