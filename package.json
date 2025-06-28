@@ -5,7 +5,8 @@
   "main": "index.js",
   "workspaces": [
     "client",
-    "client/canvas"
+    "client/canvas",
+    "server"
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
