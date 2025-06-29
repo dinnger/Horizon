@@ -9,8 +9,15 @@
     "server"
   ],
   "scripts": {
+    "server:dev": "ts-node-dev --respawn --transpile-only ./server/src/index.ts",
+    "server:update-nodes": "ts-node ./server/src/seeders/update-node-permissions.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "glob": "^11.0.3"
+  }
 }
