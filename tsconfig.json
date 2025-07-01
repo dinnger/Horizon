@@ -25,8 +25,11 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "types": ["node"],
+    "baseUrl": "./",
     "paths": {
-      "@shared/*": ["./shared/*"]
+      "@shared/*": ["./shared/*"],
+      "@server/*": ["./server/*"],
+      "@worker/*": ["./worker/*"]
     }
   },
   "include": [
