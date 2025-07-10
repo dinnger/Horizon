@@ -51,7 +51,7 @@ export default class implements IClassNode<IProperties> {
 		}
 	}
 
-	async onCreate({ context, environment }: classOnCreateInterface) {
+	async onCreate({ context }: classOnCreateInterface) {
 		// No hay configuraciones dinámicas por el momento
 	}
 

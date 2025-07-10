@@ -33,7 +33,6 @@ export const useCanvas = defineStore('canvas', () => {
 		try {
 			workflowId.value = data.flow
 			const flowData = await loadInitialWorkflow()
-			console.log('flowData', flowData)
 			if (flowData) {
 				flow.value = {
 					workflowData: flowData,
@@ -67,7 +66,7 @@ export const useCanvas = defineStore('canvas', () => {
 
 	const loadInitialWorkflow = async () => {
 		const data: { workflowData: WorkflowData; version: string } = await workflowsStore.getWorkflowById(workflowId.value)
-		console.log('data', data)
+		console.log('canvas store ', { data })
 		if (data?.workflowData) {
 			version.value.value = data.version
 			version.value.status = 'draft'
@@ -116,7 +115,7 @@ export const useCanvas = defineStore('canvas', () => {
 
 	const getVersions = async () => {
 		try {
-			const result = await socketService.getWorkflowVersions(workflowId.value)
+			const result = await workflowsStore.getWorkflowVersion(workflowId.value)
 			return result
 		} catch (error) {
 			console.error('Error obteniendo versiones:', error)

@@ -67,9 +67,8 @@ export const useProjectsStore = defineStore('projects', () => {
 
 	const createProject = (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => {
 		const now = new Date()
-		const newProject: Project = {
+		const newProject: Omit<Project, 'id'> = {
 			...projectData,
-			id: Date.now().toString(),
 			workspaceId: workspaceStore.currentWorkspaceId,
 			createdAt: now,
 			updatedAt: now

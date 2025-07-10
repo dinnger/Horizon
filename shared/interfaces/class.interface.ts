@@ -56,8 +56,6 @@ export interface classCredentialInterface {
 
 export interface classOnCreateInterface {
 	context: IWorkflowExecutionContextInterface
-	environment: classBaseEnvironmentInterface
-	dependency: classDependencyInterface
 }
 
 export interface classOnActionsInterface {

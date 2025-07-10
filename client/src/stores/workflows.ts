@@ -114,15 +114,17 @@ export const useWorkflowsStore = defineStore('workflows', () => {
 	}
 
 	const getWorkflowById = async (id: string) => {
-		console.log('getWorkflowById', workspaceStore.currentWorkspaceId, id)
 		return await socketService.getWorkflowsById(workspaceStore.currentWorkspaceId, id)
+	}
+
+	const getWorkflowVersion = async (id: string) => {
+		return await socketService.getWorkflowVersions(workspaceStore.currentWorkspaceId, id)
 	}
 
 	const createWorkflow = async (workflowData: Omit<Workflow, 'id' | 'createdAt' | 'updatedAt' | 'lastRun'>) => {
 		const now = new Date()
-		const newWorkflow: Workflow = {
+		const newWorkflow: Omit<Workflow, 'id'> = {
 			...workflowData,
-			id: Date.now().toString(),
 			lastRun: now,
 			createdAt: now,
 			updatedAt: now
@@ -196,6 +198,7 @@ export const useWorkflowsStore = defineStore('workflows', () => {
 
 		// Getters
 		getWorkflowById,
+		getWorkflowVersion,
 		getActiveWorkflowsCount,
 		getWorkflowStats,
 		getAllWorkflowStats,

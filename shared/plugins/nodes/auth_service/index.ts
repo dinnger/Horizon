@@ -223,7 +223,7 @@ export default class AuthServiceNode implements IClassNode<IProperties> {
 		}
 	}
 
-	async onCreate({ dependency, environment }: classOnCreateInterface): Promise<void> {
+	async onCreate({ context }: classOnCreateInterface): Promise<void> {
 		// Mostrar/ocultar campos según el método de autenticación seleccionado
 		this.hideAllAuthFields()
 
@@ -233,10 +233,7 @@ export default class AuthServiceNode implements IClassNode<IProperties> {
 		if (this.properties.useSecret.value) {
 			this.properties.authSecret.show = true
 
-			const secrets = await dependency.listSecrets({
-				type: 'variables',
-				subType: 'auth'
-			})
+			const secrets = await context.getSecrets('variables')
 
 			if (secrets) {
 				this.properties.authSecret.options = secrets
@@ -256,7 +253,7 @@ export default class AuthServiceNode implements IClassNode<IProperties> {
 
 					// Sugerir URI de redirección si está vacía
 					if (!this.properties.redirectUri.value) {
-						this.properties.redirectUri.value = `${environment.serverUrl}/auth/callback`
+						this.properties.redirectUri.value = `${context.getEnvironment('serverUrl')}/auth/callback`
 					}
 					break
 

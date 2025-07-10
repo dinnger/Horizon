@@ -248,6 +248,14 @@ export const seedDatabase = async () => {
 				description: 'Ver estadísticas de nodos',
 				status: 'active' as const
 			},
+			{
+				module: 'nodes',
+				action: 'change-property',
+				scope: 'global' as const,
+				priority: 15,
+				description: 'Cambiar propiedades de nodos',
+				status: 'active' as const
+			},
 
 			// Permisos para workers
 			{

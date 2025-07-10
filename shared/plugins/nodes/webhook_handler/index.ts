@@ -262,7 +262,7 @@ export default class implements IClassNode {
 		}
 	}
 
-	async onCreate({ context, environment }: classOnCreateInterface) {
+	async onCreate({ context }: classOnCreateInterface) {
 		// Configuración de seguridad
 		this.properties.securityBasicUser.show = false
 		this.properties.securityBasicPass.show = false
@@ -311,8 +311,12 @@ export default class implements IClassNode {
 
 		let endpoint: string = String(this.properties.endpoint.value).toString() || ''
 		if (endpoint[0] === '/') endpoint = endpoint.slice(1)
-		const serverUrl = environment.serverUrl.slice(-1) !== '/' ? environment.serverUrl : environment.serverUrl.slice(0, -1)
-		const baseUrl = environment.baseUrl.slice(-1) !== '/' ? `${environment.baseUrl}/` : environment.baseUrl
+		const serverUrl =
+			context.getEnvironment('serverUrl').slice(-1) !== '/'
+				? context.getEnvironment('serverUrl')
+				: context.getEnvironment('serverUrl').slice(0, -1)
+		const baseUrl =
+			context.getEnvironment('baseUrl').slice(-1) !== '/' ? `${context.getEnvironment('baseUrl')}/` : context.getEnvironment('baseUrl')
 		const url = `${serverUrl}${prefix}/${baseUrl}${endpoint}`
 		const urlProd = `( HOST )${base}/${endpoint}`
 		this.properties.url.value = [

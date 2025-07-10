@@ -43,24 +43,12 @@ export interface IProjectTransportConfig {
 /**
  * Tipos de transporte soportados
  */
-export type IProjectTransportType = 
-	| 'none' 
-	| 'tcp' 
-	| 'rabbitmq' 
-	| 'kafka' 
-	| 'nats' 
-	| 'http' 
-	| 'websocket' 
-	| 'mqtt'
+export type IProjectTransportType = 'none' | 'tcp' | 'rabbitmq' | 'kafka' | 'nats' | 'http' | 'websocket' | 'mqtt'
 
 /**
  * Patrones de transporte soportados
  */
-export type IProjectTransportPattern = 
-	| 'request-response' 
-	| 'publish-subscribe' 
-	| 'push-pull' 
-	| 'stream'
+export type IProjectTransportPattern = 'request-response' | 'publish-subscribe' | 'push-pull' | 'stream'
 
 /**
  * Estados de proyecto

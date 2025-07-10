@@ -10,6 +10,7 @@ import type {
 	WorkspaceUpdateData
 } from '../types/socket'
 import type { INodeCanvas } from '@canvas/interfaz/node.interface'
+import type { INodePropertiesType } from '@canvas/interfaz/node.properties.interface'
 
 class SocketService {
 	private socket: Socket | null = null
@@ -563,6 +564,23 @@ class SocketService {
 					resolve(response.stats)
 				} else {
 					reject(new Error(response.message || 'Failed to get node stats'))
+				}
+			})
+		})
+	}
+
+	changeNodeProperty(nodeId: string, property: { [key: string]: any }): Promise<any> {
+		return new Promise((resolve, reject) => {
+			if (!this.socket) {
+				reject(new Error('Socket not connected'))
+				return
+			}
+
+			this.socket.emit('nodes:change-property', { nodeId, property }, (response: any) => {
+				if (response.success) {
+					resolve(response.node)
+				} else {
+					reject(new Error(response.message || 'Failed to change node property'))
 				}
 			})
 		})

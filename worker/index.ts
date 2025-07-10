@@ -62,7 +62,8 @@ const workerStart = async ({
 			const context: IWorkflowExecutionContextInterface = {
 				info: flow.info,
 				properties: flow.properties,
-				secrets: flow.secrets,
+				getEnvironment: (name: string) => flow.environment.find((e) => e === name),
+				getSecrets: (name: string) => flow.secrets.find((s) => s === name),
 				currentNode: null
 			}
 

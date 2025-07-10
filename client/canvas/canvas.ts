@@ -1,6 +1,5 @@
 import './style/style.css'
 import '@fontsource-variable/comfortaa'
-import type { ICommunicationTypes } from './interfaz/connect.interface.js'
 import type { INodeCanvas, INodeConnections } from './interfaz/node.interface.js'
 import { drawNodeConnectionPreview, renderSelected, getTempConnection, setIndexTime, renderAnimation } from './canvasHelpers'
 import { pattern_dark, pattern_light } from './canvasPattern'
@@ -417,7 +416,6 @@ export class Canvas {
 				})
 				const connectorOriginName =
 					typeof this.newConnectionNode.value === 'string' ? this.newConnectionNode.value : this.newConnectionNode.value.name || ''
-				console.log({ connectorOriginName })
 				originNode.addConnection({
 					connectorOriginName,
 					idNodeDestiny: targetInput.node.id,
@@ -533,7 +531,6 @@ export class Canvas {
 		// })
 		const nodeDestiny = this.nodes.addNode(data)
 
-		console.log('origin', origin)
 		if (origin) {
 			const inputs = nodeDestiny.info.connectors.inputs[0]
 			const connectorDestinyName = typeof inputs === 'string' ? inputs : inputs.name || ''

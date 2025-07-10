@@ -1,4 +1,4 @@
-import type { IClassNode, classOnCreateInterface, classOnExecuteInterface, infoInterface } from '@shared/interfaces/class.interface.js'
+import type { IClassNode, classOnExecuteInterface, infoInterface } from '@shared/interfaces/class.interface.js'
 import type { IPropertiesType } from '@shared/interfaces/workflow.properties.interface.js'
 
 export default class implements IClassNode {

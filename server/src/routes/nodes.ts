@@ -9,6 +9,7 @@
  * - nodes:search - Search nodes by name, description or type
  * - nodes:info - Get detailed node information by type
  * - nodes:stats - Get node usage statistics
+ * - nodes:change-property - Change node property
  *
  * All routes require appropriate permissions as defined in the permission middleware.
  *
@@ -215,6 +216,50 @@ export const setupNodeRoutes = {
 		} catch (error) {
 			console.error('Error obteniendo estadísticas de nodos:', error)
 			callback({ success: false, message: 'Error al obtener estadísticas de nodos' })
+		}
+	},
+
+	// Change node property - requires write permission
+	'nodes:change-property': async ({ socket, data, callback }: SocketData) => {
+		try {
+			const { nodeId, property } = data
+
+			if (!nodeId) {
+				callback({ success: false, message: 'ID del nodo requerido' })
+				return
+			}
+
+			if (!property) {
+				callback({ success: false, message: 'Propiedad requerida' })
+				return
+			}
+
+			const nodeClasses = getNodeClass()
+			const nodeClass = nodeClasses[nodeId]
+
+			if (!nodeClass) {
+				callback({ success: false, message: 'Tipo de nodo no encontrado' })
+				return
+			}
+
+			if (!nodeClass.onCreate) {
+				callback({ success: false, message: 'Sin función onCreate' })
+				return
+			}
+
+			// Update property value
+			for (const key of Object.keys(property)) {
+				nodeClass.properties[key].value = property[key]
+			}
+
+			// TODO: ANALIZAR COMO OBTENER LOS DATOS PARA EL ONCREATE
+			// const context = { environments: environment, secrets: socket.secrets }
+			// nodeClass.onCreate({})
+
+			callback({ success: true, node: nodeClass })
+		} catch (error) {
+			console.error('Error cambiando propiedad de nodo:', error)
+			callback({ success: false, message: 'Error al cambiar propiedad de nodo' })
 		}
 	}
 }

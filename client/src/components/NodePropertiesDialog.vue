@@ -45,7 +45,7 @@
         <div class="flex-1 overflow-y-auto p-6">
           <div v-if="activeSection === 'properties'" class="space-y-4">
             <h3 class="text-lg font-semibold mb-4">Propiedades</h3>
-            <div v-for="(property, key) in editableProperties" :key="key" class="form-control">
+            <div v-for="(property, key) in properties" :key="key" class="form-control">
               <label class="label">
                 <span class="label-text font-medium">{{ property.name || key }}</span>
                 <span v-if="property.required" class="text-error">*</span>
@@ -246,6 +246,7 @@ const editableMeta = ref({
 
 // Estados originales para comparar cambios
 const originalProperties = ref<INodePropertiesType>({})
+const tempProperties = ref<INodePropertiesType>({})
 const originalCredentials = ref<INodePropertiesType>({})
 const originalMeta = ref({
   id: '',
@@ -271,6 +272,12 @@ const sections = computed(() => [
   }
 ])
 
+const properties = computed(() => {
+  const entries = Object.entries(editableProperties.value)
+    .filter(([_, prop]) => prop.show !== false)
+  return Object.fromEntries(entries)
+})
+
 const hasChanges = computed(() => {
   return JSON.stringify(editableProperties.value) !== JSON.stringify(originalProperties.value) ||
     JSON.stringify(editableCredentials.value) !== JSON.stringify(originalCredentials.value) ||
@@ -285,12 +292,31 @@ watch(() => props.isVisible, (newValue) => {
   }
 })
 
+watch(() => editableProperties.value, (value) => {
+  nodesLibraryStore.propertiesChanged(value)
+    .then((val: any) => {
+      console.log(val)
+    })
+  // for (const key of Object.keys(value)) {
+  //   if (tempProperties.value[key].value !== value[key].value) {
+  //     console.log(key, tempProperties.value[key].value, '->', value[key].value)
+  //     tempProperties.value[key].value = JSON.parse(JSON.stringify(value[key].value))
+  //   }
+  // }
+}, {
+  deep: true
+})
+
 const initializeEditableData = () => {
   if (!props.nodeData) return
 
   // Clonar propiedades
   editableProperties.value = JSON.parse(JSON.stringify(props.nodeData.properties || {}))
   originalProperties.value = JSON.parse(JSON.stringify(props.nodeData.properties || {}))
+  tempProperties.value = JSON.parse(JSON.stringify(props.nodeData.properties || {}))
+
+  // Inicializar propiedades en el store
+  nodesLibraryStore.propertiesInitialized(props.nodeData)
 
   // Clonar credenciales
   editableCredentials.value = JSON.parse(JSON.stringify(props.nodeData.credentials || {}))

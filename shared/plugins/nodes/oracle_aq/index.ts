@@ -166,14 +166,11 @@ export default class OracleAQNode implements IClassNode<IProperties, ICredential
 		}
 	}
 
-	async onCreate({ dependency }: classOnCreateInterface): Promise<void> {
+	async onCreate({ context }: classOnCreateInterface): Promise<void> {
 		if (this.properties.connection.value === 'secret') {
 			this.properties.configSecret.show = true
 			this.properties.config.show = false
-			const secrets = await dependency.listSecrets({
-				type: 'database',
-				subType: String(this.properties.dialect.value)
-			})
+			const secrets = await context.getSecrets(String(this.properties.dialect.value))
 			if (secrets) {
 				this.properties.configSecret.options = secrets
 			}

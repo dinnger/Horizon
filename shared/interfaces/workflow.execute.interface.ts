@@ -9,13 +9,13 @@ export interface IWorkflowExecutionContextInterface {
 	project?: Record<IProjectTransportType, any> //IProjectClient
 	info: IWorkflowInfo
 	properties: IWorkflowProperties
-	variables?: string[]
-	secrets?: string[]
 	currentNode: {
 		id: string
 		name: string
 		type: string
 		meta?: object
 	} | null
+	getEnvironment: (name: string) => any
+	getSecrets: (name: string) => any
 	onCustomEvent?: (eventName: string, callback: (...args: any[]) => any) => any
 }
