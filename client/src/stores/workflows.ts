@@ -1,8 +1,9 @@
+import type { INodeCanvas, INodeConnections } from '@canvas/interfaz/node.interface'
+import type { IWorkflowExecutionContextInterface } from '@shared/interfaces'
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import socketService from '@/services/socket'
-import type { INodeCanvas, INodeConnections } from '@canvas/interfaz/node.interface'
 import { useWorkspaceStore } from './workspace'
+import socketService from '@/services/socket'
 
 export interface Workflow {
 	id: string
@@ -21,6 +22,7 @@ export const useWorkflowsStore = defineStore('workflows', () => {
 	const loading = ref(false)
 	const projectId = ref<string>('')
 	const error = ref<string | null>(null)
+	const context = ref<Omit<IWorkflowExecutionContextInterface, 'currentNode' | 'getEnvironment' | 'getSecrets'>>()
 
 	const workspaceStore = useWorkspaceStore()
 
@@ -113,12 +115,29 @@ export const useWorkflowsStore = defineStore('workflows', () => {
 		}
 	}
 
-	const getWorkflowById = async (id: string) => {
-		return await socketService.getWorkflowsById(workspaceStore.currentWorkspaceId, id)
+	const getWorkflowById = async (id: string, isContext = false) => {
+		const data = await socketService.getWorkflowsById(workspaceStore.currentWorkspaceId, id)
+		if (isContext) {
+			context.value = {
+				project: {
+					type: data.project.transportType
+				},
+				info: {
+					name: data.name,
+					uid: data.id
+				},
+				properties: data.properties
+			}
+		}
+		return data
 	}
 
 	const getWorkflowVersion = async (id: string) => {
 		return await socketService.getWorkflowVersions(workspaceStore.currentWorkspaceId, id)
+	}
+
+	const getWorkflowContext = () => {
+		return context.value
 	}
 
 	const createWorkflow = async (workflowData: Omit<Workflow, 'id' | 'createdAt' | 'updatedAt' | 'lastRun'>) => {
@@ -202,6 +221,7 @@ export const useWorkflowsStore = defineStore('workflows', () => {
 		getActiveWorkflowsCount,
 		getWorkflowStats,
 		getAllWorkflowStats,
+		getWorkflowContext,
 
 		// Actions
 		initializeData,

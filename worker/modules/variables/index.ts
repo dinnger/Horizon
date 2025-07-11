@@ -78,11 +78,9 @@ export class VariableModule {
 	async checkWorkflowEnvironment({ flow }: { flow: IWorkflow }) {
 		// Project variables
 		if (flow.project) {
-			this.el.context.project = {
-				none: {},
-				rabbitmq: {},
-				...flow.project
-			}
+			// this.el.context.project = {
+			// 	...flow.project
+			// }
 			for (const key of Object.keys(flow.project) as Array<keyof typeof flow.project>) {
 				const projectSection = flow.project[key]
 				if (projectSection && typeof projectSection === 'object') {

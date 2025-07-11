@@ -5,6 +5,7 @@ export interface IProjectTransportConfig {
 	// TCP
 	host?: string
 	port?: number
+	maxRetries?: number
 
 	// RabbitMQ
 	amqpUrl?: string
@@ -44,6 +45,92 @@ export interface IProjectTransportConfig {
  * Tipos de transporte soportados
  */
 export type IProjectTransportType = 'none' | 'tcp' | 'rabbitmq' | 'kafka' | 'nats' | 'http' | 'websocket' | 'mqtt'
+
+/**
+ * Configuración específica para cada tipo de transporte
+ */
+export interface ITcpTransportConfig {
+	host: string
+	port: number
+	maxRetries?: number
+	username?: string
+	password?: string
+	ssl?: boolean
+	retries?: number
+	retryDelay?: number
+}
+
+export interface IRabbitMqTransportConfig {
+	amqpUrl: string
+	exchange?: string
+	queue?: string
+	routingKey?: string
+	username?: string
+	password?: string
+	ssl?: boolean
+	maxRetries?: number
+	retryDelay?: number
+}
+
+export interface IKafkaTransportConfig {
+	brokers: string[]
+	clientId?: string
+	groupId?: string
+	topic?: string
+	username?: string
+	password?: string
+	ssl?: boolean
+	retries?: number
+	retryDelay?: number
+}
+
+export interface INatsTransportConfig {
+	natsUrl: string
+	subject?: string
+	username?: string
+	password?: string
+	ssl?: boolean
+	retries?: number
+	retryDelay?: number
+}
+
+export interface IHttpTransportConfig {
+	baseUrl: string
+	timeout?: number
+	username?: string
+	password?: string
+	ssl?: boolean
+	retries?: number
+	retryDelay?: number
+}
+
+export interface IWebSocketTransportConfig {
+	wsUrl: string
+	username?: string
+	password?: string
+	ssl?: boolean
+	retries?: number
+	retryDelay?: number
+}
+
+export interface IMqttTransportConfig {
+	mqttUrl: string
+	username?: string
+	password?: string
+	ssl?: boolean
+	retries?: number
+	retryDelay?: number
+}
+
+export type IProjectTransportConfigByType =
+	| { type: 'none'; configtransportConfig?: undefined }
+	| { type: 'tcp'; transportConfig: ITcpTransportConfig }
+	| { type: 'rabbitmq'; transportConfig: IRabbitMqTransportConfig }
+	| { type: 'kafka'; transportConfig: IKafkaTransportConfig }
+	| { type: 'nats'; transportConfig: INatsTransportConfig }
+	| { type: 'http'; transportConfig: IHttpTransportConfig }
+	| { type: 'websocket'; transportConfig: IWebSocketTransportConfig }
+	| { type: 'mqtt'; transportConfig: IMqttTransportConfig }
 
 /**
  * Patrones de transporte soportados

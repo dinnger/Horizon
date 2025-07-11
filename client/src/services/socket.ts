@@ -11,6 +11,7 @@ import type {
 } from '../types/socket'
 import type { INodeCanvas } from '@canvas/interfaz/node.interface'
 import type { INodePropertiesType } from '@canvas/interfaz/node.properties.interface'
+import type { IWorkflowExecutionContextInterface } from '@shared/interfaces'
 
 class SocketService {
 	private socket: Socket | null = null
@@ -569,14 +570,18 @@ class SocketService {
 		})
 	}
 
-	changeNodeProperty(nodeId: string, property: { [key: string]: any }): Promise<any> {
+	changeNodeProperty(
+		nodeId: string,
+		context: Omit<IWorkflowExecutionContextInterface, 'currentNode' | 'getEnvironment' | 'getSecrets'>,
+		property: { [key: string]: any }
+	): Promise<any> {
 		return new Promise((resolve, reject) => {
 			if (!this.socket) {
 				reject(new Error('Socket not connected'))
 				return
 			}
 
-			this.socket.emit('nodes:change-property', { nodeId, property }, (response: any) => {
+			this.socket.emit('nodes:change-property', { nodeId, context, property }, (response: any) => {
 				if (response.success) {
 					resolve(response.node)
 				} else {

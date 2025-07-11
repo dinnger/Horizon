@@ -222,7 +222,7 @@ export const setupNodeRoutes = {
 	// Change node property - requires write permission
 	'nodes:change-property': async ({ socket, data, callback }: SocketData) => {
 		try {
-			const { nodeId, property } = data
+			const { nodeId, context, property } = data
 
 			if (!nodeId) {
 				callback({ success: false, message: 'ID del nodo requerido' })
@@ -253,8 +253,7 @@ export const setupNodeRoutes = {
 			}
 
 			// TODO: ANALIZAR COMO OBTENER LOS DATOS PARA EL ONCREATE
-			// const context = { environments: environment, secrets: socket.secrets }
-			// nodeClass.onCreate({})
+			nodeClass.onCreate({ context })
 
 			callback({ success: true, node: nodeClass })
 		} catch (error) {

@@ -50,7 +50,7 @@ export const setupWorkflowRoutes = {
 			const workflow = await Workflow.findOne({
 				include: [
 					{
-						attributes: ['id', 'name', 'description'],
+						attributes: ['id', 'name', 'description', 'transportType'],
 						model: Project,
 						as: 'project',
 						where: {

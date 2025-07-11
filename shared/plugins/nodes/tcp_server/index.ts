@@ -45,7 +45,8 @@ export default class implements IClassNode {
 			if (!context.project) return
 
 			const net = await import('node:net')
-			const { host, port } = context.project.tcp
+			if (context.project.type !== 'tcp') return
+			const { host, port } = context.project.transportConfig || {}
 
 			// Detener servidor si se recibe la señal de stop
 			if (inputData.inputName === 'stop') {

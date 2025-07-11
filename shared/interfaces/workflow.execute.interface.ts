@@ -1,4 +1,10 @@
-import type { IProjectClient, IProjectTransportType, IWorkflowInfo, IWorkflowProperties } from './standardized'
+import type {
+	IProjectTransportConfig,
+	IProjectTransportConfigByType,
+	IProjectTransportType,
+	IWorkflowInfo,
+	IWorkflowProperties
+} from './standardized'
 
 export interface IWorkflowExecutionProject {
 	type: string
@@ -6,7 +12,7 @@ export interface IWorkflowExecutionProject {
 }
 
 export interface IWorkflowExecutionContextInterface {
-	project?: Record<IProjectTransportType, any> //IProjectClient
+	project?: IProjectTransportConfigByType
 	info: IWorkflowInfo
 	properties: IWorkflowProperties
 	currentNode: {

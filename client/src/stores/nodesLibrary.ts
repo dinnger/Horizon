@@ -2,6 +2,7 @@ import type { INodeCanvas, INodeCanvasAdd } from '@canvas/interfaz/node.interfac
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import socketService from '@/services/socket'
+import { useWorkflowsStore } from './workflows'
 
 export interface NodeGroup {
 	name: string
@@ -18,6 +19,8 @@ export const useNodesLibraryStore = defineStore('nodesLibrary', () => {
 	const isNodePanelVisible = ref(false)
 	// Estados de la propiedad
 	const tempProperties = ref<INodeCanvas>()
+
+	const workflowStore = useWorkflowsStore()
 
 	// Cargar nodos desde el servidor
 	const loadNodes = async () => {
@@ -86,8 +89,14 @@ export const useNodesLibraryStore = defineStore('nodesLibrary', () => {
 		return new Promise((resolve, reject) => {
 			if (!tempProperties.value?.id) return reject(new Error('No node selected'))
 			const entries = Object.entries(properties).map(([_, prop]) => [_, { value: prop.value }])
+
+			// Obtener contexto del workflow
+			const context = workflowStore.getWorkflowContext()
+			if (!context) return reject(new Error('No workflow context found'))
+
+			// Enviar cambio de propiedad
 			socketService
-				.changeNodeProperty(tempProperties.value?.id, Object.fromEntries(entries))
+				.changeNodeProperty(tempProperties.value?.id, context, Object.fromEntries(entries))
 				.then((response: any) => {
 					console.log(response)
 					// tempProperties.value = { ...node, properties: JSON.parse(JSON.stringify(node.properties || {})) }

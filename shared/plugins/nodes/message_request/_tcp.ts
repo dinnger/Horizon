@@ -25,9 +25,10 @@ export default class implements IConnectionModule {
 		this.outputData = outputData
 
 		if (!context.project) return
-		const { port, host, maxRetries } = context.project.tcp
-		this.port = port
-		this.host = host
+		if (context.project.type !== 'tcp') return
+		const { port, host, maxRetries } = context.project.transportConfig || {}
+		this.port = port || 0
+		this.host = host || ''
 		this.attemps = 0
 		this.retries = Number(maxRetries)
 	}

@@ -2,7 +2,7 @@ import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { useWorkspaceStore } from './workspace'
 import socketService from '../services/socket'
-import type { IProjectClient, IProjectTransportConfig, IProjectTransportType, IProjectStatus } from '@shared/interfaces/standardized.js'
+import type { IProjectClient, IProjectTransportConfig } from '@shared/interfaces/standardized.js'
 
 // Interfaces legacy para compatibilidad
 export interface ProjectTransportConfig extends IProjectTransportConfig {}

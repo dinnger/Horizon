@@ -251,7 +251,6 @@ const runWorkflow = (workflowId: string) => {
 
 const editWorkflow = (workflow: Workflow) => {
   router.push(`/projects/${workflow.id}/canvas`)
-  // TODO: Implement edit functionality
 }
 
 const deleteWorkflow = (workflowId: string) => {

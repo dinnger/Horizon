@@ -20,10 +20,11 @@ export default class implements IConnectionModule {
 		this.context = context
 
 		if (!context.project) return
-		const { url, exchange, maxRetries } = context.project.rabbitmq
-		this.url = url
-		this.exchange = exchange
-		this.retries = maxRetries
+		if (context.project.type !== 'rabbitmq') return
+		const { amqpUrl, exchange, maxRetries } = context.project.transportConfig || {}
+		this.url = amqpUrl
+		this.exchange = exchange || ''
+		this.retries = maxRetries || 0
 	}
 
 	// ======================================================================
